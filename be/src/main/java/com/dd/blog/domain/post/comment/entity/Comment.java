@@ -1,6 +1,6 @@
 package com.dd.blog.domain.post.comment.entity;
 
-import com.dd.blog.domain.post.category.entity.Post;
+import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.global.jpa.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -8,10 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Getter

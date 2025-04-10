@@ -5,6 +5,8 @@ import com.dd.blog.global.jpa.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name="category")
 @Getter

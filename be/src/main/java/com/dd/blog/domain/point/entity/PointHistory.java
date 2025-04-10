@@ -1,5 +1,6 @@
 package com.dd.blog.domain.point.entity;
 
+import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.global.jpa.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
