@@ -4,15 +4,17 @@ import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.global.jpa.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
+@Entity
 @Getter
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
+@ToString
 @Table(
-        name = "post_likes",
+        name = "post_like",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "post_like_uk",
@@ -21,12 +23,6 @@ import lombok.NoArgsConstructor;
         }
 )
 public class PostLike extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "like_id")
-    private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
@@ -34,10 +30,4 @@ public class PostLike extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-
-    @Builder
-    public PostLike(Post post, User user) {
-        this.post = post;
-        this.user = user;
-    }
 }

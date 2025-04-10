@@ -18,10 +18,6 @@ import lombok.experimental.SuperBuilder;
 @ToString
 @Table(name="comment")
 public class Comment extends BaseEntity {
-//    //기본키
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    private Long comment_id;
     //외래키
     @ManyToOne
     @JoinColumn(name="post_id")

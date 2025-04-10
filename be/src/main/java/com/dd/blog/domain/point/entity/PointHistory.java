@@ -3,22 +3,17 @@ package com.dd.blog.domain.point.entity;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.global.jpa.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Getter
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "point_histories")
+@SuperBuilder
+@ToString
+@Table(name = "point_history")
 public class PointHistory extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "history_id")
-    private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -28,11 +23,4 @@ public class PointHistory extends BaseEntity {
 
     @Column(nullable = false, length = 30)
     private String type;
-
-    @Builder
-    public PointHistory(User user, Integer pointChange, String type) {
-        this.user = user;
-        this.pointChange = pointChange;
-        this.type = type;
-    }
 }

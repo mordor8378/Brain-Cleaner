@@ -18,11 +18,6 @@ import lombok.experimental.SuperBuilder;
 @ToString
 @Table(name="post")
 public class Post extends BaseEntity {
-    //기본키
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    private Long post_id;
-
     //외래키
     @ManyToOne
     @JoinColumn(name="user_id")
