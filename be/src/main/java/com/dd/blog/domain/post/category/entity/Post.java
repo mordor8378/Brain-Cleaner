@@ -29,7 +29,7 @@ public class Post extends BaseEntity {
     private User user;
     @ManyToOne
     @JoinColumn(name="category_id")
-    private Category Category;
+    private Category category;
 
     @Column(name = "title", nullable = false, length=100)
     private String title;
