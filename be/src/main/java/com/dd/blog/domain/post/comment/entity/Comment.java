@@ -1,6 +1,7 @@
 package com.dd.blog.domain.post.comment.entity;
 
 import com.dd.blog.domain.post.post.entity.Post;
+import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.global.jpa.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
