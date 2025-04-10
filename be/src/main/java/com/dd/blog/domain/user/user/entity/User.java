@@ -1,10 +1,7 @@
 package com.dd.blog.domain.user.user.entity;
 
 import com.dd.blog.global.jpa.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,14 +14,15 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @SuperBuilder
 @ToString(exclude = "password")
+@Table(name = "user")
 public class User extends BaseEntity {
-    @Column(name = "email", nullable = false, length = 50)
+    @Column(name = "email", nullable = false, length = 100)
     private String email;
 
-    @Column(name = "password", length = 50)
+    @Column(name = "password")
     private String password;
 
-    @Column(name = "nickname", nullable = false, length = 15)
+    @Column(name = "nickname", nullable = false, length = 50)
     private String nickname;
 
     @Column(name = "remaining_point")
@@ -35,18 +33,15 @@ public class User extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
-    private Role role;
+    private UserRole role;
 
-    @Column(name = "refresh_token", length = 255)
+    @Column(name = "refresh_token")
     private String refreshToken;
 
     @Column(name = "sso_provider", length = 50)
     private String ssoProvider;
 
-    @Column(name = "social_id", length = 255)
+    @Column(name = "social_id")
     private String socialId;
 
-    public enum Role {
-        ROLE_USER, ROLE_ADMIN
-    }
 }
