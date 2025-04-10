@@ -30,7 +30,7 @@ public class Comment extends BaseEntity {
     @JoinColumn(name="post_id")
     private Post post;
     @ManyToOne
-    @JoinColumn(name="post_id")
+    @JoinColumn(name="user_id")
     private User user;
 
     //대댓글 (자기참조)
@@ -40,5 +40,6 @@ public class Comment extends BaseEntity {
 //    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
 //    private List<Comment> children = new ArrayList<>(); //대댓글 목록
 
+    @Column(name = "content", nullable = false, length=100)
     private String content;
 }

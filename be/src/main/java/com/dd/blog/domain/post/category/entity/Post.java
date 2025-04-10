@@ -22,6 +22,7 @@ public class Post extends BaseEntity {
 //    @Id
 //    @GeneratedValue(strategy = GenerationType.IDENTITY)
 //    private Long post_id;
+
     //외래키
     @ManyToOne
     @JoinColumn(name="user_id")
@@ -30,9 +31,18 @@ public class Post extends BaseEntity {
     @JoinColumn(name="category_id")
     private Category Category;
 
+    @Column(name = "title", nullable = false, length=100)
     private String title;
+
+    @Column(name = "content", nullable = false, length=200)
     private String content;
+
+    @Column(name = "image_url", nullable = false, length=100)
     private String imageUrl;
+
+    @Column(name="view_count")
     private int viewCount;
+
+    @Column(name="like_count")
     private int likeCount;
 }
