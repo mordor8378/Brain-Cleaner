@@ -1,8 +1,8 @@
 ---
-name: 🐛 Bugfix
+name: 🐞 Bugfix
 about: 버그를 수정하는 PR 템플릿입니다.
 title: "[FIX] 대상 - 버그 설명 및 해결 - #이슈번호"
-labels: bugfix
+labels: 🐞 bugfix
 ---
 
 </br>
