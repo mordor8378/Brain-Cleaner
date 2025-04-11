@@ -6,7 +6,7 @@ labels: 🧠 feature
 ---
 </br>
 
-# 📌 Feature PR
+# 🧠 Feature PR
 
 새로운 기능을 추가하는 PR입니다. 
 
