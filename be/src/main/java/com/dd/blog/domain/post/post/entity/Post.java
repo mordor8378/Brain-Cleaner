@@ -22,6 +22,7 @@ public class Post extends BaseEntity {
     @ManyToOne
     @JoinColumn(name="user_id")
     private User user;
+
     @ManyToOne
     @JoinColumn(name="category_id")
     private Category category;
@@ -40,4 +41,11 @@ public class Post extends BaseEntity {
 
     @Column(name="like_count")
     private int likeCount;
+
+    // 인증게시판 전용
+    @Column(name = "verification_image_url", length = 255)
+    private String verificationImageUrl;
+
+    @Column(name = "detox_time")
+    private Integer detoxTime;
 }
