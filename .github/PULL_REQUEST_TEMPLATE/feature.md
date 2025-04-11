@@ -1,3 +1,11 @@
+---
+name: 🧠 Feature
+about: 새로운 기능을 추가하는 PR 템플릿입니다.
+title: "[FEAT] 대상 - 추가 기능 - #이슈번호"
+labels: 🧠 feature
+---
+</br>
+
 # 📌 Feature PR
 
 새로운 기능을 추가하는 PR입니다. 
