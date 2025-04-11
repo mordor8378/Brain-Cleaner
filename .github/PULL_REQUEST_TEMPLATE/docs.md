@@ -1,3 +1,12 @@
+---
+name: 📄 Docs
+about: 문서 관련 내용을 수정하는 PR 템플릿입니다.
+title: "[DOCS] 대상 문서 - 수정한 내용 - #이슈번호"
+labels: 📄 documentation
+---
+
+</br>
+
 # 📄 Docs PR
 
 문서 수정 PR입니다. README, API 명세, ERD 등 문서 관련 변경 사항이 있을 때 사용합니다.
