@@ -7,7 +7,7 @@ labels: 🐞 bugfix
 
 </br>
 
-# 🐞 Bug Fix PR
+# 🐞 Bugfix PR
 
 버그 수정 PR입니다. 
 
