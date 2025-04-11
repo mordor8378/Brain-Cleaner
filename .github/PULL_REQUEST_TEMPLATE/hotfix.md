@@ -1,3 +1,12 @@
+---
+name: 🔥 Hotfix
+about: 긴급하게 버그를 수정하는 PR 템플릿입니다.
+title: "[HOTFIX] 대상 - 긴급 수정 내용 - #이슈번호"
+labels: hotfix
+---
+
+</br>
+
 # 🚨 Hot Fix PR
 
 긴급 수정 PR입니다. 배포 직후 발생한 긴급 이슈나 서비스 장애를 즉시 수정하는 경우에 사용합니다.
