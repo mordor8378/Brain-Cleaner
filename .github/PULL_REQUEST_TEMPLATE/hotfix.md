@@ -1,8 +1,8 @@
 ---
-name: 🔥 Hotfix
+name: 🚨 Hotfix
 about: 긴급하게 버그를 수정하는 PR 템플릿입니다.
 title: "[HOTFIX] 대상 - 긴급 수정 내용 - #이슈번호"
-labels: hotfix
+labels: 🚨 hotfix
 ---
 
 </br>
