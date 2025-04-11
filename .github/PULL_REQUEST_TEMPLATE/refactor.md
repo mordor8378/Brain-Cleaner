@@ -1,3 +1,12 @@
+---
+name: 🔄 Refactor
+about: 기능은 그대로 두고 코드만 개선하는 PR 템플릿입니다.
+title: "[REFACTOR] 대상 - 리팩토링한 내용 - #이슈번호"
+labels: 🔄 refactor
+---
+
+</br>
+
 # 🔄 Refactor PR
 
 리팩터링 PR입니다. 
