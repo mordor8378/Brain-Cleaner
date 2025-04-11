@@ -10,7 +10,7 @@
 </br></br>
 
 ## pick ur template🤏🏻
-### ✨ feat
+### 🧠 feat
 [➡️ 기능 추가용 템플릿 선택](?expand=1&template=feature.md)
 
 ### 🐞 bug
