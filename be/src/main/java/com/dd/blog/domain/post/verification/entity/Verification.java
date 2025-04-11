@@ -26,5 +26,9 @@ public class Verification extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private VerificationStatus status; // PENDING, APPROVED, REJECTED
+
+    @Column(name = "detox_time", nullable = false)
+    private Integer detoxTime;
+
 }
 
