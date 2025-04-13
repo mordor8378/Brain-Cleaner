@@ -37,7 +37,7 @@ dependencies {
 	runtimeOnly("com.mysql:mysql-connector-j")
 
 	//swagger 의존성
-	implementation("org.springdoc:springdoc-openai-atarter-webmvc-ui:2.8.5")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5")
 
 	//시큐리티 의존성
 	implementation("org.springframework.boot:spring-boot-starter-security")
