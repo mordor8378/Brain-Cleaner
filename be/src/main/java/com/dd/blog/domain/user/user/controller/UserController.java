@@ -40,6 +40,17 @@ public class UserController {
         return ResponseEntity.ok(UserResponseDto.fromEntity(user));
     }
 
+    @DeleteMapping("/{userId}")
+    @Operation(summary = "계정 삭제", description = "프로필의 계정삭제 버튼을 누르면 사용자 정보를 삭제합니다.")
+    public ResponseEntity<String> deleteUser(@PathVariable Long userId){
+        userService.deleteUser(userId);
+        return ResponseEntity.ok("탈퇴완료");
+    }
+//
+//    @PutMapping("/{userId}")
+//    @Operation()
+//    public ResponseEntity<>
+
     @PostMapping("/refresh")
     @Operation(summary = "토큰 갱신", description = "리프레시 토큰으로 새로운 액세스 토큰을 발급받습니다.")
     public ResponseEntity<TokenResponseDto> refreshToken(@RequestParam String refreshToken) {
