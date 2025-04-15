@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/follows")
 @RequiredArgsConstructor
 @Tag(name = "Follow", description = "팔로우 관련 API")
-public class FollowerController {
+public class ApiV1FollowerController {
     private final FollowService followService;
 
     @PostMapping

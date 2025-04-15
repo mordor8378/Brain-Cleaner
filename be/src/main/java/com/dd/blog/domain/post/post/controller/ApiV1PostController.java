@@ -6,10 +6,8 @@ import com.dd.blog.domain.post.post.service.PostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("posts")
 @RequiredArgsConstructor
-public class PostController {
+public class ApiV1PostController {
     private final PostService postService;
 
     //전체 게시글 조회

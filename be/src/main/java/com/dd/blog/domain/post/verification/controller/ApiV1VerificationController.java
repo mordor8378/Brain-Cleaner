@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/verifications")
 @RequiredArgsConstructor
 @Tag(name = "Verification", description = "인증 게시판 관련 API")
-public class VerificationController {
+public class ApiV1VerificationController {
 
     private final VerificationService verificationService;
 

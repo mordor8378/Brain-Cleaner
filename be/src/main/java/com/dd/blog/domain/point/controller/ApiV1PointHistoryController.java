@@ -25,7 +25,7 @@ import java.util.ArrayList;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/points")
-public class PointHistoryController {
+public class ApiV1PointHistoryController {
 
     private final PointHistoryService pointHistoryService;
 
