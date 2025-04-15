@@ -12,4 +12,7 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     // 특정 사용자를 팔로우하는 사용자 목록
     List<Follow> findByFollowing(User following);
+
+    // 특정 사용자의 다른 사용자를 팔로우 여부
+    boolean existsByFollowerAndFollowing(User follower, User following);
 }
