@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("posts")
 @RequiredArgsConstructor
-public class PostController {
+public class ApiV1PostController {
     private final PostService postService;
 
     //전체 게시글 조회

@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("comments")
 @RequiredArgsConstructor
-public class CommentController {
+public class ApiV1CommentController {
     private final CommentService commentService;
 
     //특정 게시글의 모든 댓글 조회(대댓글 포함)
