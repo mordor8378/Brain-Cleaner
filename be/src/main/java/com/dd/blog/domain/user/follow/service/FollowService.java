@@ -57,7 +57,7 @@ public class FollowService {
         // follower가 팔로우한 사람들 리스트 가져오기
         List<Follow> followList = followRepository.findByFollower(follower);
 
-        // 리스트에서 following을 팔로우한 사용자 찾기
+        // 이미 팔로우 중인지 확인
         Follow target = null;
         for (Follow follow : followList) {
             if (follow.getFollowing().getId().equals(following.getId())) {

@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/follows")
@@ -47,28 +48,32 @@ public class FollowerController {
         return ResponseEntity.ok(isFollowing);
     }
 
-    @GetMapping("/{userId}/followers")
+    @GetMapping("/{userId}/followers/nicknames")
     @Operation(summary = "팔로워 조회", description = "나를 팔로우 하는 사람들을 조회합니다.")
-    public ResponseEntity<List<FollowResponseDto>> getFollowers(@PathVariable Long userId){
-        List<FollowResponseDto> followResponseDto = followService.getFollowers(userId);
-        return ResponseEntity.ok(followResponseDto);
+    public ResponseEntity<List<String>> getFollowers(@PathVariable Long userId){
+        List<String> followers = followService.getFollowers(userId).stream()
+                .map(FollowResponseDto::getFollowerNickname)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(followers);
     }
 
-    @GetMapping("/{userId}/followings")
+    @GetMapping("/{userId}/followings/nicknames")
     @Operation(summary = "팔로잉 조회", description = "내가 팔로우 하는 사람들을 조회합니다.")
-    public ResponseEntity<List<FollowResponseDto>> getFollowings(@PathVariable Long userId){
-        List<FollowResponseDto> followResponseDto = followService.getFollowings(userId);
-        return ResponseEntity.ok(followResponseDto);
+    public ResponseEntity<List<String>> getFollowings(@PathVariable Long userId){
+        List<String> followings = followService.getFollowings(userId).stream()
+                .map(FollowResponseDto::getFollowingNickname)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(followings);
     }
 
-    @GetMapping("/{userId}/followernum")
+    @GetMapping("/{userId}/followers/number")
     @Operation(summary = "팔로워 수 조회", description = "나를 팔로우 하는 사람들의 수를 조회합니다.")
     public ResponseEntity<Integer> getFollowerNumber(@PathVariable Long userId){
         int followerNum = followService.getFollowers(userId).size();
         return ResponseEntity.ok(followerNum);
     }
 
-    @GetMapping("/{userId}/followingnum")
+    @GetMapping("/{userId}/followings/number")
     @Operation(summary = "팔로잉 수 조회", description = "나를 팔로우 하는 사람들의 수를 조회합니다.")
     public ResponseEntity<Integer> getFollowingNumber(@PathVariable Long userId){
         int followingNum = followService.getFollowings(userId).size();
