@@ -12,8 +12,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Entity
@@ -22,7 +25,7 @@ import java.util.List;
 @NoArgsConstructor
 @SuperBuilder
 @ToString(exclude = "password")
-@Table(name = "user")
+@Table(name = "users")
 public class User extends BaseEntity {
     @Column(name = "email", nullable = false, length = 100)
     private String email;
@@ -44,7 +47,7 @@ public class User extends BaseEntity {
     @Column(name = "role")
     private UserRole role;
 
-    @Column(name = "refresh_token")
+    @Column(name = "refresh_token", unique = true)
     private String refreshToken;
 
     @Column(name = "sso_provider", length = 50)
@@ -64,4 +67,26 @@ public class User extends BaseEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<PointHistory> pointHistories = new ArrayList<>();
+
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    public boolean isAdmin() {
+        return UserRole.ROLE_ADMIN.equals(this.role);
+    }
+
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+
+        // 기본 사용자 권한
+        authorities.add(new SimpleGrantedAuthority(this.role.toString()));
+
+        // 관리자인 경우 추가 권한
+        if (isAdmin()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+
+        return authorities;
+    }
 }
