@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/follows")
+@RequestMapping("/api/v1/follows")
 @RequiredArgsConstructor
 @Tag(name = "Follow", description = "팔로우 관련 API")
 public class ApiV1FollowerController {
