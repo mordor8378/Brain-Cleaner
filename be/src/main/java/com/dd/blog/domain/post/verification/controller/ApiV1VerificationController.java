@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,14 +26,16 @@ public class ApiV1VerificationController {
     @PostMapping
     @Operation(summary = "인증글 등록", description = "디톡스 인증글을 등록합니다.")
     public ResponseEntity<VerificationResponseDto> createVerification(@RequestBody VerificationRequestDto requestDto) {
-        return ResponseEntity.ok(verificationService.createVerification(requestDto));
+        VerificationResponseDto response = verificationService.createVerification(requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // READ
     @GetMapping("/{id}")
     @Operation(summary = "인증글 조회", description = "인증글을 ID로 조회합니다.")
     public ResponseEntity<VerificationResponseDto> getVerification(@PathVariable Long id) {
-        return ResponseEntity.ok(verificationService.getVerification(id));
+            VerificationResponseDto response = verificationService.getVerification(id);
+            return ResponseEntity.ok(response);
     }
 
     // READ ALL
@@ -45,18 +48,16 @@ public class ApiV1VerificationController {
     // UPDATE
     @Operation(summary = "인증 수정", description = "인증 요청을 수정합니다.")
     @PutMapping("/{id}")
-    public ResponseEntity<VerificationResponseDto> updateVerification(
-            @PathVariable Long id,
-            @RequestBody VerificationRequestDto requestDto) {
-        return ResponseEntity.ok(verificationService.updateVerification(id, requestDto));
+    public ResponseEntity<VerificationResponseDto> updateVerification(@PathVariable Long id, @RequestBody VerificationRequestDto requestDto) {
+        VerificationResponseDto response = verificationService.updateVerification(id, requestDto);
+        return ResponseEntity.ok(response);
     }
 
     // DELETE
     @Operation(summary = "인증 삭제", description = "인증 요청을 삭제합니다.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteVerification(@PathVariable Long id) {
-        verificationService.deleteVerification(id);
-        return ResponseEntity.noContent().build(); // 204 No Content
-    }
-
+            verificationService.deleteVerification(id);
+            return ResponseEntity.noContent().build();
+        }
 }
