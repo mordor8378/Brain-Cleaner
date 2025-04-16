@@ -10,7 +10,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PointHistoryRepository extends JpaRepository<PointHistory, Long> {
 
-    Page<PointHistory> findByUserOrderByCreatedAtDesc(User user, Package pageable);
-//Page<PointHistory> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
-
+    Page<PointHistory> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
 }
