@@ -2,6 +2,7 @@ package com.dd.blog.domain.user.follow.controller;
 
 import com.dd.blog.domain.user.follow.dto.FollowRequestDto;
 import com.dd.blog.domain.user.follow.dto.FollowResponseDto;
+import com.dd.blog.domain.user.follow.entity.Follow;
 import com.dd.blog.domain.user.follow.service.FollowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,10 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.util.List;
 import java.util.stream.Collectors;
 
-@RestController
 @RequestMapping("/api/v1/follows")
 @RequiredArgsConstructor
 @Tag(name = "Follow", description = "팔로우 관련 API")
@@ -78,4 +79,7 @@ public class ApiV1FollowerController {
         int followingNum = followService.getFollowings(userId).size();
         return ResponseEntity.ok(followingNum);
     }
+
+    // TODO: 팔로워/팔로잉 목록 조회
+
 }
