@@ -25,6 +25,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final Rq rq;
+    private final CustomOAuth2AuthenticationSuccessHandler customOAuth2AuthenticationSuccessHandler;
+    private final CustomAuthorizationRequestResolver customAuthorizationRequestResolver;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -47,7 +49,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers("/h2-console/**").permitAll()
-                                .requestMatchers("/api/users/signup", "/api/users/login", "/api/users/refresh").permitAll()
+                                .requestMatchers("/api/v1/users/signup", "/api/v1/users/login", "/api/v1/users/refresh").permitAll()
+                                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll() // OAuth2 엔드포인트
                                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**").permitAll()
                                 .requestMatchers("/error").permitAll()
                                 .requestMatchers("/api/**").authenticated()
@@ -55,6 +58,16 @@ public class SecurityConfig {
                 )
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin) // H2 콘솔 사용
+                )
+                // OAuth2 로그인 설정 추가
+                .oauth2Login(
+                        oauth2Login -> oauth2Login
+                                .successHandler(customOAuth2AuthenticationSuccessHandler)
+                                .authorizationEndpoint(
+                                        authorizationEndpoint ->
+                                                authorizationEndpoint
+                                                        .authorizationRequestResolver(customAuthorizationRequestResolver)
+                                )
                 )
                 .addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 

@@ -55,6 +55,46 @@ public class UserService {
     }
 
     /**
+     * OAuth2 로그인 시 회원가입 또는 정보 업데이트
+     */
+    @Transactional
+    public User joinOrUpdateOAuth2User(String providerTypeCode, String oauthId, String email, String nickname) {
+        // 이메일로 사용자 검색
+        Optional<User> existingUser = userRepository.findByEmail(email);
+
+        if (existingUser.isPresent()) {
+            // 기존 사용자가 있으면 정보 업데이트
+            User user = existingUser.get();
+            // 필요한 경우 닉네임 업데이트
+            if (!user.getNickname().equals(nickname)) {
+                user.updateNickname(nickname);
+            }
+
+            // socialId가 없으면(일반 회원이면) 소셜 정보 추가
+            if (user.getSocialId() == null) {
+                user.updateSocialInfo(providerTypeCode, oauthId);
+            }
+
+            return userRepository.save(user);
+        } else {
+            // 새 사용자 생성
+            User newUser = User.builder()
+                    .email(email)
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString())) // 랜덤 비밀번호
+                    .nickname(nickname)
+                    .ssoProvider(providerTypeCode)
+                    .socialId(oauthId)
+                    .role(UserRole.ROLE_USER)
+                    .remainingPoint(0)
+                    .totalPoint(0)
+                    .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰
+                    .build();
+
+            return userRepository.save(newUser);
+        }
+    }
+
+    /**
      * 로그인
      */
     @Transactional
