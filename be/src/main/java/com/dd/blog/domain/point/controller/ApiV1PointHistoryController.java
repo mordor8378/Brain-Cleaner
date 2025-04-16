@@ -24,7 +24,7 @@ import java.util.ArrayList;
 @Tag(name = "Point History API", description = "사용자 포인트 내역 조회 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/points")
+@RequestMapping("/api/v1/points")
 public class ApiV1PointHistoryController {
 
     private final PointHistoryService pointHistoryService;

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Post Like API", description = "게시글 좋아요/취소 관련 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/posts")
+@RequestMapping("/api/v1/posts")
 public class ApiV1PostLikeController {
 
     // postLike 로직 처리 Service 객체
