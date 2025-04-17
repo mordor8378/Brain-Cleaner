@@ -48,7 +48,7 @@ public class UserService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
-                .role(UserRole.ROLE_USER)
+                .role(UserRole.ROLE_USER_SPROUT)
                 .remainingPoint(0)
                 .totalPoint(0)
                 .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰은 UUID로 설정
@@ -237,12 +237,14 @@ public class UserService {
         long id = ((Number) payload.get("id")).longValue();
         String email = (String) payload.get("email");
         String nickname = (String) payload.get("nickname");
+        String roleString = (String) payload.get("role");
+        UserRole role  = UserRole.valueOf(roleString);
 
         return User.builder()
                 .id(id)
                 .email(email)
                 .nickname(nickname)
-                .role(UserRole.ROLE_USER)
+                .role(role)
                 .build();
     }
 
