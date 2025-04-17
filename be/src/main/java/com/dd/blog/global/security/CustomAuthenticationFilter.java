@@ -71,6 +71,13 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+//        // 로그아웃 엔드포인트는 인증 처리 건너뛰기
+//        if (request.getRequestURI().equals("/api/v1/users/logout")) {
+//            System.out.println("로그아웃 요청 - 인증 처리 건너뛰기");
+//            filterChain.doFilter(request, response);
+//            return;
+//        }
+
         // 인증이 필요없는 엔드포인트 통과
         if (List.of("/api/users/signup", "/api/users/login", "/api/users/refresh").contains(request.getRequestURI())) {
             filterChain.doFilter(request, response);
@@ -112,7 +119,6 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
             e.printStackTrace();
         }
 
-        System.out.println("===== CustomAuthenticationFilter END =====");
         filterChain.doFilter(request, response);
 
     }
