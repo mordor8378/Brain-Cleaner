@@ -114,6 +114,16 @@ public class Rq {
         resp.addHeader("Set-Cookie", cookie.toString());
     }
 
+    // 인증 쿠키 생성
+    public String makeAuthCookies(User user) {
+        String accessToken = userService.genAccessToken(user);
+
+        setCookie("refreshToken", user.getRefreshToken());
+        setCookie("accessToken", accessToken);
+
+        return accessToken;
+    }
+
     // HTTP 헤더 설정
     public void setHeader(String name, String value) {
         resp.setHeader(name, value);

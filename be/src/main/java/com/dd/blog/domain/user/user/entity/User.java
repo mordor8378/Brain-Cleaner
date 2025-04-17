@@ -1,9 +1,9 @@
 package com.dd.blog.domain.user.user.entity;
 
-import com.dd.blog.domain.point.entity.PointHistory;
-import com.dd.blog.domain.post.comment.entity.Comment;
-import com.dd.blog.domain.post.post.entity.Post;
-import com.dd.blog.domain.post.postlike.entity.PostLike;
+//import com.dd.blog.domain.point.entity.PointHistory;
+//import com.dd.blog.domain.post.comment.entity.Comment;
+//import com.dd.blog.domain.post.post.entity.Post;
+//import com.dd.blog.domain.post.postlike.entity.PostLike;
 import com.dd.blog.global.jpa.BaseEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -54,17 +54,21 @@ public class User extends BaseEntity {
     @Column(name = "social_id")
     private String socialId;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<Post> posts = new ArrayList<>();
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+//    private List<Post> posts = new ArrayList<>();
+//
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+//    private List<Comment> comments = new ArrayList<>();
+//
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+//    private List<PostLike> likes = new ArrayList<>();
+//
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+//    private List<PointHistory> pointHistories = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<Comment> comments = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<PostLike> likes = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<PointHistory> pointHistories = new ArrayList<>();
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
 
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
@@ -86,5 +90,11 @@ public class User extends BaseEntity {
         }
 
         return authorities;
+    }
+
+    // 소셜 로그인 정보 업데이트
+    public void updateSocialInfo(String ssoProvider, String socialId) {
+        this.ssoProvider = ssoProvider;
+        this.socialId = socialId;
     }
 }

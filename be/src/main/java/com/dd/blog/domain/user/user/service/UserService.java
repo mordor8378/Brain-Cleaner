@@ -9,7 +9,9 @@ import com.dd.blog.domain.user.user.entity.UserRole;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.global.exception.ApiException;
 import com.dd.blog.global.exception.ErrorCode;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -55,6 +58,46 @@ public class UserService {
     }
 
     /**
+     * OAuth2 로그인 시 회원가입 또는 정보 업데이트
+     */
+    @Transactional
+    public User joinOrUpdateOAuth2User(String providerTypeCode, String oauthId, String email, String nickname) {
+        // 이메일로 사용자 검색
+        Optional<User> existingUser = userRepository.findByEmail(email);
+
+        if (existingUser.isPresent()) {
+            // 기존 사용자가 있으면 정보 업데이트
+            User user = existingUser.get();
+            // 필요한 경우 닉네임 업데이트
+            if (!user.getNickname().equals(nickname)) {
+                user.updateNickname(nickname);
+            }
+
+            // socialId가 없으면(일반 회원이면) 소셜 정보 추가
+            if (user.getSocialId() == null) {
+                user.updateSocialInfo(providerTypeCode, oauthId);
+            }
+
+            return userRepository.save(user);
+        } else {
+            // 새 사용자 생성
+            User newUser = User.builder()
+                    .email(email)
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString())) // 랜덤 비밀번호
+                    .nickname(nickname)
+                    .ssoProvider(providerTypeCode)
+                    .socialId(oauthId)
+                    .role(UserRole.ROLE_USER)
+                    .remainingPoint(0)
+                    .totalPoint(0)
+                    .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰
+                    .build();
+
+            return userRepository.save(newUser);
+        }
+    }
+
+    /**
      * 로그인
      */
     @Transactional
@@ -83,6 +126,28 @@ public class UserService {
                 .nickname(user.getNickname())
                 .role(user.getRole())
                 .build();
+    }
+
+    /**
+     * 로그아웃
+     */
+    @Transactional
+    public void logout(String accessToken) {
+        User userFromToken = getUserFromAccessToken(accessToken);
+
+        if (userFromToken == null) {
+            throw new IllegalArgumentException("유효하지 않은 엑세스 토큰입니다.");
+        }
+
+        User user = userRepository.findById(userFromToken.getId())
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+        System.out.println(user +"로그아웃 중");
+
+        // 리프레시 토큰 무효화
+        user.updateRefreshToken(null); // 또는 UUID.randomUUID().toString()도 OK
+        userRepository.save(user);
+
+        log.info("사용자 [{}] 로그아웃 처리 완료", user.getEmail());
     }
 
     /**
