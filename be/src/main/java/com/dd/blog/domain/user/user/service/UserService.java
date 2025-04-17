@@ -51,7 +51,7 @@ public class UserService {
                 .role(UserRole.ROLE_USER)
                 .remainingPoint(0)
                 .totalPoint(0)
-                .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰은 UUID로 설정
+                .refreshToken(null)
                 .build();
 
         return userRepository.save(user);
@@ -78,6 +78,8 @@ public class UserService {
                 user.updateSocialInfo(providerTypeCode, oauthId);
             }
 
+            user.updateRefreshToken(authTokenService.genRefreshToken(user));
+
             return userRepository.save(user);
         } else {
             // 새 사용자 생성
@@ -90,9 +92,8 @@ public class UserService {
                     .role(UserRole.ROLE_USER)
                     .remainingPoint(0)
                     .totalPoint(0)
-                    .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰
+                    .refreshToken(authTokenService.genRefreshTokenByEmail(email))
                     .build();
-
             return userRepository.save(newUser);
         }
     }
@@ -134,10 +135,9 @@ public class UserService {
 
         User user = userRepository.findById(userFromToken.getId())
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
-        System.out.println(user +"로그아웃 중");
 
         // 리프레시 토큰 무효화
-        user.updateRefreshToken(null); // 또는 UUID.randomUUID().toString()도 OK
+        user.updateRefreshToken(null);
         userRepository.save(user);
 
         log.info("사용자 [{}] 로그아웃 처리 완료", user.getEmail());
