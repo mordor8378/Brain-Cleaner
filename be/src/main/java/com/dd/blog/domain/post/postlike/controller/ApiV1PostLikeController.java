@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Post Like API", description = "게시글 좋아요/취소 관련 API")
-// @RestController
+@RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/posts")
 public class ApiV1PostLikeController {
