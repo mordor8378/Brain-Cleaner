@@ -9,7 +9,9 @@ import com.dd.blog.domain.user.user.entity.UserRole;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.global.exception.ApiException;
 import com.dd.blog.global.exception.ErrorCode;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -123,6 +126,28 @@ public class UserService {
                 .nickname(user.getNickname())
                 .role(user.getRole())
                 .build();
+    }
+
+    /**
+     * 로그아웃
+     */
+    @Transactional
+    public void logout(String accessToken) {
+        User userFromToken = getUserFromAccessToken(accessToken);
+
+        if (userFromToken == null) {
+            throw new IllegalArgumentException("유효하지 않은 엑세스 토큰입니다.");
+        }
+
+        User user = userRepository.findById(userFromToken.getId())
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+        System.out.println(user +"로그아웃 중");
+
+        // 리프레시 토큰 무효화
+        user.updateRefreshToken(null); // 또는 UUID.randomUUID().toString()도 OK
+        userRepository.save(user);
+
+        log.info("사용자 [{}] 로그아웃 처리 완료", user.getEmail());
     }
 
     /**
