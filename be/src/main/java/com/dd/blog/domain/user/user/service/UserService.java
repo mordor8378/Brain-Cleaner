@@ -6,6 +6,7 @@ import com.dd.blog.domain.user.user.dto.TokenResponseDto;
 import com.dd.blog.domain.user.user.dto.UserResponseDto;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.entity.UserRole;
+import com.dd.blog.domain.user.user.entity.UserStatus;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.global.exception.ApiException;
 import com.dd.blog.global.exception.ErrorCode;
@@ -49,6 +50,7 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
                 .role(UserRole.ROLE_USER_SPROUT)
+                .userStatus(UserStatus.ACTIVE)
                 .remainingPoint(0)
                 .totalPoint(0)
                 .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰은 UUID로 설정
@@ -88,6 +90,7 @@ public class UserService {
                     .ssoProvider(providerTypeCode)
                     .socialId(oauthId)
                     .role(UserRole.ROLE_USER_SPROUT)
+                    .userStatus(UserStatus.ACTIVE)
                     .remainingPoint(0)
                     .totalPoint(0)
                     .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰
@@ -205,9 +208,16 @@ public class UserService {
             throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
+
         // DB에서 리프레시 토큰으로 사용자 조회
         User user = findByRefreshToken(refreshToken)
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_REFRESH_TOKEN));
+
+
+        // ACTIVE 상태인 경우만 토큰 갱신
+        if (user.getUserStatus() != UserStatus.ACTIVE) {
+            throw new ApiException(ErrorCode.ACCESS_DENIED);
+        }
 
         // 새 토큰 발급
         String newAccessToken = authTokenService.genAccessToken(user);

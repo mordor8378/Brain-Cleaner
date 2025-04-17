@@ -45,6 +45,11 @@ public class User extends BaseEntity {
     @Column(name = "role")
     private UserRole role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    private UserStatus userStatus = UserStatus.ACTIVE;
+
     @Column(name = "refresh_token", unique = true)
     private String refreshToken;
 
