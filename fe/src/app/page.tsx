@@ -1,38 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useUser } from '@/contexts/UserContext';
 import Link from 'next/link';
 
-interface User {
-  id: number;
-  email: string;
-  nickname: string;
-  remainingPoint?: number;
-  totalPoint?: number;
-}
-
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { user, loading } = useUser();
   
-  useEffect(() => {
-    // 로컬 스토리지에서 사용자 정보 가져오기
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const userId = localStorage.getItem('userId');
-    const nickname = localStorage.getItem('nickname');
-    const email = localStorage.getItem('email');
-    const totalPoint = localStorage.getItem('totalPoint');
-    
-    if (isLoggedIn && userId && nickname) {
-      setUser({
-        id: parseInt(userId),
-        nickname,
-        email: email || '이메일 정보 없음',
-        totalPoint: totalPoint ? parseInt(totalPoint) : 0
-      });
-    }
-  }, []);
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 메인 콘텐츠 */}
@@ -41,7 +14,11 @@ export default function Home() {
           {/* 왼쪽 사이드바 - 프로필 */}
           <div className="md:col-span-1">
             <div className="bg-white rounded-lg shadow p-5">
-              {user ? (
+              {loading ? (
+                <div className="flex justify-center py-6">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-500"></div>
+                </div>
+              ) : user ? (
                 <div className="flex flex-col items-center">
                   <div className="rounded-full bg-pink-100 border-4 border-pink-200 p-4 mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
@@ -92,7 +69,7 @@ export default function Home() {
                       
                       <div className="flex justify-between text-sm mb-1">
                         <span className='text-gray-600'>현재 포인트</span>
-                        <span className="font-bold text-gray-900">2,450</span>
+                        <span className="font-bold text-gray-900">{user.remainingPoint || 0}</span>
                       </div>
                       
                       <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">

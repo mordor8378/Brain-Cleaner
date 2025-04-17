@@ -59,8 +59,8 @@ export default function Signup() {
       });
       
       if (response.ok) {
-        // 회원가입 성공
-        router.push('/login');
+        // 회원가입 성공 시 로그인 페이지로 이동
+        router.push('/login?signup=success');
       } else {
         const errorData = await response.json().catch(() => null);
         setErrors({
