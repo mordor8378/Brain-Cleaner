@@ -21,7 +21,7 @@ public class JwtUtil {
         SecretKey secretKey = Keys.hmacShaKeyFor(secret.getBytes());
 
         return Jwts.builder()
-                .claims(claims)
+                .Claims(claims)
                 .issuedAt(issuedAt)
                 .expiration(expiration)
                 .signWith(secretKey)

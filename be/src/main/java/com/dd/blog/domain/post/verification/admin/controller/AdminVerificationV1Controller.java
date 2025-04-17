@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/admin/verifications")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')") // TODO: 관리자 권한 체크 필요
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminVerificationV1Controller {
 
     private final AdminVerificationService adminVerificationService;
