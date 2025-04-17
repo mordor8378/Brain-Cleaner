@@ -87,7 +87,7 @@ public class UserService {
                     .nickname(nickname)
                     .ssoProvider(providerTypeCode)
                     .socialId(oauthId)
-                    .role(UserRole.ROLE_USER)
+                    .role(UserRole.ROLE_USER_SPROUT)
                     .remainingPoint(0)
                     .totalPoint(0)
                     .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰
