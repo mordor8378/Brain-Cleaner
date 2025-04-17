@@ -101,7 +101,7 @@ public class UserService {
      * 로그인
      */
     @Transactional
-    public TokenResponseDto login(LoginRequestDto request) {
+    public UserResponseDto login(LoginRequestDto request) {
         // 이메일로 사용자 조회
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
@@ -111,21 +111,14 @@ public class UserService {
             throw new ApiException(ErrorCode.INVALID_PASSWORD);
         }
 
-        // 토큰 생성
-        String accessToken = authTokenService.genAccessToken(user);
+        // 리프레시 토큰 생성
         String refreshToken = authTokenService.genRefreshToken(user);
 
         // 리프레시 토큰 저장
         user.updateRefreshToken(refreshToken);
         userRepository.save(user);
 
-        return TokenResponseDto.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .userId(user.getId())
-                .nickname(user.getNickname())
-                .role(user.getRole())
-                .build();
+        return UserResponseDto.fromEntity(user);
     }
 
     /**
