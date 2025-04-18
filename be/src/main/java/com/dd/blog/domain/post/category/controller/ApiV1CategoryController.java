@@ -1,3 +1,4 @@
+
 package com.dd.blog.domain.post.category.controller;
 
 import com.dd.blog.domain.post.category.dto.CategoryResponseDto;
@@ -26,3 +27,4 @@ public class ApiV1CategoryController {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 }
+

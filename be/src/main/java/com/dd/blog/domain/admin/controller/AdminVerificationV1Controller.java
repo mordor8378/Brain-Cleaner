@@ -1,7 +1,7 @@
-package com.dd.blog.domain.post.verification.admin.controller;
+package com.dd.blog.domain.admin.controller;
 
-import com.dd.blog.domain.post.verification.admin.dto.VerificationStatusUpdateDto;
-import com.dd.blog.domain.post.verification.admin.service.AdminVerificationService;
+import com.dd.blog.domain.admin.dto.VerificationStatusUpdateDto;
+import com.dd.blog.domain.admin.service.AdminVerificationService;
 import com.dd.blog.domain.post.verification.entity.Verification;
 import com.dd.blog.domain.post.verification.entity.VerificationStatus;
 import jakarta.validation.Valid;

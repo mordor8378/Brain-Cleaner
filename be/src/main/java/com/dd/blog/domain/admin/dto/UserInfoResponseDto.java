@@ -1,6 +1,5 @@
-package com.dd.blog.domain.user.user.dto;
+package com.dd.blog.domain.admin.dto;
 
-import com.dd.blog.domain.user.user.entity.UserRole;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

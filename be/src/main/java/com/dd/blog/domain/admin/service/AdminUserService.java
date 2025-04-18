@@ -1,6 +1,6 @@
-package com.dd.blog.domain.user.user.service;
+package com.dd.blog.domain.admin.service;
 
-import com.dd.blog.domain.user.user.dto.UserInfoResponseDto;
+import com.dd.blog.domain.admin.dto.UserInfoResponseDto;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

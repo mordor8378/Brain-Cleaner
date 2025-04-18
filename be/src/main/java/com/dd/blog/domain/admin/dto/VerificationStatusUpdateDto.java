@@ -1,4 +1,4 @@
-package com.dd.blog.domain.post.verification.admin.dto;
+package com.dd.blog.domain.admin.dto;
 
 import com.dd.blog.domain.post.verification.entity.VerificationStatus;
 import jakarta.validation.constraints.NotNull;
