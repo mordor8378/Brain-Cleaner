@@ -16,6 +16,8 @@ public class PostRequestDto {
     private String content;
     private String imageUrl;
 
+    private Long userId;
+
     private String verificationImageUrl;
     private Integer detoxTime;
 }
