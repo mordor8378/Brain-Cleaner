@@ -61,8 +61,8 @@ public class AdminUserService {
                 .userId(user.getId())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
-                .roleDisplayName(user.getRole().getDisplayName())
-                .status(user.getStatus().getStatusString())
+                .role(user.getRole().getDisplayName())
+                .status(user.getUserStatus().getStatusString())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
