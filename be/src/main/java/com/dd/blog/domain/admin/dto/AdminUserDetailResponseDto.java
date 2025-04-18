@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
-public class AdminUserResponseDto {
+public class AdminUserDetailResponseDto {
 
     // 기본 사용자 정보
     private Long userId;
