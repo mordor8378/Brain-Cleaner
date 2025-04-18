@@ -6,6 +6,7 @@ import com.dd.blog.domain.user.user.dto.TokenResponseDto;
 import com.dd.blog.domain.user.user.dto.UserResponseDto;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.entity.UserRole;
+import com.dd.blog.domain.user.user.entity.UserStatus;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.global.exception.ApiException;
 import com.dd.blog.global.exception.ErrorCode;
@@ -48,10 +49,11 @@ public class UserService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
-                .role(UserRole.ROLE_USER)
+                .role(UserRole.ROLE_USER_SPROUT)
+                .userStatus(UserStatus.ACTIVE)
                 .remainingPoint(0)
                 .totalPoint(0)
-                .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰은 UUID로 설정
+                .refreshToken(null)
                 .build();
 
         return userRepository.save(user);
@@ -78,6 +80,8 @@ public class UserService {
                 user.updateSocialInfo(providerTypeCode, oauthId);
             }
 
+            user.updateRefreshToken(authTokenService.genRefreshToken(user));
+
             return userRepository.save(user);
         } else {
             // 새 사용자 생성
@@ -87,12 +91,12 @@ public class UserService {
                     .nickname(nickname)
                     .ssoProvider(providerTypeCode)
                     .socialId(oauthId)
-                    .role(UserRole.ROLE_USER)
+                    .role(UserRole.ROLE_USER_SPROUT)
+                    .userStatus(UserStatus.ACTIVE)
                     .remainingPoint(0)
                     .totalPoint(0)
-                    .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰
+                    .refreshToken(authTokenService.genRefreshTokenByEmail(email))
                     .build();
-
             return userRepository.save(newUser);
         }
     }
@@ -101,7 +105,7 @@ public class UserService {
      * 로그인
      */
     @Transactional
-    public TokenResponseDto login(LoginRequestDto request) {
+    public UserResponseDto login(LoginRequestDto request) {
         // 이메일로 사용자 조회
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
@@ -111,21 +115,14 @@ public class UserService {
             throw new ApiException(ErrorCode.INVALID_PASSWORD);
         }
 
-        // 토큰 생성
-        String accessToken = authTokenService.genAccessToken(user);
+        // 리프레시 토큰 생성
         String refreshToken = authTokenService.genRefreshToken(user);
 
         // 리프레시 토큰 저장
         user.updateRefreshToken(refreshToken);
         userRepository.save(user);
 
-        return TokenResponseDto.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .userId(user.getId())
-                .nickname(user.getNickname())
-                .role(user.getRole())
-                .build();
+        return UserResponseDto.fromEntity(user);
     }
 
     /**
@@ -141,10 +138,9 @@ public class UserService {
 
         User user = userRepository.findById(userFromToken.getId())
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
-        System.out.println(user +"로그아웃 중");
 
         // 리프레시 토큰 무효화
-        user.updateRefreshToken(null); // 또는 UUID.randomUUID().toString()도 OK
+        user.updateRefreshToken(null);
         userRepository.save(user);
 
         log.info("사용자 [{}] 로그아웃 처리 완료", user.getEmail());
@@ -205,9 +201,16 @@ public class UserService {
             throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
+
         // DB에서 리프레시 토큰으로 사용자 조회
         User user = findByRefreshToken(refreshToken)
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_REFRESH_TOKEN));
+
+
+        // ACTIVE 상태인 경우만 토큰 갱신
+        if (user.getUserStatus() != UserStatus.ACTIVE) {
+            throw new ApiException(ErrorCode.ACCESS_DENIED);
+        }
 
         // 새 토큰 발급
         String newAccessToken = authTokenService.genAccessToken(user);
@@ -237,12 +240,14 @@ public class UserService {
         long id = ((Number) payload.get("id")).longValue();
         String email = (String) payload.get("email");
         String nickname = (String) payload.get("nickname");
+        String roleString = (String) payload.get("role");
+        UserRole role  = UserRole.valueOf(roleString);
 
         return User.builder()
                 .id(id)
                 .email(email)
                 .nickname(nickname)
-                .role(UserRole.ROLE_USER)
+                .role(role)
                 .build();
     }
 

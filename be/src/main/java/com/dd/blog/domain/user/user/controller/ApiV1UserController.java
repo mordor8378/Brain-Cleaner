@@ -32,8 +32,10 @@ public class ApiV1UserController {
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
-    public ResponseEntity<TokenResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
-        TokenResponseDto response = userService.login(request);
+    public ResponseEntity<UserResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
+        UserResponseDto response = userService.login(request);
+        User user = userService.getUserById(response.getId());
+        rq.makeAuthCookies(user);
         return ResponseEntity.ok(response);
     }
 

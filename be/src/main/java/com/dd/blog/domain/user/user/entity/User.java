@@ -4,13 +4,12 @@ package com.dd.blog.domain.user.user.entity;
 //import com.dd.blog.domain.post.comment.entity.Comment;
 //import com.dd.blog.domain.post.post.entity.Post;
 //import com.dd.blog.domain.post.postlike.entity.PostLike;
+import com.dd.blog.domain.point.entity.PointHistory;
+import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.global.jpa.BaseEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,6 +20,7 @@ import java.util.List;
 
 @Entity
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
@@ -47,6 +47,11 @@ public class User extends BaseEntity {
     @Column(name = "role")
     private UserRole role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    private UserStatus userStatus = UserStatus.ACTIVE;
+
     @Column(name = "refresh_token", unique = true)
     private String refreshToken;
 
@@ -56,17 +61,19 @@ public class User extends BaseEntity {
     @Column(name = "social_id")
     private String socialId;
 
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-//    private List<Post> posts = new ArrayList<>();
-//
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Post> posts = new ArrayList<>();
+
 //    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
 //    private List<Comment> comments = new ArrayList<>();
 //
 //    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
 //    private List<PostLike> likes = new ArrayList<>();
-//
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-//    private List<PointHistory> pointHistories = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<PointHistory> pointHistories = new ArrayList<>();
 
     public void updateNickname(String nickname) {
         this.nickname = nickname;

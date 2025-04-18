@@ -1,3 +1,4 @@
+
 package com.dd.blog.domain.post.category.controller;
 
 import com.dd.blog.domain.post.category.dto.CategoryResponseDto;
@@ -17,12 +18,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ApiV1CategoryController {
 
-    private final CategoryService categoryService;
-
-    @Operation(summary = "전체 카테고리 조회", description = "게시판 분류(예: 인증, 자유, 정보공유)를 모두 조회합니다.")
-    @GetMapping
-    public ResponseEntity<List<CategoryResponseDto>> getAllCategories() {
-
-        return ResponseEntity.ok(categoryService.getAllCategories());
-    }
+//    private final CategoryService categoryService;
+//
+//    @Operation(summary = "전체 카테고리 조회", description = "게시판 분류(예: 인증, 자유, 정보공유)를 모두 조회합니다.")
+//    @GetMapping
+//    public ResponseEntity<List<CategoryResponseDto>> getAllCategories() {
+//
+//        return ResponseEntity.ok(categoryService.getAllCategories());
+//    }
 }
+

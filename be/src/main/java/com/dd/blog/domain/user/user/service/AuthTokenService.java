@@ -1,6 +1,7 @@
 package com.dd.blog.domain.user.user.service;
 
 import com.dd.blog.domain.user.user.entity.User;
+import com.dd.blog.domain.user.user.entity.UserRole;
 import com.dd.blog.global.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,11 +26,11 @@ public class AuthTokenService {
         long id = user.getId();
         String email = user.getEmail();
         String nickname = user.getNickname();
-
+        UserRole role = user.getRole();
         return JwtUtil.generateToken(
                 jwtSecret,
                 accessTokenExpirationSeconds,
-                Map.of("id", id, "email", email, "nickname", nickname)
+                Map.of("id", id, "email", email, "nickname", nickname, "role", role)
         );
     }
 
@@ -44,6 +45,15 @@ public class AuthTokenService {
                 jwtSecret,
                 refreshTokenExpirationSeconds,
                 Map.of("id", id, "email", email)
+        );
+    }
+
+    public String genRefreshTokenByEmail(String email) {
+
+        return JwtUtil.generateToken(
+                jwtSecret,
+                refreshTokenExpirationSeconds,
+                Map.of("email", email)
         );
     }
 

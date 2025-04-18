@@ -2,14 +2,16 @@ package com.dd.blog.domain.post.post.repository;
 
 import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.domain.post.category.entity.Category;
-
+import com.dd.blog.domain.user.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
-    List<Post> findByPostId(Long postId);
-    // 특정 카테고리의 게시글만 조회
-    List<Post> findByCategory(Category category);
+
+    // 카테고리 ID로 조회(게시판 종류별:인증, 자유, 정보공유)
+    List<Post> findByCategoryId(Category category);
+
+    // 팔로우한 유저들 ID로 조회
+    List<Post> findByUserInOrderByCreatedAtDesc(List<User> users);
 }

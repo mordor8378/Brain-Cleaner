@@ -1,5 +1,6 @@
 package com.dd.blog.domain.post.post.dto;
 
+import com.dd.blog.domain.post.post.entity.Post;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -25,4 +26,15 @@ public class PostResponseDto {
     private Integer detoxTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public static PostResponseDto fromEntity(Post post) {
+        return PostResponseDto.builder()
+                .postId(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .imageUrl(post.getImageUrl())
+                .categoryId(post.getCategory().getId())
+                .userId(post.getUser().getId())
+                .build();
+    }
 }

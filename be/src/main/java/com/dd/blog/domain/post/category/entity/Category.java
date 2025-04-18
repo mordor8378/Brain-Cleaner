@@ -18,4 +18,5 @@ public class Category extends BaseEntity {
 
     @OneToMany(mappedBy = "category")
     private List<Post> posts;
+
 }
