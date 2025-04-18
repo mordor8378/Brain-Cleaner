@@ -25,7 +25,9 @@ export default function Home() {
                       <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900">@{user.nickname}</h3>
+                  <Link href="/profile/me" className="hover:text-pink-500 transition-colors">
+                    <h3 className="text-lg font-bold text-gray-900">@{user.nickname}</h3>
+                  </Link>
                   <div className="px-2 py-0.5 bg-yellow-100 rounded-full text-sm text-yellow-800 font-medium mb-3 mt-1">
                     절제 수련생
                   </div>

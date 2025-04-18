@@ -16,7 +16,9 @@ export default function Navbar() {
         <div className="flex space-x-4">
           {user ? (
             <>
-              <span className="text-gray-700">안녕하세요, {user.nickname}님!</span>
+              <Link href="/profile/me" className="text-gray-700 hover:text-pink-500 transition-colors">
+                안녕하세요, {user.nickname}님!
+              </Link>
               <button 
                 onClick={logout} 
                 className="text-pink-500 hover:text-pink-700"

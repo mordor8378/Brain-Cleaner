@@ -1,9 +1,6 @@
 package com.dd.blog.domain.user.user.service;
 
-import com.dd.blog.domain.user.user.dto.LoginRequestDto;
-import com.dd.blog.domain.user.user.dto.SignUpRequestDto;
-import com.dd.blog.domain.user.user.dto.TokenResponseDto;
-import com.dd.blog.domain.user.user.dto.UserResponseDto;
+import com.dd.blog.domain.user.user.dto.*;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.entity.UserRole;
 import com.dd.blog.domain.user.user.entity.UserStatus;
@@ -190,6 +187,27 @@ public class UserService {
 
     //프로필정보 수정 - 프로필 상세조회 탭에 들어가면 수정가능-수정완료 버튼을 누르면 새롭게 들어온 UserResponseDTO를 가지고 update
     //
+
+    @Transactional
+    public UserResponseDto updateProfile(Long userId, UpdateProfileRequestDto request) {
+        User user = getUserById(userId);
+        
+        // 닉네임이 변경되었고, 새 닉네임이 이미 사용 중인 경우 체크
+        if (!user.getNickname().equals(request.getNickname()) &&
+                userRepository.findByNickname(request.getNickname()).isPresent()) {
+            throw new ApiException(ErrorCode.NICKNAME_ALREADY_EXISTS);
+        }
+        
+        user.updateProfile(
+            request.getNickname(),
+            request.getStatusMessage(),
+            request.getDetoxGoal(),
+            request.getBirthDate(),
+            request.getProfileImageUrl()
+        );
+        
+        return UserResponseDto.fromEntity(userRepository.save(user));
+    }
 
     /**
      * 토큰 갱신

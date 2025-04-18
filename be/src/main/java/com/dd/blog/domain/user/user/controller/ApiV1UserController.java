@@ -1,9 +1,6 @@
 package com.dd.blog.domain.user.user.controller;
 
-import com.dd.blog.domain.user.user.dto.LoginRequestDto;
-import com.dd.blog.domain.user.user.dto.SignUpRequestDto;
-import com.dd.blog.domain.user.user.dto.TokenResponseDto;
-import com.dd.blog.domain.user.user.dto.UserResponseDto;
+import com.dd.blog.domain.user.user.dto.*;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.service.UserService;
 import com.dd.blog.global.rq.Rq;
@@ -68,7 +65,7 @@ public class ApiV1UserController {
     }
 
     @GetMapping("/{userId}")
-    @Operation(summary = "사용자 정보 조회", description = "특정 사용자의 정보를 조회합니다.")
+    @Operation(summary = "사용자 정보 조회", description = "다른 사용자의 정보를 조회합니다.")
     public ResponseEntity<UserResponseDto> getUserProfile(@PathVariable Long userId) {
         User user = userService.getUserById(userId);
         return ResponseEntity.ok(UserResponseDto.fromEntity(user));
@@ -115,10 +112,15 @@ public class ApiV1UserController {
         userService.deleteUser(userId);
         return ResponseEntity.ok("탈퇴완료");
     }
-//
-//    @PutMapping("/{userId}")
-//    @Operation()
-//    public ResponseEntity<>
+
+    @PutMapping("/{userId}")
+    @Operation(summary = "프로필 수정", description = "사용자의 프로필 정보를 수정합니다.")
+    public ResponseEntity<UserResponseDto> updateProfile(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateProfileRequestDto request) {
+        UserResponseDto updatedUser = userService.updateProfile(userId, request);
+        return ResponseEntity.ok(updatedUser);
+    }
 
     @PostMapping("/refresh")
     @Operation(summary = "토큰 갱신", description = "리프레시 토큰으로 새로운 액세스 토큰을 발급받습니다.")

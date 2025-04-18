@@ -14,6 +14,7 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -61,6 +62,18 @@ public class User extends BaseEntity {
     @Column(name = "social_id")
     private String socialId;
 
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
+    @Column(name = "status_message", length = 200)
+    private String statusMessage;
+
+    @Column(name = "detox_goal", length = 500)
+    private String detoxGoal;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Post> posts = new ArrayList<>();
@@ -105,5 +118,13 @@ public class User extends BaseEntity {
     public void updateSocialInfo(String ssoProvider, String socialId) {
         this.ssoProvider = ssoProvider;
         this.socialId = socialId;
+    }
+
+    public void updateProfile(String nickname, String statusMessage, String detoxGoal, LocalDate birthDate, String profileImageUrl) {
+        this.nickname = nickname;
+        this.statusMessage = statusMessage;
+        this.detoxGoal = detoxGoal;
+        this.birthDate = birthDate;
+        this.profileImageUrl = profileImageUrl;
     }
 }
