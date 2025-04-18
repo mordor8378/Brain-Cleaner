@@ -50,7 +50,7 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @Builder.Default
-    private UserStatus userStatus = UserStatus.ACTIVE;
+    private UserStatus status = UserStatus.ACTIVE;
 
     @Column(name = "refresh_token", unique = true)
     private String refreshToken;
