@@ -45,7 +45,7 @@ public class AdminUserService {
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .role(user.getRole())
-                .status(user.getStatus())
+                .status(user.getUserStatus())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .ssoProvider(user.getSsoProvider())
