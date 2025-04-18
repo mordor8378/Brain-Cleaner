@@ -7,8 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public abstract class CategoryService {
-
-    @Transactional(readOnly = true)
-    public abstract List<CategoryResponseDto> getAllCategories();
+//
+//    @Transactional(readOnly = true)
+//    public abstract List<CategoryResponseDto> getAllCategories();
 }
 
