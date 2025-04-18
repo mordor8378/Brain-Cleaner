@@ -1,14 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useUser } from '@/contexts/UserContext';
 
-interface NavbarProps {
-  user: any;
-  handleLogout: () => Promise<void>;
-}
+export default function Navbar() {
+  const { user, logout } = useUser();
 
-export default function Navbar({ user, handleLogout }: NavbarProps) {
   return (
     <header className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
@@ -18,12 +15,15 @@ export default function Navbar({ user, handleLogout }: NavbarProps) {
         </Link>
         <div className="flex space-x-4">
           {user ? (
-            <button 
-              onClick={handleLogout} 
-              className="text-pink-500 hover:text-pink-700"
-            >
-              로그아웃
-            </button>
+            <>
+              <span className="text-gray-700">안녕하세요, {user.nickname}님!</span>
+              <button 
+                onClick={logout} 
+                className="text-pink-500 hover:text-pink-700"
+              >
+                로그아웃
+              </button>
+            </>
           ) : (
             <>
               <Link href="/login" className="text-pink-500 hover:text-pink-700">
@@ -38,4 +38,4 @@ export default function Navbar({ user, handleLogout }: NavbarProps) {
       </div>
     </header>
   );
-} 
+}

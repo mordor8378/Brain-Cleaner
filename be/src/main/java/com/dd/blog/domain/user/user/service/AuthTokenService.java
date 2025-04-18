@@ -47,6 +47,15 @@ public class AuthTokenService {
         );
     }
 
+    public String genRefreshTokenByEmail(String email) {
+
+        return JwtUtil.generateToken(
+                jwtSecret,
+                refreshTokenExpirationSeconds,
+                Map.of("email", email)
+        );
+    }
+
     /**
      * 토큰 페이로드 추출
      */

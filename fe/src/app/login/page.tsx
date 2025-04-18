@@ -29,19 +29,10 @@ export default function Login() {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        console.log('로그인 성공:', data);
-        
-        // 토큰을 로컬 스토리지에 저장
-        localStorage.setItem('accessToken', data.accessToken);
-        
-        // 로그인 상태 설정
+        // 로그인 성공시 로그인 상태만 설정하고 나머지는 UserContext에서 처리
         localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userId', data.userId.toString());
-        localStorage.setItem('nickname', data.nickname);
-        localStorage.setItem('loginType', 'normal');
-        
-        window.location.href = '/';
+    
+        router.push('/');
       } else {
         const errorData = await response.json().catch(() => null);
         setError(errorData?.message || '로그인에 실패했습니다.');
@@ -55,11 +46,11 @@ export default function Login() {
   };
   
   const handleKakaoLogin = () => {
-    // 로컬 스토리지 초기화
     localStorage.clear();
     sessionStorage.clear();
     
-    const redirectUrl = window.location.origin + '/callback';
+    // 메인 페이지로 리다이렉트
+    const redirectUrl = window.location.origin + '?social=true';
     window.location.href = `http://localhost:8090/oauth2/authorization/kakao?redirectUrl=${redirectUrl}`;
   };
 

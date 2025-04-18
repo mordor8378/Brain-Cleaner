@@ -51,7 +51,7 @@ public class UserService {
                 .role(UserRole.ROLE_USER_SPROUT)
                 .remainingPoint(0)
                 .totalPoint(0)
-                .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰은 UUID로 설정
+                .refreshToken(null)
                 .build();
 
         return userRepository.save(user);
@@ -78,6 +78,8 @@ public class UserService {
                 user.updateSocialInfo(providerTypeCode, oauthId);
             }
 
+            user.updateRefreshToken(authTokenService.genRefreshToken(user));
+
             return userRepository.save(user);
         } else {
             // 새 사용자 생성
@@ -90,9 +92,8 @@ public class UserService {
                     .role(UserRole.ROLE_USER)
                     .remainingPoint(0)
                     .totalPoint(0)
-                    .refreshToken(UUID.randomUUID().toString()) // 초기 리프레시 토큰
+                    .refreshToken(authTokenService.genRefreshTokenByEmail(email))
                     .build();
-
             return userRepository.save(newUser);
         }
     }
@@ -101,7 +102,7 @@ public class UserService {
      * 로그인
      */
     @Transactional
-    public TokenResponseDto login(LoginRequestDto request) {
+    public UserResponseDto login(LoginRequestDto request) {
         // 이메일로 사용자 조회
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
@@ -111,21 +112,14 @@ public class UserService {
             throw new ApiException(ErrorCode.INVALID_PASSWORD);
         }
 
-        // 토큰 생성
-        String accessToken = authTokenService.genAccessToken(user);
+        // 리프레시 토큰 생성
         String refreshToken = authTokenService.genRefreshToken(user);
 
         // 리프레시 토큰 저장
         user.updateRefreshToken(refreshToken);
         userRepository.save(user);
 
-        return TokenResponseDto.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .userId(user.getId())
-                .nickname(user.getNickname())
-                .role(user.getRole())
-                .build();
+        return UserResponseDto.fromEntity(user);
     }
 
     /**
@@ -141,10 +135,9 @@ public class UserService {
 
         User user = userRepository.findById(userFromToken.getId())
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
-        System.out.println(user +"로그아웃 중");
 
         // 리프레시 토큰 무효화
-        user.updateRefreshToken(null); // 또는 UUID.randomUUID().toString()도 OK
+        user.updateRefreshToken(null);
         userRepository.save(user);
 
         log.info("사용자 [{}] 로그아웃 처리 완료", user.getEmail());
