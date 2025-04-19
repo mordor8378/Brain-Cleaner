@@ -2,8 +2,11 @@ package com.dd.blog.domain.admin.controller;
 
 // import com.dd.blog.domain.admin.dto.AdminUserDetailResponseDto;
 import com.dd.blog.domain.admin.dto.AdminUserDetailResponseDto;
+import com.dd.blog.domain.admin.dto.AdminUserRoleUpdateRequestDto;
+import com.dd.blog.domain.admin.dto.AdminUserStatusUpdateRequestDto;
 import com.dd.blog.domain.admin.dto.UserInfoResponseDto;
 import com.dd.blog.domain.admin.service.AdminUserService;
+import com.dd.blog.global.security.SecurityUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,16 +14,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "AdminUser API", description = "관리자용 회원 관리 API")
 @PreAuthorize("hasRole('ADMIN')")
@@ -60,6 +62,42 @@ public class AdminUserController {
         AdminUserDetailResponseDto userDetail = adminUserService.getUserDetail(userId);
         return ResponseEntity.ok(userDetail);
     }
+
+    @Operation(summary = "관리자용 사용자 상태 (Status) 변경", description = "특정 사용자의 상태를 변경")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "변경 성공",
+                    content = @Content(schema = @Schema(implementation = AdminUserStatusUpdateRequestDto.class))),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "접근 권한이 없는 사용자 (관리자 아님)")
+    })
+    @PutMapping("/{userId}/status")
+    public ResponseEntity<Void> updateUserStatus(
+            @PathVariable Long userId,
+            @RequestBody @Valid AdminUserStatusUpdateRequestDto requestDto,
+            @AuthenticationPrincipal SecurityUser currentAdmin) {
+        adminUserService.updateUserStatus(userId, requestDto.getNewStatus(), currentAdmin.getId());
+
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "관리자용 사용자 등급 (Role) 변경", description = "특정 사용자의 등급을 변경")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "변경 성공",
+                    content = @Content(schema = @Schema(implementation = AdminUserRoleUpdateRequestDto.class))),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "접근 권한이 없는 사용자 (관리자 아님)")
+    })
+    @PutMapping("/{userId}/role")
+    public ResponseEntity<Void> updateUserRole(
+            @PathVariable Long userId,
+            @RequestBody @Valid AdminUserRoleUpdateRequestDto requestDto) {
+
+        adminUserService.updateUserRole(userId, requestDto.getNewRole());
+
+        return ResponseEntity.ok().build();
+    }
+
+
 
 
 
