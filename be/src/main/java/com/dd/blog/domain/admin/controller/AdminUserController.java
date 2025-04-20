@@ -6,6 +6,8 @@ import com.dd.blog.domain.admin.dto.AdminUserRoleUpdateRequestDto;
 import com.dd.blog.domain.admin.dto.AdminUserStatusUpdateRequestDto;
 import com.dd.blog.domain.admin.dto.UserInfoResponseDto;
 import com.dd.blog.domain.admin.service.AdminUserService;
+import com.dd.blog.domain.user.user.entity.UserRole;
+import com.dd.blog.domain.user.user.entity.UserStatus;
 import com.dd.blog.global.security.SecurityUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,7 +35,7 @@ public class AdminUserController {
 
     private final AdminUserService adminUserService;
 
-    @Operation(summary = "관리자용 사용자 목록 조회", description = "모든 사용자의 정보를 페이징하여 조회")
+    @Operation(summary = "관리자용 사용자 목록 조회", description = "조건에 해당하는 모든 사용자의 정보를 페이징하여 조회")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(schema = @Schema(implementation = UserInfoResponseDto.class))),
@@ -44,9 +46,13 @@ public class AdminUserController {
     public ResponseEntity<Page<UserInfoResponseDto>> getUserList(
             @PageableDefault(size = 10, sort = "createdAt, desc")
             @Parameter(hidden = true)
-            Pageable pageable) {
+            Pageable pageable,
+            @RequestParam(required = false) String nickname,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) UserRole role,
+            @RequestParam(required = false) UserStatus status) {
 
-        Page<UserInfoResponseDto> userPage = adminUserService.findUser(pageable);
+        Page<UserInfoResponseDto> userPage = adminUserService.getUser(pageable, nickname, email, role, status);
         return ResponseEntity.ok(userPage);
     }
 

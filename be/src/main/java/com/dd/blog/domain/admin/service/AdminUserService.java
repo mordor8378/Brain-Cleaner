@@ -12,28 +12,38 @@ import com.dd.blog.global.exception.ApiException;
 import com.dd.blog.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+// 관리자의 사용자 관련 로직 처리
 @Service
 @RequiredArgsConstructor
-public class AdminUserService {
+public class AdminUserService { //
 
     private final UserRepository userRepository;
     private final PointHistoryService pointHistoryService;
 
-    // 관리자용 : 모든 사용자 목록 페이징 조회
+    // 관리자용 : 특정 조건에 맞는 모든 사용자 목록 페이징 조회
     @Transactional(readOnly = true)
-    public Page<UserInfoResponseDto> findUser(Pageable pageable) {
-        Page<User> userPage = userRepository.findAll(pageable);
-        List<UserInfoResponseDto> dtos = userPage.getContent().stream()
-                .map(this::userToDto)
-                .collect(Collectors.toList());
+    public Page<UserInfoResponseDto> getUser(Pageable pageable, String nickname, String email, UserRole role, UserStatus status) {
 
-        return new PageImpl<>(dtos, pageable, userPage.getTotalElements());
+        Specification<User> spec = Specification.where(null);
+
+
+            spec = spec.and(UserSpecifications.nicknameContains(nickname))
+                    .and(UserSpecifications.emailContains(email))
+                    .and(UserSpecifications.roleEquals(role))
+                    .and(UserSpecifications.statusEquals(status));
+
+
+        Page<User> userPage = userRepository.findAll(spec, pageable);
+
+        return userPage.map(this::userToDto);
     }
 
     // 관리자용 : 사용자의 세부 프로필 조회

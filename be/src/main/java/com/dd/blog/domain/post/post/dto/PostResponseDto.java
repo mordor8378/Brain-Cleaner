@@ -27,6 +27,7 @@ public class PostResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+
     public static PostResponseDto fromEntity(Post post) {
         return PostResponseDto.builder()
                 .postId(post.getId())
