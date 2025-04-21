@@ -38,3 +38,6 @@ out/
 
 ### Custom ###
 application-secret.yml
+
+### DB ###
+.db_dev
