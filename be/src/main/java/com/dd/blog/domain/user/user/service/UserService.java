@@ -173,7 +173,12 @@ public class UserService {
     }
 
     //비밀번호 변경
-
+    @Transactional
+    public void updatePassword(Long userId, String newPassword) {
+        User user = getUserById(userId);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 
     //잔여 포인트 확인
     @Transactional(readOnly = true)
@@ -186,8 +191,6 @@ public class UserService {
     }
 
     //프로필정보 수정 - 프로필 상세조회 탭에 들어가면 수정가능-수정완료 버튼을 누르면 새롭게 들어온 UserResponseDTO를 가지고 update
-    //
-
     @Transactional
     public UserResponseDto updateProfile(Long userId, UpdateProfileRequestDto request) {
         User user = getUserById(userId);
@@ -200,6 +203,7 @@ public class UserService {
         
         user.updateProfile(
             request.getNickname(),
+            request.getEmail(),
             request.getStatusMessage(),
             request.getDetoxGoal(),
             request.getBirthDate(),

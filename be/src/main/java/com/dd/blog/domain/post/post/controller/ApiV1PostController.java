@@ -96,6 +96,21 @@ public class ApiV1PostController {
         return ResponseEntity.ok(posts);
     }
 
+    @GetMapping("/user/{userId}")
+    @Operation(
+            summary = "사용자 게시글 목록 조회",
+            description = "특정 사용자가 작성한 게시글 목록을 조회합니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공"),
+                    @ApiResponse(responseCode = "404", description = "사용자가 없거나 게시글이 없음")
+            }
+    )
+    public ResponseEntity<List<PostResponseDto>> getPostsByUser(
+            @Parameter(description = "유저 ID", required = true) @PathVariable Long userId) {
+        List<PostResponseDto> posts = postService.getPostsByUser(userId);
+        return ResponseEntity.ok(posts);
+    }
+
     // 게시글 1개 READ(상세보기)
     @Operation(
             summary = "게시글 상세보기",

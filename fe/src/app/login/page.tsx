@@ -28,18 +28,25 @@ export default function Login() {
         credentials: 'include',
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
         // 로그인 성공시 로그인 상태만 설정하고 나머지는 UserContext에서 처리
         localStorage.setItem('isLoggedIn', 'true');
-    
         router.push('/');
       } else {
-        const errorData = await response.json().catch(() => null);
-        setError(errorData?.message || '로그인에 실패했습니다.');
+        // 서버에서 반환된 에러 메시지 사용
+        if (data.message === 'USER_NOT_FOUND') {
+          setError('존재하지 않는 사용자입니다.');
+        } else if (data.message === 'INVALID_PASSWORD') {
+          setError('비밀번호가 일치하지 않습니다.');
+        } else {
+          setError(data.message || '로그인에 실패했습니다.');
+        }
       }
     } catch (error) {
       console.error('로그인 중 오류 발생:', error);
-      setError('로그인 중 오류가 발생했습니다.');
+      setError('서버 연결에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }

@@ -120,8 +120,9 @@ public class User extends BaseEntity {
         this.socialId = socialId;
     }
 
-    public void updateProfile(String nickname, String statusMessage, String detoxGoal, LocalDate birthDate, String profileImageUrl) {
+    public void updateProfile(String nickname, String email, String statusMessage, String detoxGoal, LocalDate birthDate, String profileImageUrl) {
         this.nickname = nickname;
+        this.email = email;
         this.statusMessage = statusMessage;
         this.detoxGoal = detoxGoal;
         this.birthDate = birthDate;
