@@ -21,7 +21,7 @@ public class UserSpecifications {
     public static Specification<User> emailContains(String email) {
         return StringUtils.hasText(email) ?
                 (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("email"), "%" + email + "%")
+                criteriaBuilder.like(root.get("email"), "%" + email + "%")
                       : Specification.where(null);
     }
 
