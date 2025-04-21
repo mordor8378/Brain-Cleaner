@@ -13,6 +13,10 @@ java {
 	}
 }
 
+tasks.withType<JavaCompile> {
+	options.compilerArgs.add("-parameters")
+}
+
 configurations {
 	compileOnly {
 		extendsFrom(configurations.annotationProcessor.get())
@@ -62,4 +66,7 @@ tasks.withType<JavaCompile> {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+tasks.withType<JavaCompile> {
+	options.compilerArgs.add("-parameters")
 }

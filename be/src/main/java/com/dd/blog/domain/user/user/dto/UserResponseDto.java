@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Getter
 @NoArgsConstructor
@@ -22,6 +23,10 @@ public class UserResponseDto {
     private UserRole role;
     private LocalDateTime createdAt;
     private boolean isSocialUser;
+    private String statusMessage;
+    private String detoxGoal;
+    private LocalDate birthDate;
+    private String profileImageUrl;
 
     public static UserResponseDto fromEntity(User user) {
         return UserResponseDto.builder()
@@ -33,6 +38,10 @@ public class UserResponseDto {
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .isSocialUser(user.getSocialId() != null)
+                .statusMessage(user.getStatusMessage())
+                .detoxGoal(user.getDetoxGoal())
+                .birthDate(user.getBirthDate())
+                .profileImageUrl(user.getProfileImageUrl())
                 .build();
     }
 }

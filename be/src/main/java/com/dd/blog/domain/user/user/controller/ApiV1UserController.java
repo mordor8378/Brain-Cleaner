@@ -1,11 +1,10 @@
 package com.dd.blog.domain.user.user.controller;
 
-import com.dd.blog.domain.user.user.dto.LoginRequestDto;
-import com.dd.blog.domain.user.user.dto.SignUpRequestDto;
-import com.dd.blog.domain.user.user.dto.TokenResponseDto;
-import com.dd.blog.domain.user.user.dto.UserResponseDto;
+import com.dd.blog.domain.user.user.dto.*;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.service.UserService;
+import com.dd.blog.global.exception.ApiException;
+import com.dd.blog.global.exception.ErrorCode;
 import com.dd.blog.global.rq.Rq;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.Cookie;
@@ -15,6 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -33,10 +35,16 @@ public class ApiV1UserController {
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
     public ResponseEntity<UserResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
-        UserResponseDto response = userService.login(request);
-        User user = userService.getUserById(response.getId());
-        rq.makeAuthCookies(user);
-        return ResponseEntity.ok(response);
+        try {
+            UserResponseDto response = userService.login(request);
+            User user = userService.getUserById(response.getId());
+            rq.makeAuthCookies(user);
+            return ResponseEntity.ok(response);
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PostMapping("/logout")
@@ -68,7 +76,7 @@ public class ApiV1UserController {
     }
 
     @GetMapping("/{userId}")
-    @Operation(summary = "사용자 정보 조회", description = "특정 사용자의 정보를 조회합니다.")
+    @Operation(summary = "사용자 정보 조회", description = "다른 사용자의 정보를 조회합니다.")
     public ResponseEntity<UserResponseDto> getUserProfile(@PathVariable Long userId) {
         User user = userService.getUserById(userId);
         return ResponseEntity.ok(UserResponseDto.fromEntity(user));
@@ -115,10 +123,39 @@ public class ApiV1UserController {
         userService.deleteUser(userId);
         return ResponseEntity.ok("탈퇴완료");
     }
-//
-//    @PutMapping("/{userId}")
-//    @Operation()
-//    public ResponseEntity<>
+
+    @PutMapping("/{userId}")
+    @Operation(summary = "프로필 수정", description = "사용자의 프로필 정보를 수정합니다.")
+    public ResponseEntity<UserResponseDto> updateProfile(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateProfileRequestDto request) {
+        UserResponseDto updatedUser = userService.updateProfile(userId, request);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @PutMapping("/{userId}/password")
+    @Operation(summary = "비밀번호 변경", description = "사용자의 비밀번호를 변경합니다.")
+    public ResponseEntity<Map<String, String>> updatePassword(
+            @PathVariable Long userId,
+            @Valid @RequestBody Map<String, String> request) {
+        String newPassword = request.get("newPassword");
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", "새 비밀번호를 입력해주세요."));
+        }
+        if (newPassword.length() < 6) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", "비밀번호는 6자 이상이어야 합니다."));
+        }
+        try {
+            userService.updatePassword(userId, newPassword);
+            return ResponseEntity.ok()
+                .body(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", "비밀번호 변경에 실패했습니다: " + e.getMessage()));
+        }
+    }
 
     @PostMapping("/refresh")
     @Operation(summary = "토큰 갱신", description = "리프레시 토큰으로 새로운 액세스 토큰을 발급받습니다.")

@@ -1,2 +1,4 @@
 .DS_Store
 application-secret.yml
+*.mv.db
+*.trace.db
