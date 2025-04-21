@@ -26,5 +26,5 @@ public class ApiV1CategoryController {
 //
 //        return ResponseEntity.ok(categoryService.getAllCategories());
 //    }
-}
 
+}
