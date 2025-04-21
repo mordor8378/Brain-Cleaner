@@ -13,6 +13,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ import java.util.List;
 @SuperBuilder
 @ToString(exclude = "password")
 @Table(name = "users")
-public class User extends BaseEntity {
+public class User extends BaseEntity implements UserDetails {
     @Column(name = "email", nullable = false, length = 100)
     private String email;
 
@@ -51,7 +52,7 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @Builder.Default
-    private UserStatus userStatus = UserStatus.ACTIVE;
+    private UserStatus status = UserStatus.ACTIVE;
 
     @Column(name = "refresh_token", unique = true)
     private String refreshToken;
@@ -127,5 +128,30 @@ public class User extends BaseEntity {
         this.detoxGoal = detoxGoal;
         this.birthDate = birthDate;
         this.profileImageUrl = profileImageUrl;
+      
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
+
+    @Override //
+    public boolean isEnabled() {
+        // User의 status가 ACTIVE일 때만 true 반환
+        return this.status == UserStatus.ACTIVE;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true; // 계정 만료 안 됨
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true; // 계정 안 잠김
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true; // 비밀번호 만료 안 됨
     }
 }

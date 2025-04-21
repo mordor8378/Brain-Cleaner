@@ -1,11 +1,40 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import Link from 'next/link';
 
+export interface Post {
+  postId: number;
+  userId: number;
+  userNickname: string;
+  title: string;
+  content: string;
+  imageUrl: string;
+  viewCount: number;
+  likeCount: number;
+  verificationImageUrl: string;
+  detoxTime: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function Home() {
   const { user, loading } = useUser();
+  const [posts, setPosts] = useState<Post[] | null>(null);
   
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const response = await fetch('http://localhost:8090/api/v1/posts');
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data);
+        setPosts(data);
+      }
+    };
+    fetchPosts();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 메인 콘텐츠 */}
@@ -62,7 +91,7 @@ export default function Home() {
                     <div className="mt-4">
                       <div className="flex justify-between text-sm mb-1">
                         <span className='text-gray-600'>보유 포인트</span>
-                        <span className="font-bold text-pink-500">1,250 P</span>
+                        <span className="font-bold text-pink-500">{user.remainingPoint || 0} P</span>
                       </div>
                       <div className="flex justify-between text-sm mb-4">
                         <span className='text-gray-600'>연속 인증</span>
@@ -71,7 +100,7 @@ export default function Home() {
                       
                       <div className="flex justify-between text-sm mb-1">
                         <span className='text-gray-600'>현재 포인트</span>
-                        <span className="font-bold text-gray-900">{user.remainingPoint || 0}</span>
+                        <span className="font-bold text-gray-900">{user.totalPoint || 0}</span>
                       </div>
                       
                       <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
@@ -139,8 +168,8 @@ export default function Home() {
 
               {/* 게시글 목록 */}
               <div className="divide-y divide-gray-100">
-                {[1, 2, 3].map((post) => (
-                  <div key={post} className="p-5">
+                {posts && posts.map((post) => (
+                  <div key={post.postId} className="p-5">
                     <div className="flex items-start mb-3">
                       <div className="mr-3">
                         <img src="https://via.placeholder.com/40" alt="프로필" className="w-10 h-10 rounded-full" />
@@ -148,7 +177,7 @@ export default function Home() {
                       <div className="flex-1">
                         <div className="flex justify-between items-center mb-2">
                           <div className="flex items-center">
-                            <span className="font-medium text-gray-900">@닉네임</span>
+                            <span className="font-medium text-gray-900">@{post.userNickname}</span>
                             <span className="ml-1 text-xs text-green-500">
                               <svg className="w-3.5 h-3.5 inline" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
@@ -158,7 +187,7 @@ export default function Home() {
                           <span className="text-xs text-gray-500">3h</span>
                         </div>
                         
-                        <p className="text-sm text-gray-700 mb-3">게시글 내용</p>
+                        <p className="text-sm text-gray-700 mb-3">{post.content}</p>
                         
                         <div className="rounded-lg overflow-hidden mb-3">
                           <img src="https://via.placeholder.com/500x300" alt="게시글 이미지" className="w-full h-auto object-cover" />
@@ -169,13 +198,13 @@ export default function Home() {
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                             </svg>
-                            <span>5</span>
+                            <span>{post.likeCount}</span>
                           </button>
                           <button className="flex items-center mr-3">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
                             </svg>
-                            <span>5</span>
+                            <span>10</span>
                           </button>
                           <span className="mx-1 text-gray-400">·</span>
                           <span className="text-pink-500 font-medium">+50 포인트</span>

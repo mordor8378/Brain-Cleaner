@@ -60,6 +60,10 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 }
 
+tasks.withType<JavaCompile> {
+	options.compilerArgs.add("-parameters")
+}
+
 tasks.withType<Test> {
 	useJUnitPlatform()
 }

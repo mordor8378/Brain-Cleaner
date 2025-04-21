@@ -9,7 +9,6 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class PostRequestDto {
-    private Long categoryId;
     @NotBlank(message = "제목 입력은 필수입니다.")
     private String title;
     @NotBlank(message = "내용 입력은 필수입니다.")

@@ -31,9 +31,23 @@ export default function Login() {
       const data = await response.json();
       
       if (response.ok) {
-        // 로그인 성공시 로그인 상태만 설정하고 나머지는 UserContext에서 처리
+        const userData = await response.json();
+        console.log('로그인 응답 데이터:', JSON.stringify(userData, null, 2));
+        
+        // 로그인 성공시 로그인 상태와 사용자 정보 저장
         localStorage.setItem('isLoggedIn', 'true');
-        router.push('/');
+        
+        localStorage.setItem('userRole', userData.role);
+        localStorage.setItem('userId', userData.id.toString());
+        localStorage.setItem('userEmail', userData.email);
+        localStorage.setItem('userNickname', userData.nickname);
+        
+        // 사용자 역할에 따라 다른 페이지로 리다이렉트
+        if (userData.role === 'ROLE_ADMIN') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       } else {
         // 서버에서 반환된 에러 메시지 사용
         if (data.message === 'USER_NOT_FOUND') {

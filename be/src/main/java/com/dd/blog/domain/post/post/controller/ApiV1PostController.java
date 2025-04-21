@@ -42,7 +42,7 @@ public class ApiV1PostController {
     )
     @PostMapping("/category/{categoryId}")
     public ResponseEntity<PostResponseDto> createPost(
-            @Parameter(description = "카테고리 ID", required = true) @PathVariable Long categoryId,
+            @Parameter(description = "카테고리 ID", required = true) @PathVariable("categoryId") Long categoryId,
             @Valid @RequestBody PostRequestDto postRequestDto){
         PostResponseDto responseDto = postService.createPost(categoryId, postRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
