@@ -31,11 +31,18 @@ public class PostResponseDto {
     public static PostResponseDto fromEntity(Post post) {
         return PostResponseDto.builder()
                 .postId(post.getId())
+                .userId(post.getUser().getId())
+                .userNickname(post.getUser().getNickname())
+                .categoryId(post.getCategory().getId())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .imageUrl(post.getImageUrl())
-                .categoryId(post.getCategory().getId())
-                .userId(post.getUser().getId())
+                .viewCount(post.getViewCount())
+                .likeCount(post.getLikeCount())
+                .verificationImageUrl(post.getVerificationImageUrl())
+                .detoxTime(post.getDetoxTime())
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
                 .build();
     }
 }
