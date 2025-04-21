@@ -6,6 +6,8 @@ import com.dd.blog.domain.admin.dto.AdminUserRoleUpdateRequestDto;
 import com.dd.blog.domain.admin.dto.AdminUserStatusUpdateRequestDto;
 import com.dd.blog.domain.admin.dto.UserInfoResponseDto;
 import com.dd.blog.domain.admin.service.AdminUserService;
+import com.dd.blog.domain.point.dto.PointHistoryResponseDto;
+import com.dd.blog.domain.point.service.PointHistoryService;
 import com.dd.blog.domain.user.user.entity.UserRole;
 import com.dd.blog.domain.user.user.entity.UserStatus;
 import com.dd.blog.global.security.SecurityUser;
@@ -34,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
+    private final PointHistoryService pointHistoryService;
 
     @Operation(summary = "관리자용 사용자 목록 조회", description = "조건에 해당하는 모든 사용자의 정보를 페이징하여 조회")
     @ApiResponses(value = {
@@ -68,6 +71,31 @@ public class AdminUserController {
         AdminUserDetailResponseDto userDetail = adminUserService.getUserDetail(userId);
         return ResponseEntity.ok(userDetail);
     }
+
+    @Operation(summary = "관리자용 특정 사용자 포인트 내역 조회", description = "관리자가 특정 사용자의 포인트 내역을 페이징하여 조회")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "접근 권한이 없는 사용자 (관리자 아님)"),
+            @ApiResponse(responseCode = "404", description = "해당 사용자를 찾을 수 없음")
+    })
+    @GetMapping("/{userId}/point-history")
+    public ResponseEntity<Page<PointHistoryResponseDto>> getUserPointHistoryForAdmin(
+            @PathVariable Long userId,
+            @PageableDefault(size = 10, sort = "createdAt, desc")
+            @Parameter(hidden = true)
+            Pageable pageable) {
+
+        Page<PointHistoryResponseDto> historyPage = pointHistoryService.getUserPointHistory(userId, pageable);
+
+
+
+        return ResponseEntity.ok(historyPage);
+    }
+
+
+
+
 
     @Operation(summary = "관리자용 사용자 상태 (Status) 변경", description = "특정 사용자의 상태를 변경")
     @ApiResponses(value = {

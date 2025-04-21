@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -73,6 +73,51 @@ export default function UserDetailPage() {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
+    const fetchPointHistory = useCallback(async (page: number) => {
+        // page는 1부터 시작하는 페이지 번호
+        if (!userId || isNaN(Number(userId))) return; // userId 없으면 중단
+
+        const apiPage = page - 1; // 백엔드 API는 페이지 번호를 0부터 시작하므로 1 빼주기
+        console.log(`[fetchPointHistory] ${page} 페이지 (API 페이지: ${apiPage}) 포인트 내역 로딩 시작`);
+        // 나중에 여기에 포인트 내역 로딩 상태(isLoading 같은)를 true로 설정하는 코드 추가 가능
+
+        try {
+            const historyApiUrl = `http://localhost:8090/api/admin/users/${userId}/point-history?page=${apiPage}&size=10&sort=createdAt,desc`;
+            console.log(`[fetchPointHistory] 요청 URL: ${historyApiUrl}`);
+
+            // API 호출
+            const response = await fetch(historyApiUrl, { credentials: 'include' });
+
+            if (!response.ok) {
+                // API 호출 실패 시 에러 처리
+                throw new Error(`포인트 내역 로딩 실패 (${response.status})`);
+            }
+
+            // 성공 시, JSON 데이터 파싱 (백엔드가 Page<PointHistoryResponseDto> 형태를 반환한다고 가정)
+            const data: PointHistoryPage = await response.json();
+            console.log('[fetchPointHistory] 받은 데이터:', data);
+
+            // 상태 업데이트: 받아온 데이터로 포인트 내역 및 페이지 정보 설정
+            setPointHistory(data.content || []); // 실제 내역 배열
+            setPointHistoryCurrentPage((data.number ?? 0) + 1); // 현재 페이지 번호 (0-based -> 1-based)
+            setPointHistoryTotalPages(data.totalPages ?? 1); // 전체 페이지 수
+            setPointHistoryTotalItems(data.totalElements ?? 0); // 전체 항목 수
+
+        } catch (err) {
+            // 에러 발생 시 처리
+            console.error('[fetchPointHistory] 포인트 내역 로딩 중 오류:', err);
+            setError(err instanceof Error ? err.message : '포인트 내역 로딩 오류'); // 에러 상태 설정
+            // 에러 시 상태 초기화
+            setPointHistory([]);
+            setPointHistoryCurrentPage(1);
+            setPointHistoryTotalPages(1);
+            setPointHistoryTotalItems(0);
+        } finally {
+            // 나중에 여기에 포인트 내역 로딩 상태를 false로 설정하는 코드 추가 가능
+        }
+    }, [userId]); // userId가 변경될 때마다 이 함수를 새로 만들도록 설정
+
+
   useEffect(() => {
 
     console.log('[UserDetailPage useEffect] Effect 실행! 현재 userId:', userId);
@@ -111,23 +156,8 @@ export default function UserDetailPage() {
         const data = await response.json();
         console.log('[UserDetail] Received data:', data);
 
-        // UserDetail 상태 업데이트 (pointHistoryPage 제외)
         const { pointHistoryPage, ...userData} = data;
         setUser(userData);
-
-        // 포인트 내역 상태 업데이트 (첫 페이지)
-        if (pointHistoryPage && Array.isArray(pointHistoryPage.content)) {
-            setPointHistory(pointHistoryPage.content);
-            setPointHistoryCurrentPage((pointHistoryPage.number ?? 0) + 1);
-            setPointHistoryTotalPages(pointHistoryPage.totalPages ?? 1);
-            setPointHistoryTotalItems(pointHistoryPage.totalElements ?? 0);
-        } else {
-            setPointHistory([]); // 데이터 없으면 빈 배열
-            setPointHistoryCurrentPage(1);
-            setPointHistoryTotalPages(1);
-            setPointHistoryTotalItems(0);
-
-        }
 
         // 드롭다운 초기 선택값  설정
         setSelectedStatus(data.status || '');
@@ -136,7 +166,6 @@ export default function UserDetailPage() {
          console.error('[UserDetail] Error fetching user data:', err);
          setError(err instanceof Error ? err.message : '알 수 없는 오류 발생');
          setUser(null); // 에러 시 사용자 데이터 null 처리
-         setPointHistory([]); // 에러 시 포인트 내역 비우기
       } finally {
         setIsLoading(false);
       }
@@ -375,7 +404,7 @@ export default function UserDetailPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                    {pointHistory.length === 0 ? ( // ★★★ 데이터 없을 때 메시지 추가 (선택 사항) ★★★
+                    {pointHistory.length === 0 ? ( // 데이터 없을 때 메시지 추가
                       <tr>
                         <td colSpan={3} className="px-6 py-10 text-center text-sm text-gray-500">
                           포인트 내역이 없습니다.
