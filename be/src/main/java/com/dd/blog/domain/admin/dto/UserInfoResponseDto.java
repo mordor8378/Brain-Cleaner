@@ -21,17 +21,21 @@ public class UserInfoResponseDto {
     private final String email;
 
     @Schema(description = "사용자 등급", example = "디톡스새싹")
-    private final String roleDisplayName;
+    private final String role;
+
+    @Schema(description = "사용자 상태", example = "ACTIVE")
+    private final String status;
 
     @Schema(description = "가입 시간", example = "2025-04-15T14:20:00")
     private final LocalDateTime createdAt;
 
     @Builder
-    public UserInfoResponseDto(Long userId, String nickname, String email,String roleDisplayName, LocalDateTime createdAt) {
+    public UserInfoResponseDto(Long userId, String nickname, String email,String role,String status, LocalDateTime createdAt) {
         this.userId = userId;
         this.nickname = nickname;
         this.email = email;
-        this.roleDisplayName = roleDisplayName;
+        this.role = role;
+        this.status = status;
         this.createdAt = createdAt;
     }
 

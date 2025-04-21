@@ -50,7 +50,7 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
                 .role(UserRole.ROLE_USER_SPROUT)
-                .userStatus(UserStatus.ACTIVE)
+                .status(UserStatus.ACTIVE)
                 .remainingPoint(0)
                 .totalPoint(0)
                 .refreshToken(null)
@@ -92,7 +92,7 @@ public class UserService {
                     .ssoProvider(providerTypeCode)
                     .socialId(oauthId)
                     .role(UserRole.ROLE_USER_SPROUT)
-                    .userStatus(UserStatus.ACTIVE)
+                    .status(UserStatus.ACTIVE)
                     .remainingPoint(0)
                     .totalPoint(0)
                     .refreshToken(authTokenService.genRefreshTokenByEmail(email))
@@ -208,7 +208,7 @@ public class UserService {
 
 
         // ACTIVE 상태인 경우만 토큰 갱신
-        if (user.getUserStatus() != UserStatus.ACTIVE) {
+        if (user.getStatus() != UserStatus.ACTIVE) {
             throw new ApiException(ErrorCode.ACCESS_DENIED);
         }
 
