@@ -4,7 +4,12 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 
-export default function VerificationWritePage() {
+interface VerificationWritePageProps {
+  onClose?: () => void;
+  onSuccess?: () => void;
+}
+
+export default function VerificationWritePage({ onClose, onSuccess }: VerificationWritePageProps = {}) {
   const router = useRouter();
   const { user } = useUser();
   const [category, setCategory] = useState('1'); // 인증=1, 정보공유=2, 자유=3
@@ -13,7 +18,11 @@ export default function VerificationWritePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCancel = () => {
-    router.push('/');
+    if (onClose) {
+      onClose();
+    } else {
+      router.push('/');
+    }
   };
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -42,7 +51,7 @@ export default function VerificationWritePage() {
     }
 
     const userId = user?.id || 1; // Use actual user ID if available
-    const res = await fetch(`/api/v1/posts/category/${category}`, {
+    const res = await fetch(`http://localhost:8090/api/v1/posts/category/${category}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -51,11 +60,19 @@ export default function VerificationWritePage() {
         content: usageTime,
         imageUrl,
       }),
+      credentials: 'include',
     });
 
     if (res.ok) {
       alert('게시글 등록 완료!');
-      router.push('/');
+      if (onSuccess) {
+        onSuccess();
+      }
+      if (onClose) {
+        onClose();
+      } else {
+        router.push('/');
+      }
     } else {
       alert('등록 실패');
     }

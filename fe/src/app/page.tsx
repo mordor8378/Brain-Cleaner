@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import Link from 'next/link';
+import VerificationWritePage from './verification/write/page';
+import Image from 'next/image';
 
 export interface Post {
   postId: number;
@@ -22,21 +24,67 @@ export interface Post {
 export default function Home() {
   const { user, loading } = useUser();
   const [posts, setPosts] = useState<Post[] | null>(null);
+  const [selectedBoard, setSelectedBoard] = useState('전체게시판');
+  const [showWriteModal, setShowWriteModal] = useState(false);
   
-  useEffect(() => {
-    const fetchPosts = async () => {
+  const fetchPosts = async () => {
+    try {
       const response = await fetch('http://localhost:8090/api/v1/posts');
       if (response.ok) {
         const data = await response.json();
-        console.log(data);
-        setPosts(data);
+        console.log('게시글 데이터:', data);
+        
+        // 최신순으로 정렬 (createdAt 기준 내림차순)
+        const sortedData = [...data].sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        
+        setPosts(sortedData);
+      } else {
+        console.error('게시글 로드 실패:', response.status);
       }
-    };
+    } catch (error) {
+      console.error('게시글 요청 오류:', error);
+    }
+  };
+  
+  useEffect(() => {
     fetchPosts();
   }, []);
 
+  const boardOptions = [
+    { value: '전체게시판', label: '전체게시판' },
+    { value: '인증게시판', label: '인증게시판' },
+    { value: '정보공유게시판', label: '정보공유게시판' },
+    { value: '자유게시판', label: '자유게시판' },
+  ];
+
+  const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedBoard(e.target.value);
+  };
+
+  const openWriteModal = () => {
+    setShowWriteModal(true);
+  };
+
+  const closeWriteModal = () => {
+    setShowWriteModal(false);
+    fetchPosts();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {showWriteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-4 w-full max-w-md mx-4">
+            <VerificationWritePage 
+              onClose={closeWriteModal} 
+              onSuccess={fetchPosts} 
+            />
+          </div>
+        </div>
+      )}
+      
       {/* 메인 콘텐츠 */}
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 md:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -72,7 +120,10 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <button className="mt-3 w-full bg-pink-500 text-white py-3 px-4 rounded-full hover:bg-pink-600 transition font-medium">
+                  <button 
+                    onClick={openWriteModal}
+                    className="mt-3 w-full bg-pink-500 text-white py-3 px-4 rounded-full hover:bg-pink-600 transition font-medium"
+                  >
                     오늘 인증하기
                   </button>
                   
@@ -143,13 +194,28 @@ export default function Home() {
               <div className="bg-white">
                 {/* 전체 게시판 헤더 */}
                 <div className="flex justify-between items-center px-5 py-4">
-                  <div className="flex items-center">
-                    <h2 className="text-lg font-bold text-gray-900 mr-2">전체 게시판</h2>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
+                  <div className="relative">
+                    <select
+                      value={selectedBoard}
+                      onChange={handleBoardChange}
+                      className="appearance-none bg-transparent pr-8 text-gray-900 py-2 pl-2 focus:outline-none font-bold text-lg"
+                    >
+                      {boardOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </div>
                   </div>
-                  <button className="bg-pink-500 text-white py-2 px-6 rounded-full text-sm font-medium hover:bg-pink-600 transition">
+                  <button 
+                    onClick={openWriteModal} 
+                    className="bg-pink-500 text-white py-2 px-6 rounded-full text-sm font-medium hover:bg-pink-600 transition"
+                  >
                     글쓰기
                   </button>
                 </div>
@@ -172,7 +238,18 @@ export default function Home() {
                   <div key={post.postId} className="p-5">
                     <div className="flex items-start mb-3">
                       <div className="mr-3">
-                        <img src="https://via.placeholder.com/40" alt="프로필" className="w-10 h-10 rounded-full" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-6 w-6 text-gray-400"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between items-center mb-2">
@@ -190,7 +267,13 @@ export default function Home() {
                         <p className="text-sm text-gray-700 mb-3">{post.content}</p>
                         
                         <div className="rounded-lg overflow-hidden mb-3">
-                          <img src="https://via.placeholder.com/500x300" alt="게시글 이미지" className="w-full h-auto object-cover" />
+                          <Image
+                            src={post.imageUrl}
+                            alt="게시글 이미지"
+                            width={500}
+                            height={300}
+                            className="w-full h-auto object-cover"
+                          />
                         </div>
                         
                         <div className="flex items-center text-gray-500 text-sm pt-1">

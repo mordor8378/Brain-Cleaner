@@ -128,7 +128,8 @@ public class User extends BaseEntity implements UserDetails {
         this.detoxGoal = detoxGoal;
         this.birthDate = birthDate;
         this.profileImageUrl = profileImageUrl;
-      
+    }
+
     @Override
     public String getUsername() {
         return this.email;

@@ -61,7 +61,7 @@ export default function WritePostPage() {
     }
 
     const userId = user?.id || 1; // Use actual user ID if available
-    const res = await fetch(`/api/v1/posts/category/${category}`, {
+    const res = await fetch(`http://localhost:8090/api/v1/posts/category/${category}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -70,6 +70,7 @@ export default function WritePostPage() {
         content,
         imageUrl,
       }),
+      credentials: 'include',
     });
 
     if (res.ok) {

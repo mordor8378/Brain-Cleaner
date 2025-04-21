@@ -28,8 +28,6 @@ export default function Login() {
         credentials: 'include',
       });
       
-      const data = await response.json();
-      
       if (response.ok) {
         const userData = await response.json();
         console.log('로그인 응답 데이터:', JSON.stringify(userData, null, 2));
@@ -49,14 +47,14 @@ export default function Login() {
           router.push('/');
         }
       } else {
-        // 서버에서 반환된 에러 메시지 사용
-        if (data.message === 'USER_NOT_FOUND') {
-          setError('존재하지 않는 사용자입니다.');
-        } else if (data.message === 'INVALID_PASSWORD') {
-          setError('비밀번호가 일치하지 않습니다.');
-        } else {
-          setError(data.message || '로그인에 실패했습니다.');
-        }
+        // // 서버에서 반환된 에러 메시지 사용
+        // if (data.message === 'USER_NOT_FOUND') {
+        //   setError('존재하지 않는 사용자입니다.');
+        // } else if (data.message === 'INVALID_PASSWORD') {
+        //   setError('비밀번호가 일치하지 않습니다.');
+        // } else {
+        //   setError(data.message || '로그인에 실패했습니다.');
+        // }
       }
     } catch (error) {
       console.error('로그인 중 오류 발생:', error);
