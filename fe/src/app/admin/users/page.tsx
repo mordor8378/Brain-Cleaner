@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface User {
-  id: number;
+  userId: number;
   nickname: string;
   email: string;
   role: string;
@@ -260,12 +260,12 @@ export default function AdminUsersPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {users.map((user) => (
                   <tr
-                    key={user.id}
+                    key={user.userId}
                     className="table-row hover:bg-pink-50 cursor-pointer"
-                    onClick={() => !isLoading && router.push(`/admin/users/${user.id}`)}
+                    onClick={() => !isLoading && router.push(`/admin/users/${user.userId}`)}
                     aria-disabled={isLoading}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.userId}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.nickname}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
