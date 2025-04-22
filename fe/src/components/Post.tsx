@@ -313,7 +313,21 @@ export default function Post({
             ) : (
               <div className="flex items-start">
                 <p className="text-sm text-gray-700 flex-1">
-                  {detoxTime > 0 ? `detoxed for ${detoxTime} hours` : content}
+                  {(() => {
+                    if (
+                      typeof detoxTime === 'number' &&
+                      !isNaN(detoxTime) &&
+                      detoxTime > 0
+                    ) {
+                      return `detoxed for ${detoxTime} hours`;
+                    }
+
+                    if (!content) {
+                      return '';
+                    }
+
+                    return content;
+                  })()}
                 </p>
                 {user?.id === userId && (
                   <button

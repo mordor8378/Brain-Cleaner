@@ -54,8 +54,8 @@ public class PostService {
                 .imageUrl(postRequestDto.getImageUrl())
                 .category(category)
                 .user(user)
-                .detoxTime(postRequestDto.getDetoxTime()) //
-                .verificationImageUrl(postRequestDto.getVerificationImageUrl()) //
+                .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
+                .verificationImageUrl(postRequestDto.getVerificationImageUrl()) // String: 인증 이미지 URL
                 .build();
 
         Post savedPost = postRepository.save(post);

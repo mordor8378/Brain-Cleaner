@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 
@@ -8,6 +8,14 @@ interface VerificationWritePageProps {
   onClose?: () => void;
   onSuccess?: () => void;
   onCategoryChange?: (category: string) => void;
+}
+
+interface VerificationPost {
+  userId: number;
+  title: string;
+  content: string;
+  imageUrl: string;
+  detoxTime: number;
 }
 
 export default function VerificationWritePage({
@@ -18,9 +26,19 @@ export default function VerificationWritePage({
   const router = useRouter();
   const { user } = useUser();
   const [category, setCategory] = useState('1'); // 인증=1, 정보공유=2, 자유=3
-  const [usageTime, setUsageTime] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [usageTime, setUsageTime] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Verification post data:', {
+        imageUrl,
+        detoxTime: Number(usageTime),
+        content: usageTime,
+      });
+    }
+  }, [imageUrl, usageTime]);
 
   const handleCancel = () => {
     if (onClose) {
@@ -49,25 +67,26 @@ export default function VerificationWritePage({
   };
 
   const handleSubmit = async () => {
-    // Validation
     if (!imageUrl || !usageTime) {
       alert('휴대폰 이용시간 캡쳐와 이용시간을 모두 입력해야 합니다.');
       return;
     }
 
-    const userId = user?.id || 1; // Use actual user ID if available
+    const userId = user?.id || 1;
+    const verificationPost: VerificationPost = {
+      userId,
+      title: '도파민 디톡스 인증',
+      content: usageTime,
+      imageUrl,
+      detoxTime: Number(usageTime),
+    };
+
     const res = await fetch(
       `http://localhost:8090/api/v1/posts/category/${category}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          title: '도파민 디톡스 인증',
-          content: usageTime,
-          imageUrl,
-          detoxTime: Number(usageTime),
-        }),
+        body: JSON.stringify(verificationPost),
         credentials: 'include',
       }
     );
