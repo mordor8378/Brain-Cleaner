@@ -25,16 +25,38 @@ export interface Post {
 export default function Home() {
   const { user, loading } = useUser();
   const [posts, setPosts] = useState<Post[] | null>(null);
-  const [selectedBoard, setSelectedBoard] = useState('전체게시판');
+  const [selectedBoard, setSelectedBoard] = useState('0');
   const [showWriteModal, setShowWriteModal] = useState(false);
   const [writeCategory, setWriteCategory] = useState('2');
 
+  const boardOptions = [
+    { value: '0', label: '전체게시판' },
+    { value: '1', label: '인증게시판' },
+    { value: '2', label: '정보공유게시판' },
+    { value: '3', label: '자유게시판' },
+  ];
+
   const fetchPosts = async () => {
     try {
-      const response = await fetch('http://localhost:8090/api/v1/posts');
+      const url =
+        selectedBoard === '0'
+          ? 'http://localhost:8090/api/v1/posts'
+          : `http://localhost:8090/api/v1/posts?categoryId=${selectedBoard}`;
+
+      console.log('요청 URL:', url); // URL 확인용 로그
+
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        console.log('게시글 데이터:', data);
+        console.log('=== 게시글 API 응답 데이터 ===');
+        console.log('전체 데이터:', data);
+        if (data.length > 0) {
+          console.log('첫 번째 게시글:', {
+            categoryId: data[0].categoryId,
+            title: data[0].title,
+            content: data[0].content,
+          });
+        }
 
         // 최신순으로 정렬 (createdAt 기준 내림차순)
         const sortedData = [...data].sort(
@@ -53,16 +75,10 @@ export default function Home() {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
-
-  const boardOptions = [
-    { value: '전체게시판', label: '전체게시판' },
-    { value: '인증게시판', label: '인증게시판' },
-    { value: '정보공유게시판', label: '정보공유게시판' },
-    { value: '자유게시판', label: '자유게시판' },
-  ];
+  }, [selectedBoard]); // selectedBoard가 변경될 때마다 게시글 다시 불러오기
 
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('선택된 카테고리:', e.target.value); // 카테고리 변경 확인용 로그
     setSelectedBoard(e.target.value);
   };
 
