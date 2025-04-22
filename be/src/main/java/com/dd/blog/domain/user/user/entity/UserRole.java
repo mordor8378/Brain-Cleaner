@@ -17,7 +17,7 @@ public enum UserRole {
 
     ROLE_ADMIN("관리자", Long.MAX_VALUE);
 
-    private final String displayName;
+    private final String roleString;
     private final long minPoints;
 
     /** 누적 포인트가 주어지면 해당하는 최고 등급 반환 */

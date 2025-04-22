@@ -42,7 +42,7 @@ public class ApiV1PostController {
     )
     @PostMapping("/category/{categoryId}")
     public ResponseEntity<PostResponseDto> createPost(
-            @Parameter(description = "카테고리 ID", required = true) @PathVariable Long categoryId,
+            @Parameter(description = "카테고리 ID", required = true) @PathVariable("categoryId") Long categoryId,
             @Valid @RequestBody PostRequestDto postRequestDto){
         PostResponseDto responseDto = postService.createPost(categoryId, postRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
@@ -93,6 +93,21 @@ public class ApiV1PostController {
     public ResponseEntity<List<PostResponseDto>> getPostsByFollowing(
             @Parameter(description = "유저 ID", required = true) @PathVariable Long userId) {
         List<PostResponseDto> posts = postService.getPostsByFollowing(userId);
+        return ResponseEntity.ok(posts);
+    }
+
+    @GetMapping("/user/{userId}")
+    @Operation(
+            summary = "사용자 게시글 목록 조회",
+            description = "특정 사용자가 작성한 게시글 목록을 조회합니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공"),
+                    @ApiResponse(responseCode = "404", description = "사용자가 없거나 게시글이 없음")
+            }
+    )
+    public ResponseEntity<List<PostResponseDto>> getPostsByUser(
+            @Parameter(description = "유저 ID", required = true) @PathVariable Long userId) {
+        List<PostResponseDto> posts = postService.getPostsByUser(userId);
         return ResponseEntity.ok(posts);
     }
 

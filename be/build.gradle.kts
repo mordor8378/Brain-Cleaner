@@ -13,6 +13,10 @@ java {
 	}
 }
 
+tasks.withType<JavaCompile> {
+	options.compilerArgs.add("-parameters")
+}
+
 configurations {
 	compileOnly {
 		extendsFrom(configurations.annotationProcessor.get())
@@ -54,6 +58,10 @@ dependencies {
 
 	// Oauth2
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+}
+
+tasks.withType<JavaCompile> {
+	options.compilerArgs.add("-parameters")
 }
 
 tasks.withType<Test> {

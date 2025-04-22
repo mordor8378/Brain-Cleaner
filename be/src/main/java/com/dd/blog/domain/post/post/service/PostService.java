@@ -2,6 +2,7 @@ package com.dd.blog.domain.post.post.service;
 
 import com.dd.blog.domain.post.category.entity.Category;
 import com.dd.blog.domain.post.category.repository.CategoryRepository;
+import com.dd.blog.domain.post.event.PostCreatedEvent;
 import com.dd.blog.domain.post.post.dto.PostPatchRequestDto;
 import com.dd.blog.domain.post.post.dto.PostRequestDto;
 import com.dd.blog.domain.post.post.dto.PostResponseDto;
@@ -12,6 +13,7 @@ import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.domain.user.follow.repository.FollowRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,8 @@ public class PostService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
 
 
     // CREATE
@@ -46,7 +50,10 @@ public class PostService {
                 .user(user)
                 .build();
 
-        return PostResponseDto.fromEntity(postRepository.save(post));
+        Post savedPost = postRepository.save(post);
+        this.eventPublisher.publishEvent(new PostCreatedEvent(this, savedPost));
+
+        return PostResponseDto.fromEntity(savedPost);
     }
 
 
@@ -64,7 +71,7 @@ public class PostService {
     public List<PostResponseDto> getPostsByCategory(Long categoryId){
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
-        return postRepository.findByCategoryId(category).stream()
+        return postRepository.findByCategoryId(categoryId).stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -86,6 +93,18 @@ public class PostService {
         // 이 유저들이 쓴 게시글을 모두 조회
         List<Post> posts = postRepository.findByUserInOrderByCreatedAtDesc(followedUsers);
 
+        return posts.stream()
+                .map(PostResponseDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    // 특정 사용자의 게시물 목록 조회
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getPostsByUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+
+        List<Post> posts = postRepository.findByUserOrderByCreatedAtDesc(user);
         return posts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
