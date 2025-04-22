@@ -6,7 +6,7 @@ import Link from 'next/link';
 import WritePostPage from './post/write/page';
 import VerificationWritePage from './verification/write/page';
 import Post from '@/components/Post';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface Post {
   postId: number;
@@ -36,7 +36,6 @@ interface PostsResponse {
 
 export default function Home() {
   const { user, loading } = useUser();
-  // const [posts, setPosts] = useState<Post[] | null>(null);
   const [selectedBoard, setSelectedBoard] = useState('0');
   const [showWriteModal, setShowWriteModal] = useState(false);
   const [writeCategory, setWriteCategory] = useState('2');
@@ -44,9 +43,11 @@ export default function Home() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [sortType, setSortType] = useState<'latest' | 'popular'>('latest');
 
-  // 마지막 요소 참조를 위한 ref
+  // QueryClient 인스턴스 -> 캐시 조작용
+  const queryClient = useQueryClient();
+
+  // 마지막 요소 참조용
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const lastPostElementRef = useRef<HTMLDivElement | null>(null);
 
   const boardOptions = [
     { value: '0', label: '전체게시판' },
@@ -207,18 +208,30 @@ export default function Home() {
         const data = await response.json();
         console.log('좋아요 응답:', data);
 
-        setPosts(
-          (prevPosts) =>
-            prevPosts?.map((post) => {
-              if (post.postId === postId) {
-                return {
-                  ...post,
-                  likeCount: data.likeCount,
-                  likedByCurrentUser: data.likedByCurrentUser,
-                };
-              }
-              return post;
-            }) ?? null
+        // React Query 캐시 직접 업데이트
+        queryClient.setQueryData<{ pages: PostsResponse[] }>(
+          ['posts', selectedBoard, sortType, searchType, searchKeyword],
+          (oldData) => {
+            if (!oldData) return oldData;
+            
+            // 페이지별로 게시글 업데이트
+            return {
+              ...oldData,
+              pages: oldData.pages.map(page => ({
+                ...page,
+                content: page.content.map(post => {
+                  if (post.postId === postId) {
+                    return {
+                      ...post,
+                      likeCount: data.likeCount,
+                      likedByCurrentUser: data.likedByCurrentUser
+                    };
+                  }
+                  return post;
+                })
+              }))
+            };
+          }
         );
       }
     } catch (error) {
@@ -238,29 +251,41 @@ export default function Home() {
 
       if (response.status === 204) {
         // DELETE 요청은 보통 204 No Content를 반환
-        // 좋아요 취소 후 해당 게시글의 상태만 업데이트
-        setPosts(
-          (prevPosts) =>
-            prevPosts?.map((post) => {
-              if (post.postId === postId) {
-                console.log('좋아요 취소:', {
-                  이전: {
-                    likeCount: post.likeCount,
-                    likedByCurrentUser: post.likedByCurrentUser,
-                  },
-                  이후: {
-                    likeCount: post.likeCount - 1,
-                    likedByCurrentUser: false,
-                  },
-                });
-                return {
-                  ...post,
-                  likeCount: Math.max(0, post.likeCount - 1),
-                  likedByCurrentUser: false,
-                };
-              }
-              return post;
-            }) ?? null
+        
+        // React Query 캐시 직접 업데이트
+        queryClient.setQueryData<{ pages: PostsResponse[] }>(
+          ['posts', selectedBoard, sortType, searchType, searchKeyword],
+          (oldData) => {
+            if (!oldData) return oldData;
+            
+            return {
+              ...oldData,
+              pages: oldData.pages.map(page => ({
+                ...page,
+                content: page.content.map(post => {
+                  if (post.postId === postId) {
+                    console.log('좋아요 취소:', {
+                      이전: {
+                        likeCount: post.likeCount,
+                        likedByCurrentUser: post.likedByCurrentUser,
+                      },
+                      이후: {
+                        likeCount: Math.max(0, post.likeCount - 1),
+                        likedByCurrentUser: false,
+                      },
+                    });
+                    
+                    return {
+                      ...post,
+                      likeCount: Math.max(0, post.likeCount - 1),
+                      likedByCurrentUser: false
+                    };
+                  }
+                  return post;
+                })
+              }))
+            };
+          }
         );
       } else {
         console.error('좋아요 취소 실패:', response.status);
@@ -662,25 +687,6 @@ export default function Home() {
                     더 이상 게시글이 없습니다.
                   </div>
                 )}
-                      postId={post.postId}
-                      userId={post.userId}
-                      userNickname={post.userNickname}
-                      title={post.title}
-                      content={post.content}
-                      imageUrl={post.imageUrl}
-                      viewCount={post.viewCount}
-                      likeCount={post.likeCount}
-                      commentCount={post.commentCount}
-                      verificationImageUrl={post.verificationImageUrl}
-                      detoxTime={post.detoxTime}
-                      createdAt={post.createdAt}
-                      updatedAt={post.updatedAt}
-                      onUpdate={fetchPosts}
-                      onLike={() => handleLike(post.postId)}
-                      onUnlike={() => handleUnlike(post.postId)}
-                      isLiked={post.likedByCurrentUser}
-                    />
-                  ))}
               </div>
             </div>
           </div>
