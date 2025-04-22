@@ -57,6 +57,14 @@ export default function Post({
   }, [postId]);
 
   useEffect(() => {
+    console.log('Post verification data:', {
+      verificationImageUrl,
+      detoxTime,
+      content,
+    });
+  }, [verificationImageUrl, detoxTime, content]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (postRef.current && !postRef.current.contains(event.target as Node)) {
         if (isEditingTitle) {
@@ -304,7 +312,9 @@ export default function Post({
               </div>
             ) : (
               <div className="flex items-start">
-                <p className="text-sm text-gray-700 flex-1">{content}</p>
+                <p className="text-sm text-gray-700 flex-1">
+                  {detoxTime > 0 ? `detoxed for ${detoxTime} hours` : content}
+                </p>
                 {user?.id === userId && (
                   <button
                     onClick={handleEditContent}

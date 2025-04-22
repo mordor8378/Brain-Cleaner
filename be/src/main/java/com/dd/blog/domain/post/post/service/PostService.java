@@ -54,6 +54,8 @@ public class PostService {
                 .imageUrl(postRequestDto.getImageUrl())
                 .category(category)
                 .user(user)
+                .detoxTime(postRequestDto.getDetoxTime()) //
+                .verificationImageUrl(postRequestDto.getVerificationImageUrl()) //
                 .build();
 
         Post savedPost = postRepository.save(post);

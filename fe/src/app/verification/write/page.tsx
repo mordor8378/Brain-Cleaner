@@ -66,6 +66,7 @@ export default function VerificationWritePage({
           title: '도파민 디톡스 인증',
           content: usageTime,
           imageUrl,
+          detoxTime: Number(usageTime),
         }),
         credentials: 'include',
       }
