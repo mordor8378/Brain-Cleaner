@@ -384,9 +384,9 @@ export default function Home() {
 
           {/* 중앙 콘텐츠 - 게시판 */}
           <div className="md:col-span-2">
-            <div className="bg-white rounded-lg shadow mb-6">
-              {/* 게시판 헤더 */}
-              <div className="bg-white">
+            <div className="bg-white rounded-lg shadow mb-6 flex flex-col h-[calc(100vh-2rem)]">
+            {/* 게시판 헤더 */}
+            <div className="bg-white sticky top-0 z-10">
                 {/* 전체 게시판 헤더 */}
                 <div className="flex justify-between items-center px-5 py-4">
                   <div className="relative">
@@ -519,7 +519,7 @@ export default function Home() {
               </div>
 
               {/* 게시글 목록 */}
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 overflow-y-auto flex-1">
                 {/* 초기 로딩 중 */}
                 {isFetching && !isFetchingNextPage && posts.length === 0 && (
                   <div className="p-8 flex justify-center">
