@@ -42,7 +42,7 @@ export default function Home() {
       console.log('요청 URL:', url); // URL 확인용 로그
 
       const response = await fetch(url, {
-        credentials: 'include',
+        credentials: 'include', // 기존의 credentials 옵션 유지
       });
 
       if (response.ok) {
