@@ -43,13 +43,19 @@ export default function Home() {
           ? 'http://localhost:8090/api/v1/posts'
           : `http://localhost:8090/api/v1/posts?categoryId=${selectedBoard}`;
 
+      console.log('요청 URL:', url); // URL 확인용 로그
+
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         console.log('=== 게시글 API 응답 데이터 ===');
         console.log('전체 데이터:', data);
         if (data.length > 0) {
-          console.log('첫 번째 게시글 필드:', data[0]);
+          console.log('첫 번째 게시글:', {
+            categoryId: data[0].categoryId,
+            title: data[0].title,
+            content: data[0].content,
+          });
         }
 
         // 최신순으로 정렬 (createdAt 기준 내림차순)
@@ -69,9 +75,10 @@ export default function Home() {
 
   useEffect(() => {
     fetchPosts();
-  }, [selectedBoard]);
+  }, [selectedBoard]); // selectedBoard가 변경될 때마다 게시글 다시 불러오기
 
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('선택된 카테고리:', e.target.value); // 카테고리 변경 확인용 로그
     setSelectedBoard(e.target.value);
   };
 
