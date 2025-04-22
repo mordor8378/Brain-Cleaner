@@ -41,11 +41,11 @@ public class PostService {
     // CREATE
     // 게시글 CREATE
     @Transactional
-    public PostResponseDto createPost(Long categoryId, PostRequestDto postRequestDto){
+    public PostResponseDto createPost(Long categoryId, Long userId, PostRequestDto postRequestDto){
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("카테고리가 존재하지 않습니다."));
 
-        User user = userRepository.findById(postRequestDto.getUserId())
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
 
         Post post = Post.builder()
