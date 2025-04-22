@@ -29,14 +29,9 @@ public class ApiV1PostLikeController {
 
         // 현재 로그인한 사용자 정보 가져옴 (현재는 임시로 1L 사용)
         Long currentUserId = 1L;
-
         LikeResponseDto responseDto = postLikeService.addLike(currentUserId, postId);
-
-
-
-        LikeResponseDto Response = new LikeResponseDto(postId, 1L, true);
-
-        return ResponseEntity.ok(Response);
+        // LikeResponseDto Response = new LikeResponseDto(postId, 1L, true);
+        return ResponseEntity.ok(responseDto);
     }
 
     @Operation(summary = "게시글 좋아요 취소", description = "지정된 게시글에 현재 로그인한 사용자의 좋아요를 취소")
@@ -48,13 +43,8 @@ public class ApiV1PostLikeController {
 
         // 현재 로그인한 사용자 정보 가져옴 (현재는 임시로 1L 사용)
         Long currentUserId = 1L;
-
-        LikeResponseDto responseDto = postLikeService.deleteLike(currentUserId, postId);
-
-
-
-        LikeResponseDto Response = new LikeResponseDto(postId, 1L, true);
-
+        postLikeService.deleteLike(currentUserId, postId);
+        // LikeResponseDto Response = new LikeResponseDto(postId, 1L, true);
         return ResponseEntity.noContent().build();
     }
 }
