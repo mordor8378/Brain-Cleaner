@@ -17,10 +17,12 @@ export interface Post {
   imageUrl: string;
   viewCount: number;
   likeCount: number;
+  commentCount: number;
   verificationImageUrl: string;
   detoxTime: number;
   createdAt: string;
   updatedAt: string;
+  likedByCurrentUser?: boolean;
 }
 
 interface PostsResponse {
@@ -56,28 +58,28 @@ export default function Home() {
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
     const categoryParam = selectedBoard === '0' ? '' : `&categoryId=${selectedBoard}`;
     const sortParam = sortType === 'popular' ? '&sort=likeCount,desc' : '&sort=createdAt,desc';
-    
+
     let url = `http://localhost:8090/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
-    
+
     // 검색어가 있으면 검색 API 사용
     if (searchKeyword.trim()) {
       url = `http://localhost:8090/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(searchKeyword.trim())}&page=${pageParam}&size=10${sortParam}`;
     }
-    
+
     console.log('요청 URL:', url);
-    
+
     const response = await fetch(url, {
       credentials: 'include',
     });
-    
+
     if (!response.ok) {
       throw new Error(`게시글 로드 실패: ${response.status}`);
     }
-    
+
     const data = await response.json();
     console.log('=== 게시글 API 응답 데이터 ===');
     console.log('전체 데이터:', data);
-    
+
     if (Array.isArray(data)) {
       // 검색 결과가 배열인 경우 페이지네이션 객체 형태로 변환
       return {
@@ -144,18 +146,18 @@ export default function Home() {
   const lastPostRef = useCallback(
     (node: HTMLDivElement) => {
       if (isFetchingNextPage) return;
-      
+
       if (observerRef.current) {
         observerRef.current.disconnect();
       }
-      
+
       observerRef.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && hasNextPage) {
           console.log('마지막 게시글 감지, 다음 페이지 로드');
           fetchNextPage();
         }
       });
-      
+
       if (node) {
         observerRef.current.observe(node);
       }
@@ -190,6 +192,86 @@ export default function Home() {
   const handleWriteCategoryChange = (category: string) => {
     setWriteCategory(category);
   };
+
+  const handleLike = async (postId: number) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/${postId}/like`,
+        {
+          method: 'POST',
+          credentials: 'include',
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('좋아요 응답:', data);
+
+        setPosts(
+          (prevPosts) =>
+            prevPosts?.map((post) => {
+              if (post.postId === postId) {
+                return {
+                  ...post,
+                  likeCount: data.likeCount,
+                  likedByCurrentUser: data.likedByCurrentUser,
+                };
+              }
+              return post;
+            }) ?? null
+        );
+      }
+    } catch (error) {
+      console.error('좋아요 처리 중 오류:', error);
+    }
+  };
+
+  const handleUnlike = async (postId: number) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/${postId}/like`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      );
+
+      if (response.status === 204) {
+        // DELETE 요청은 보통 204 No Content를 반환
+        // 좋아요 취소 후 해당 게시글의 상태만 업데이트
+        setPosts(
+          (prevPosts) =>
+            prevPosts?.map((post) => {
+              if (post.postId === postId) {
+                console.log('좋아요 취소:', {
+                  이전: {
+                    likeCount: post.likeCount,
+                    likedByCurrentUser: post.likedByCurrentUser,
+                  },
+                  이후: {
+                    likeCount: post.likeCount - 1,
+                    likedByCurrentUser: false,
+                  },
+                });
+                return {
+                  ...post,
+                  likeCount: Math.max(0, post.likeCount - 1),
+                  likedByCurrentUser: false,
+                };
+              }
+              return post;
+            }) ?? null
+        );
+      } else {
+        console.error('좋아요 취소 실패:', response.status);
+        const errorText = await response.text();
+        console.error('에러 내용:', errorText);
+      }
+    } catch (error) {
+      console.error('좋아요 취소 중 오류:', error);
+    }
+  };
+
 
   const posts = data?.pages.flatMap(page => page.content) || [];
 
@@ -526,19 +608,19 @@ export default function Home() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
                   </div>
                 )}
-                
+
                 {/* 데이터가 없을 때 */}
                 {!isFetching && posts.length === 0 && (
                   <div className="p-8 text-center text-gray-500">
                     게시글이 없습니다.
                   </div>
                 )}
-                
+
                 {/* 게시글 목록 */}
                 {posts.map((post, index) => {
                   // post가 undefined인 경우를 체크
                   if (!post || post.postId === undefined) return null;
-                  
+
                   return (
                     <div
                       key={post.postId}
@@ -553,29 +635,52 @@ export default function Home() {
                         imageUrl={post.imageUrl || ''}
                         viewCount={post.viewCount || 0}
                         likeCount={post.likeCount || 0}
+                        commentCount={post.commentCount}
                         verificationImageUrl={post.verificationImageUrl || ''}
                         detoxTime={post.detoxTime || 0}
                         createdAt={post.createdAt || ''}
                         updatedAt={post.updatedAt || ''}
                         onUpdate={() => refetch()}
+                        onLike={() => handleLike(post.postId)}
+                        onUnlike={() => handleUnlike(post.postId)}
+                        isLiked={post.likedByCurrentUser}
                       />
                     </div>
                   );
                 })}
-                
+
                 {/* 추가 로딩 인디케이터 */}
                 {isFetchingNextPage && (
                   <div className="p-5 text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
                   </div>
                 )}
-                
+
                 {/* 더 이상 로드할 데이터가 없을 때 메시지 */}
                 {!hasNextPage && posts.length > 0 && !isFetching && (
                   <div className="p-5 text-center text-gray-500">
                     더 이상 게시글이 없습니다.
                   </div>
                 )}
+                      postId={post.postId}
+                      userId={post.userId}
+                      userNickname={post.userNickname}
+                      title={post.title}
+                      content={post.content}
+                      imageUrl={post.imageUrl}
+                      viewCount={post.viewCount}
+                      likeCount={post.likeCount}
+                      commentCount={post.commentCount}
+                      verificationImageUrl={post.verificationImageUrl}
+                      detoxTime={post.detoxTime}
+                      createdAt={post.createdAt}
+                      updatedAt={post.updatedAt}
+                      onUpdate={fetchPosts}
+                      onLike={() => handleLike(post.postId)}
+                      onUnlike={() => handleUnlike(post.postId)}
+                      isLiked={post.likedByCurrentUser}
+                    />
+                  ))}
               </div>
             </div>
           </div>

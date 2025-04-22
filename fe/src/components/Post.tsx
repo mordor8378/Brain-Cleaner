@@ -11,11 +11,15 @@ export interface PostProps {
   imageUrl: string;
   viewCount: number;
   likeCount: number;
+  commentCount: number;
   verificationImageUrl: string;
   detoxTime: number;
   createdAt: string;
   updatedAt: string;
   onUpdate?: () => void;
+  onLike: () => void;
+  onUnlike: () => void;
+  isLiked?: boolean;
 }
 
 export default function Post({
@@ -27,11 +31,15 @@ export default function Post({
   imageUrl,
   viewCount,
   likeCount,
+  commentCount,
   verificationImageUrl,
   detoxTime,
   createdAt,
   updatedAt,
   onUpdate,
+  onLike,
+  onUnlike,
+  isLiked,
 }: PostProps) {
   const { user } = useUser();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -304,39 +312,56 @@ export default function Post({
             </div>
           )}
 
-          <div className="flex items-center text-gray-500 text-sm pt-1">
-            <button className="flex items-center mr-5">
+          <div className="mt-4 flex items-center gap-4">
+            <button
+              onClick={() => (isLiked ? onUnlike() : onLike())}
+              className="flex items-center gap-1"
+            >
+              {isLiked ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-pink-500"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+              )}
+              <span className="text-sm text-gray-500">{likeCount}</span>
+            </button>
+
+            <div className="flex items-center gap-1">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-1 text-gray-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+                className="h-5 w-5 text-gray-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                  clipRule="evenodd"
-                />
+                <path d="M8 12h.01M12 12h.01M16 12h.01M3 12c0 4.97 4.03 9 9 9a9.863 9.863 0 004.255-.949L21 21l-1.395-4.72C20.488 15.042 21 13.574 21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9z" />
               </svg>
-              <span>{likeCount}</span>
-            </button>
-            <button className="flex items-center mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-1 text-gray-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>10</span>
-            </button>
-            <span className="mx-1 text-gray-400">·</span>
-            <span className="text-pink-500 font-medium">+50 포인트</span>
+              <span className="text-sm text-gray-500">{commentCount}</span>
+            </div>
           </div>
         </div>
       </div>

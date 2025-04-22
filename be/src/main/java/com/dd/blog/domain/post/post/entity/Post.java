@@ -49,10 +49,22 @@ public class Post extends BaseEntity {
     @Column(name = "detox_time")
     private Integer detoxTime;
 
+    // 게시글 수정 메서드
     public void update(String title, String content, String imageUrl) {
         // 일부만 수정하므로 null값은 수정하지 않도록 처리
         if (title != null) this.title = title;
         if (content != null) this.content = content;
         if (imageUrl != null) this.imageUrl = imageUrl;
+    }
+
+    // 좋아요 메서드
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        if (this.likeCount > 0) {
+            this.likeCount--;
+        }
     }
 }
