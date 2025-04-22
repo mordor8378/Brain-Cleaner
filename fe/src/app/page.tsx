@@ -16,10 +16,12 @@ export interface Post {
   imageUrl: string;
   viewCount: number;
   likeCount: number;
+  commentCount: number;
   verificationImageUrl: string;
   detoxTime: number;
   createdAt: string;
   updatedAt: string;
+  likedByCurrentUser?: boolean;
 }
 
 export default function Home() {
@@ -155,6 +157,85 @@ export default function Home() {
 
   const handleWriteCategoryChange = (category: string) => {
     setWriteCategory(category);
+  };
+
+  const handleLike = async (postId: number) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/${postId}/like`,
+        {
+          method: 'POST',
+          credentials: 'include',
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('좋아요 응답:', data);
+
+        setPosts(
+          (prevPosts) =>
+            prevPosts?.map((post) => {
+              if (post.postId === postId) {
+                return {
+                  ...post,
+                  likeCount: data.likeCount,
+                  likedByCurrentUser: data.likedByCurrentUser,
+                };
+              }
+              return post;
+            }) ?? null
+        );
+      }
+    } catch (error) {
+      console.error('좋아요 처리 중 오류:', error);
+    }
+  };
+
+  const handleUnlike = async (postId: number) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/${postId}/like`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      );
+
+      if (response.status === 204) {
+        // DELETE 요청은 보통 204 No Content를 반환
+        // 좋아요 취소 후 해당 게시글의 상태만 업데이트
+        setPosts(
+          (prevPosts) =>
+            prevPosts?.map((post) => {
+              if (post.postId === postId) {
+                console.log('좋아요 취소:', {
+                  이전: {
+                    likeCount: post.likeCount,
+                    likedByCurrentUser: post.likedByCurrentUser,
+                  },
+                  이후: {
+                    likeCount: post.likeCount - 1,
+                    likedByCurrentUser: false,
+                  },
+                });
+                return {
+                  ...post,
+                  likeCount: Math.max(0, post.likeCount - 1),
+                  likedByCurrentUser: false,
+                };
+              }
+              return post;
+            }) ?? null
+        );
+      } else {
+        console.error('좋아요 취소 실패:', response.status);
+        const errorText = await response.text();
+        console.error('에러 내용:', errorText);
+      }
+    } catch (error) {
+      console.error('좋아요 취소 중 오류:', error);
+    }
   };
 
   return (
@@ -496,11 +577,15 @@ export default function Home() {
                       imageUrl={post.imageUrl}
                       viewCount={post.viewCount}
                       likeCount={post.likeCount}
+                      commentCount={post.commentCount}
                       verificationImageUrl={post.verificationImageUrl}
                       detoxTime={post.detoxTime}
                       createdAt={post.createdAt}
                       updatedAt={post.updatedAt}
                       onUpdate={fetchPosts}
+                      onLike={() => handleLike(post.postId)}
+                      onUnlike={() => handleUnlike(post.postId)}
+                      isLiked={post.likedByCurrentUser}
                     />
                   ))}
               </div>
