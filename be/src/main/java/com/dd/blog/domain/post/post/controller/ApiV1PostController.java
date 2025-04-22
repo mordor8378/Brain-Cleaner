@@ -4,6 +4,7 @@ import com.dd.blog.domain.post.post.dto.PostPatchRequestDto;
 import com.dd.blog.domain.post.post.dto.PostRequestDto;
 import com.dd.blog.domain.post.post.dto.PostResponseDto;
 import com.dd.blog.domain.post.post.service.PostService;
+import com.dd.blog.global.security.SecurityUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -44,8 +46,9 @@ public class ApiV1PostController {
     @PostMapping("/category/{categoryId}")
     public ResponseEntity<PostResponseDto> createPost(
             @Parameter(description = "카테고리 ID", required = true) @PathVariable("categoryId") Long categoryId,
-            @Valid @RequestBody PostRequestDto postRequestDto){
-        PostResponseDto responseDto = postService.createPost(categoryId, postRequestDto);
+            @Valid @RequestBody PostRequestDto postRequestDto,
+            @AuthenticationPrincipal SecurityUser user){
+        PostResponseDto responseDto = postService.createPost(categoryId, user.getId(),postRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 
