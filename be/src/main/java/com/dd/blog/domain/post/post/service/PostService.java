@@ -2,6 +2,7 @@ package com.dd.blog.domain.post.post.service;
 
 import com.dd.blog.domain.post.category.entity.Category;
 import com.dd.blog.domain.post.category.repository.CategoryRepository;
+import com.dd.blog.domain.post.event.PostCreatedEvent;
 import com.dd.blog.domain.post.post.dto.PostPatchRequestDto;
 import com.dd.blog.domain.post.post.dto.PostRequestDto;
 import com.dd.blog.domain.post.post.dto.PostResponseDto;
@@ -12,6 +13,7 @@ import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.domain.user.follow.repository.FollowRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,8 @@ public class PostService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
 
 
     // CREATE
@@ -46,7 +50,10 @@ public class PostService {
                 .user(user)
                 .build();
 
-        return PostResponseDto.fromEntity(postRepository.save(post));
+        Post savedPost = postRepository.save(post);
+        this.eventPublisher.publishEvent(new PostCreatedEvent(this, savedPost));
+
+        return PostResponseDto.fromEntity(savedPost);
     }
 
 
