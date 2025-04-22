@@ -11,6 +11,7 @@ export interface User {
   totalPoint?: number;
   role?: string;
   isSocialUser?: boolean;
+  profileImage?: string;
 }
 
 interface UserContextType {

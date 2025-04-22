@@ -15,6 +15,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -62,6 +63,18 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "social_id")
     private String socialId;
 
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
+    @Column(name = "status_message", length = 200)
+    private String statusMessage;
+
+    @Column(name = "detox_goal", length = 500)
+    private String detoxGoal;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Post> posts = new ArrayList<>();
@@ -106,6 +119,15 @@ public class User extends BaseEntity implements UserDetails {
     public void updateSocialInfo(String ssoProvider, String socialId) {
         this.ssoProvider = ssoProvider;
         this.socialId = socialId;
+    }
+
+    public void updateProfile(String nickname, String email, String statusMessage, String detoxGoal, LocalDate birthDate, String profileImageUrl) {
+        this.nickname = nickname;
+        this.email = email;
+        this.statusMessage = statusMessage;
+        this.detoxGoal = detoxGoal;
+        this.birthDate = birthDate;
+        this.profileImageUrl = profileImageUrl;
     }
 
     @Override

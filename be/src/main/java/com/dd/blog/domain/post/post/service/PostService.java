@@ -98,6 +98,18 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
+    // 특정 사용자의 게시물 목록 조회
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getPostsByUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+
+        List<Post> posts = postRepository.findByUserOrderByCreatedAtDesc(user);
+        return posts.stream()
+                .map(PostResponseDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
     // 게시글 1개 READ(상세보기)
     @Transactional(readOnly = true)
     public PostResponseDto getPostById(Long postId){

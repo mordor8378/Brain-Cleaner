@@ -2,3 +2,5 @@
 application-secret.yml
 .idea/
 db_dev.*
+*.mv.db
+*.trace.db
