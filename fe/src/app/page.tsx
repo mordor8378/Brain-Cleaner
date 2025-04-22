@@ -177,16 +177,6 @@ export default function Home() {
           (prevPosts) =>
             prevPosts?.map((post) => {
               if (post.postId === postId) {
-                console.log('게시글 업데이트:', {
-                  이전: {
-                    likeCount: post.likeCount,
-                    likedByCurrentUser: post.likedByCurrentUser,
-                  },
-                  이후: {
-                    likeCount: data.likeCount,
-                    likedByCurrentUser: data.likedByCurrentUser,
-                  },
-                });
                 return {
                   ...post,
                   likeCount: data.likeCount,
