@@ -82,7 +82,6 @@ public class ApiV1PostController {
     }
 
     // 팔로잉 대상 게시판 READ
-    @GetMapping("/following/{userId}")
     @Operation(
             summary = "팔로잉 게시판 조회",
             description = "현재 로그인한 사용자가 팔로우한 유저들의 게시글 목록을 조회합니다.",
@@ -91,6 +90,7 @@ public class ApiV1PostController {
                     @ApiResponse(responseCode = "404", description = "팔로우한 사용자가 없거나 게시글 없음")
             }
     )
+    @GetMapping("/following/{userId}")
     public ResponseEntity<List<PostResponseDto>> getPostsByFollowing(
             @Parameter(description = "유저 ID", required = true) @PathVariable Long userId) {
         List<PostResponseDto> posts = postService.getPostsByFollowing(userId);
@@ -189,11 +189,22 @@ public class ApiV1PostController {
     }
 
 
+    // SEARCH
+    // 게시글 SEARCH
+    @Operation(
+            summary = "게시글 검색", // Swagger 문서 요약
+            description = "제목 또는 작성자 기준으로 게시글을 검색합니다. type=title 또는 type=writer" // Swagger 설명
+    )
+    @GetMapping("/search")
+    public ResponseEntity<List<PostResponseDto>> searchPosts(
+            @RequestParam String type,      // 검색 타입 (title 또는 writer)
+            @RequestParam String keyword    // 검색할 문자열
+    ) {
+        // Service 호출하여 결과 받아오기
+        List<PostResponseDto> posts = postService.searchPosts(type, keyword);
 
-
-
-    //게시글 검색_부가기능
-
-
+        // HTTP 응답으로 검색 결과 반환 (200 OK)
+        return ResponseEntity.ok(posts);
+    }
 
 }

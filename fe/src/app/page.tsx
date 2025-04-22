@@ -28,6 +28,9 @@ export default function Home() {
   const [selectedBoard, setSelectedBoard] = useState('0');
   const [showWriteModal, setShowWriteModal] = useState(false);
   const [writeCategory, setWriteCategory] = useState('2');
+  const [searchType, setSearchType] = useState('title');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [sortType, setSortType] = useState<'latest' | 'popular'>('latest');
 
   const boardOptions = [
     { value: '0', label: '전체게시판' },
@@ -45,7 +48,10 @@ export default function Home() {
 
       console.log('요청 URL:', url); // URL 확인용 로그
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: 'include',
+      });
+
       if (response.ok) {
         const data = await response.json();
         console.log('=== 게시글 API 응답 데이터 ===');
@@ -71,6 +77,61 @@ export default function Home() {
     } catch (error) {
       console.error('게시글 요청 오류:', error);
     }
+  };
+
+  const handleSearch = async () => {
+    if (!searchKeyword.trim()) {
+      fetchPosts();
+      return;
+    }
+
+    try {
+      console.log('검색 요청:', {
+        type: searchType,
+        keyword: searchKeyword,
+      });
+
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(
+          searchKeyword.trim()
+        )}`,
+        {
+          credentials: 'include',
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`검색 실패: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('검색 결과:', data);
+
+      // 최신순으로 정렬
+      const sortedData = [...data].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setPosts(sortedData);
+    } catch (error) {
+      console.error('검색 요청 오류:', error);
+    }
+  };
+
+  // Enter 키 입력 시 검색 실행
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+
+  // 검색창 초기화
+  const handleSearchReset = () => {
+    setSearchType('title');
+    setSearchKeyword('');
+    fetchPosts();
   };
 
   useEffect(() => {
@@ -329,13 +390,91 @@ export default function Home() {
 
                 {/* 정렬 옵션 */}
                 <div className="border-t border-gray-200 px-5 py-3">
-                  <div className="flex">
-                    <button className="px-4 py-1.5 text-sm bg-pink-100 text-pink-500 rounded-full font-medium mr-2 hover:bg-pink-200 transition">
-                      최신순
+                  <div className="flex items-center gap-2">
+                    {/* 정렬 토글 버튼 */}
+                    <button
+                      onClick={() =>
+                        setSortType(
+                          sortType === 'latest' ? 'popular' : 'latest'
+                        )
+                      }
+                      className="px-4 py-1.5 text-sm text-gray-600 rounded-full hover:bg-gray-100/50 transition-all duration-200 whitespace-nowrap flex items-center"
+                    >
+                      <span className="text-base leading-none">
+                        {sortType === 'latest' ? '✨' : '💖'}
+                      </span>
+                      <span className="leading-none">
+                        {sortType === 'latest' ? '최신순' : '인기순'}
+                      </span>
                     </button>
-                    <button className="px-4 py-1.5 text-sm text-gray-500 rounded-full hover:bg-gray-100 transition">
-                      인기순
-                    </button>
+                    {/* 통합 검색창 */}
+                    <div className="flex-1 relative flex items-center group">
+                      <div className="flex absolute left-2 z-10">
+                        <button
+                          onClick={() =>
+                            setSearchType(
+                              searchType === 'title' ? 'writer' : 'title'
+                            )
+                          }
+                          className="px-3 py-1.5 text-sm text-gray-600 rounded-full hover:bg-gray-100/50 transition-all duration-200 whitespace-nowrap flex items-center min-w-[72px]"
+                        >
+                          <span className="text-base leading-none">
+                            {searchType === 'title' ? '🧠' : '👦🏻'}
+                          </span>
+                          <span className="leading-none">
+                            {searchType === 'title' ? '제목' : '작성자'}
+                          </span>
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder={`${
+                          searchType === 'title' ? '제목' : '작성자'
+                        } 검색`}
+                        className="w-full py-1.5 pl-[100px] pr-20 text-sm text-gray-900 bg-transparent hover:bg-gray-100/50 focus:bg-gray-100/50 transition-all duration-200 outline-none focus:outline-none focus:ring-0 border-none focus:border-none rounded-full placeholder-gray-400 caret-pink-500 appearance-none select-none"
+                      />
+                      <div className="absolute right-2 flex items-center gap-1">
+                        {searchKeyword && (
+                          <button
+                            onClick={handleSearchReset}
+                            className="text-gray-400 hover:text-pink-500 transition-colors p-1"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                        <button
+                          onClick={handleSearch}
+                          className="text-gray-400 hover:text-pink-500 transition-colors p-1 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -384,29 +523,6 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            {/* 오른쪽 사이드바 하단의 검색창 */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="검색"
-                className="w-full py-2 px-4 text-black border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-              />
-              <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
             </div>
           </div>
         </div>

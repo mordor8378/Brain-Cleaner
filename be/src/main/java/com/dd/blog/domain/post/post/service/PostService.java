@@ -20,6 +20,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -161,5 +163,19 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
         postRepository.delete(post);
+    }
+
+
+    // SEARCH
+    // 게시글 SEARCH
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> searchPosts(String type, String keyword) {
+        // PostRepository에서 검색 조건에 맞는 게시글 목록 조회
+        List<Post> posts = postRepository.searchByTypeAndKeyword(type, keyword);
+
+        // Entity → DTO 변환 후 결과 리스트 반환
+        return posts.stream()
+                .map(PostResponseDto::fromEntity)
+                .collect(Collectors.toList());
     }
 }
