@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
@@ -93,6 +94,28 @@ public class ApiV1PostController {
     public ResponseEntity<List<PostResponseDto>> getPostsByFollowing(
             @Parameter(description = "유저 ID", required = true) @PathVariable Long userId) {
         List<PostResponseDto> posts = postService.getPostsByFollowing(userId);
+        return ResponseEntity.ok(posts);
+    }
+
+    // 게시글 페이지 조회
+    @GetMapping("/pageable")
+    @Operation(
+            summary = "게시글 페이지 조회",
+            description = "페이지를 적용하여 게시글을 조회합니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공")
+            }
+    )
+    public ResponseEntity<Page<PostResponseDto>> getPostsByPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Long categoryId) {
+        Page<PostResponseDto> posts;
+        if (categoryId != null) {
+            posts = postService.getPostsByCategoryPageable(categoryId, page, size);
+        } else {
+            posts = postService.getAllPostsPageable(page, size);
+        }
         return ResponseEntity.ok(posts);
     }
 
