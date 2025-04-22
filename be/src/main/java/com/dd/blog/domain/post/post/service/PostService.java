@@ -14,6 +14,10 @@ import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.domain.user.follow.repository.FollowRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.Query;
@@ -98,6 +102,25 @@ public class PostService {
         return posts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    // 게시글 페이지 조회
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getAllPostsPageable(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> postPage = postRepository.findAll(pageable);
+        return postPage.map(PostResponseDto::fromEntity);
+    }
+
+    // 게시글 페이지 조회 (카테고리 ID)
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getPostsByCategoryPageable(Long categoryId, int page, int size) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> postPage = postRepository.findByCategoryIdOrderByCreatedAtDesc(categoryId, pageable);
+        return postPage.map(PostResponseDto::fromEntity);
     }
 
     // 특정 사용자의 게시물 목록 조회
