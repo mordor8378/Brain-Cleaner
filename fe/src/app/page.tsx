@@ -34,12 +34,28 @@ export default function Home() {
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch('http://localhost:8090/api/v1/posts', {
+      const url =
+        selectedBoard === '전체게시판'
+          ? 'http://localhost:8090/api/v1/posts'
+          : `http://localhost:8090/api/v1/posts?categoryId=${selectedBoard}`;
+
+      console.log('요청 URL:', url); // URL 확인용 로그
+
+      const response = await fetch(url, {
         credentials: 'include',
       });
+
       if (response.ok) {
         const data = await response.json();
-        console.log('게시글 데이터:', data);
+        console.log('=== 게시글 API 응답 데이터 ===');
+        console.log('전체 데이터:', data);
+        if (data.length > 0) {
+          console.log('첫 번째 게시글:', {
+            categoryId: data[0].categoryId,
+            title: data[0].title,
+            content: data[0].content,
+          });
+        }
 
         // 최신순으로 정렬 (createdAt 기준 내림차순)
         const sortedData = [...data].sort(
