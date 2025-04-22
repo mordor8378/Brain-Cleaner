@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import Link from 'next/link';
 import WritePostPage from './post/write/page';
 import VerificationWritePage from './verification/write/page';
 import Post from '@/components/Post';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 export interface Post {
   postId: number;
@@ -22,15 +23,28 @@ export interface Post {
   updatedAt: string;
 }
 
+interface PostsResponse {
+  content: Post[];
+  pageable: {
+    pageNumber: number;
+  };
+  last: boolean;
+  number: number;
+}
+
 export default function Home() {
   const { user, loading } = useUser();
-  const [posts, setPosts] = useState<Post[] | null>(null);
+  // const [posts, setPosts] = useState<Post[] | null>(null);
   const [selectedBoard, setSelectedBoard] = useState('0');
   const [showWriteModal, setShowWriteModal] = useState(false);
   const [writeCategory, setWriteCategory] = useState('2');
   const [searchType, setSearchType] = useState('title');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [sortType, setSortType] = useState<'latest' | 'popular'>('latest');
+
+  // 마지막 요소 참조를 위한 ref
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastPostElementRef = useRef<HTMLDivElement | null>(null);
 
   const boardOptions = [
     { value: '0', label: '전체게시판' },
@@ -39,84 +53,76 @@ export default function Home() {
     { value: '3', label: '자유게시판' },
   ];
 
-  const fetchPosts = async () => {
-    try {
-      const url =
-        selectedBoard === '0'
-          ? 'http://localhost:8090/api/v1/posts'
-          : `http://localhost:8090/api/v1/posts?categoryId=${selectedBoard}`;
-
-      console.log('요청 URL:', url); // URL 확인용 로그
-
-      const response = await fetch(url, {
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('=== 게시글 API 응답 데이터 ===');
-        console.log('전체 데이터:', data);
-        if (data.length > 0) {
-          console.log('첫 번째 게시글:', {
-            categoryId: data[0].categoryId,
-            title: data[0].title,
-            content: data[0].content,
-          });
-        }
-
-        // 최신순으로 정렬 (createdAt 기준 내림차순)
-        const sortedData = [...data].sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-
-        setPosts(sortedData);
-      } else {
-        console.error('게시글 로드 실패:', response.status);
-      }
-    } catch (error) {
-      console.error('게시글 요청 오류:', error);
+  const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
+    const categoryParam = selectedBoard === '0' ? '' : `&categoryId=${selectedBoard}`;
+    const sortParam = sortType === 'popular' ? '&sort=likeCount,desc' : '&sort=createdAt,desc';
+    
+    let url = `http://localhost:8090/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
+    
+    // 검색어가 있으면 검색 API 사용
+    if (searchKeyword.trim()) {
+      url = `http://localhost:8090/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(searchKeyword.trim())}&page=${pageParam}&size=10${sortParam}`;
     }
+    
+    console.log('요청 URL:', url);
+    
+    const response = await fetch(url, {
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error(`게시글 로드 실패: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('=== 게시글 API 응답 데이터 ===');
+    console.log('전체 데이터:', data);
+    
+    if (Array.isArray(data)) {
+      // 검색 결과가 배열인 경우 페이지네이션 객체 형태로 변환
+      return {
+        content: data,
+        pageable: {
+          pageNumber: pageParam
+        },
+        last: true, // 검색 결과는 한 번에 다 가져오므로 마지막 페이지로 설정
+        number: pageParam
+      };
+    }
+
+    return data;
   };
+
+  // useInfiniteQuery 훅 사용
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetching,
+    refetch
+  } = useInfiniteQuery({
+    queryKey: ['posts', selectedBoard, sortType, searchType, searchKeyword],
+    queryFn: fetchPosts,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      return lastPage.last ? undefined : lastPage.number + 1;
+    },
+  });
 
   const handleSearch = async () => {
     if (!searchKeyword.trim()) {
-      fetchPosts();
+      refetch();
       return;
     }
 
-    try {
-      console.log('검색 요청:', {
-        type: searchType,
-        keyword: searchKeyword,
-      });
+    console.log('검색 요청:', {
+      type: searchType,
+      keyword: searchKeyword,
+    });
 
-      const response = await fetch(
-        `http://localhost:8090/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(
-          searchKeyword.trim()
-        )}`,
-        {
-          credentials: 'include',
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`검색 실패: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('검색 결과:', data);
-
-      // 최신순으로 정렬
-      const sortedData = [...data].sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
-      setPosts(sortedData);
-    } catch (error) {
-      console.error('검색 요청 오류:', error);
-    }
+    // 검색어를 변경하면 자동으로 refetch가 호출됨
+    refetch();
   };
 
   // Enter 키 입력 시 검색 실행
@@ -131,12 +137,40 @@ export default function Home() {
   const handleSearchReset = () => {
     setSearchType('title');
     setSearchKeyword('');
-    fetchPosts();
+    refetch();
   };
 
+  // 마지막 요소 관찰을 위한 콜백 함수
+  const lastPostRef = useCallback(
+    (node: HTMLDivElement) => {
+      if (isFetchingNextPage) return;
+      
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+      
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasNextPage) {
+          console.log('마지막 게시글 감지, 다음 페이지 로드');
+          fetchNextPage();
+        }
+      });
+      
+      if (node) {
+        observerRef.current.observe(node);
+      }
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage]
+  );
+
+  // 컴포넌트 언마운트 시 옵저버 정리
   useEffect(() => {
-    fetchPosts();
-  }, [selectedBoard]); // selectedBoard가 변경될 때마다 게시글 다시 불러오기
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, []);
 
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     console.log('선택된 카테고리:', e.target.value); // 카테고리 변경 확인용 로그
@@ -150,12 +184,14 @@ export default function Home() {
 
   const closeWriteModal = () => {
     setShowWriteModal(false);
-    fetchPosts();
+    refetch();
   };
 
   const handleWriteCategoryChange = (category: string) => {
     setWriteCategory(category);
   };
+
+  const posts = data?.pages.flatMap(page => page.content) || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -173,13 +209,13 @@ export default function Home() {
               {writeCategory === '1' ? (
                 <VerificationWritePage
                   onClose={closeWriteModal}
-                  onSuccess={fetchPosts}
+                  onSuccess={() => refetch()}
                   onCategoryChange={handleWriteCategoryChange}
                 />
               ) : (
                 <WritePostPage
                   onClose={closeWriteModal}
-                  onSuccess={fetchPosts}
+                  onSuccess={() => refetch()}
                   onCategoryChange={handleWriteCategoryChange}
                   initialCategory={writeCategory}
                 />
@@ -484,25 +520,62 @@ export default function Home() {
 
               {/* 게시글 목록 */}
               <div className="divide-y divide-gray-100">
-                {posts &&
-                  posts.map((post) => (
-                    <Post
+                {/* 초기 로딩 중 */}
+                {isFetching && !isFetchingNextPage && posts.length === 0 && (
+                  <div className="p-8 flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                  </div>
+                )}
+                
+                {/* 데이터가 없을 때 */}
+                {!isFetching && posts.length === 0 && (
+                  <div className="p-8 text-center text-gray-500">
+                    게시글이 없습니다.
+                  </div>
+                )}
+                
+                {/* 게시글 목록 */}
+                {posts.map((post, index) => {
+                  // post가 undefined인 경우를 체크
+                  if (!post || post.postId === undefined) return null;
+                  
+                  return (
+                    <div
                       key={post.postId}
-                      postId={post.postId}
-                      userId={post.userId}
-                      userNickname={post.userNickname}
-                      title={post.title}
-                      content={post.content}
-                      imageUrl={post.imageUrl}
-                      viewCount={post.viewCount}
-                      likeCount={post.likeCount}
-                      verificationImageUrl={post.verificationImageUrl}
-                      detoxTime={post.detoxTime}
-                      createdAt={post.createdAt}
-                      updatedAt={post.updatedAt}
-                      onUpdate={fetchPosts}
-                    />
-                  ))}
+                      ref={index === posts.length - 1 ? lastPostRef : undefined}
+                    >
+                      <Post
+                        postId={post.postId}
+                        userId={post.userId}
+                        userNickname={post.userNickname}
+                        title={post.title || ''}
+                        content={post.content || ''}
+                        imageUrl={post.imageUrl || ''}
+                        viewCount={post.viewCount || 0}
+                        likeCount={post.likeCount || 0}
+                        verificationImageUrl={post.verificationImageUrl || ''}
+                        detoxTime={post.detoxTime || 0}
+                        createdAt={post.createdAt || ''}
+                        updatedAt={post.updatedAt || ''}
+                        onUpdate={() => refetch()}
+                      />
+                    </div>
+                  );
+                })}
+                
+                {/* 추가 로딩 인디케이터 */}
+                {isFetchingNextPage && (
+                  <div className="p-5 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
+                  </div>
+                )}
+                
+                {/* 더 이상 로드할 데이터가 없을 때 메시지 */}
+                {!hasNextPage && posts.length > 0 && !isFetching && (
+                  <div className="p-5 text-center text-gray-500">
+                    더 이상 게시글이 없습니다.
+                  </div>
+                )}
               </div>
             </div>
           </div>
