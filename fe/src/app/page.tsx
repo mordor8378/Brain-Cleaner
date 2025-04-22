@@ -25,24 +25,31 @@ export interface Post {
 export default function Home() {
   const { user, loading } = useUser();
   const [posts, setPosts] = useState<Post[] | null>(null);
-  const [selectedBoard, setSelectedBoard] = useState('전체게시판');
+  const [selectedBoard, setSelectedBoard] = useState('0');
   const [showWriteModal, setShowWriteModal] = useState(false);
   const [writeCategory, setWriteCategory] = useState('2');
   const [searchType, setSearchType] = useState('title');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [sortType, setSortType] = useState<'latest' | 'popular'>('latest');
 
+  const boardOptions = [
+    { value: '0', label: '전체게시판' },
+    { value: '1', label: '인증게시판' },
+    { value: '2', label: '정보공유게시판' },
+    { value: '3', label: '자유게시판' },
+  ];
+
   const fetchPosts = async () => {
     try {
       const url =
-        selectedBoard === '전체게시판'
+        selectedBoard === '0'
           ? 'http://localhost:8090/api/v1/posts'
           : `http://localhost:8090/api/v1/posts?categoryId=${selectedBoard}`;
 
       console.log('요청 URL:', url); // URL 확인용 로그
 
       const response = await fetch(url, {
-        credentials: 'include', // 기존의 credentials 옵션 유지
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -129,16 +136,10 @@ export default function Home() {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
-
-  const boardOptions = [
-    { value: '전체게시판', label: '전체게시판' },
-    { value: '인증게시판', label: '인증게시판' },
-    { value: '정보공유게시판', label: '정보공유게시판' },
-    { value: '자유게시판', label: '자유게시판' },
-  ];
+  }, [selectedBoard]); // selectedBoard가 변경될 때마다 게시글 다시 불러오기
 
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('선택된 카테고리:', e.target.value); // 카테고리 변경 확인용 로그
     setSelectedBoard(e.target.value);
   };
 
