@@ -10,7 +10,7 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 카테고리 ID로 조회(게시판 종류별:인증, 자유, 정보공유)
-    List<Post> findByCategoryId(Category category);
+    List<Post> findByCategoryId(Long categoryId);
 
     // 팔로우한 유저들 ID로 조회
     List<Post> findByUserInOrderByCreatedAtDesc(List<User> users);
