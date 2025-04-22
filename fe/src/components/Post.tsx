@@ -20,6 +20,7 @@ export interface PostProps {
   onLike: () => void;
   onUnlike: () => void;
   isLiked?: boolean;
+  onDelete?: (postId: number) => void;
 }
 
 export default function Post({
@@ -40,6 +41,7 @@ export default function Post({
   onLike,
   onUnlike,
   isLiked,
+  onDelete,
 }: PostProps) {
   const { user } = useUser();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -47,6 +49,7 @@ export default function Post({
   const [editedTitle, setEditedTitle] = useState(title);
   const [editedContent, setEditedContent] = useState(content);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const postRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -190,9 +193,12 @@ export default function Post({
           </svg>
         </div>
         <div className="flex-1">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center">
-              <span className="font-medium text-gray-900">@{userNickname}</span>
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-[14px] text-gray-900">
+                {userNickname}
+              </span>
+              <span className="text-xs text-gray-500">• 3h</span>
               <span className="ml-1 text-xs text-green-500">
                 <svg
                   className="w-3.5 h-3.5 inline"
@@ -207,8 +213,26 @@ export default function Post({
                 </svg>
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">3h</span>
+            <div className="group">
+              {user?.id === userId && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
@@ -238,19 +262,21 @@ export default function Post({
                   {title}
                 </h3>
                 {user?.id === userId && (
-                  <button
-                    onClick={handleEditTitle}
-                    className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-gray-700"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
+                  <div className="group">
+                    <button
+                      onClick={handleEditTitle}
+                      className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-gray-700"
                     >
-                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                    </svg>
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -365,6 +391,47 @@ export default function Post({
           </div>
         </div>
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => setShowDeleteConfirm(false)}
+          ></div>
+          <div className="relative bg-white rounded-2xl w-[320px] overflow-hidden">
+            <div className="p-6 text-center">
+              <h3 className="text-lg font-semibold text-black mb-2">
+                게시글을 삭제하시겠어요?
+              </h3>
+              <p className="text-sm text-gray-500">
+                계정 설정에서 30일 이내에 이 게시물을 복원할 수 있으며, 이후에는
+                게시물이 영구적으로 삭제됩니다. 게시물을 복원하면 해당 콘텐츠도
+                복원됩니다.
+              </p>
+            </div>
+            <div className="border-t divide-y">
+              <button
+                onClick={() => {
+                  if (onDelete) {
+                    onDelete(postId);
+                  }
+                  setShowDeleteConfirm(false);
+                }}
+                className="w-full py-3 text-sm font-semibold text-red-500 hover:bg-gray-50"
+              >
+                삭제
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="w-full py-3 text-sm text-black hover:bg-gray-50"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

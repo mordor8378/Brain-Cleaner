@@ -74,9 +74,9 @@ public class ApiV1PostController {
                     @ApiResponse(responseCode = "404", description = "해당 카테고리 없음")
             }
     )
-    @GetMapping(params = "categoryId")
+    @GetMapping("/category/{categoryId}")
     public ResponseEntity<List<PostResponseDto>> getPostsByCategory(
-            @Parameter(description = "카테고리 ID", required = true) @RequestParam Long categoryId){
+            @Parameter(description = "카테고리 ID", required = true) @PathVariable Long categoryId){
         List<PostResponseDto> posts = postService.getPostsByCategory(categoryId);
         return ResponseEntity.ok(posts);
     }
