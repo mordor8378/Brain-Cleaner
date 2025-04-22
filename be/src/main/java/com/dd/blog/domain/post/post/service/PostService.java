@@ -71,7 +71,7 @@ public class PostService {
     public List<PostResponseDto> getPostsByCategory(Long categoryId){
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
-        return postRepository.findByCategoryId(category).stream()
+        return postRepository.findByCategoryId(categoryId).stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
