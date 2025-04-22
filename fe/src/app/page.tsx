@@ -57,14 +57,18 @@ export default function Home() {
   ];
 
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
-    const categoryParam = selectedBoard === '0' ? '' : `&categoryId=${selectedBoard}`;
-    const sortParam = sortType === 'popular' ? '&sort=likeCount,desc' : '&sort=createdAt,desc';
+    const categoryParam =
+      selectedBoard === '0' ? '' : `&categoryId=${selectedBoard}`;
+    const sortParam =
+      sortType === 'popular' ? '&sort=likeCount,desc' : '&sort=createdAt,desc';
 
     let url = `http://localhost:8090/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
 
     // 검색어가 있으면 검색 API 사용
     if (searchKeyword.trim()) {
-      url = `http://localhost:8090/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(searchKeyword.trim())}&page=${pageParam}&size=10${sortParam}`;
+      url = `http://localhost:8090/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(
+        searchKeyword.trim()
+      )}&page=${pageParam}&size=10${sortParam}`;
     }
 
     console.log('요청 URL:', url);
@@ -86,10 +90,10 @@ export default function Home() {
       return {
         content: data,
         pageable: {
-          pageNumber: pageParam
+          pageNumber: pageParam,
         },
         last: true, // 검색 결과는 한 번에 다 가져오므로 마지막 페이지로 설정
-        number: pageParam
+        number: pageParam,
       };
     }
 
@@ -103,7 +107,7 @@ export default function Home() {
     hasNextPage,
     isFetchingNextPage,
     isFetching,
-    refetch
+    refetch,
   } = useInfiniteQuery({
     queryKey: ['posts', selectedBoard, sortType, searchType, searchKeyword],
     queryFn: fetchPosts,
@@ -213,23 +217,23 @@ export default function Home() {
           ['posts', selectedBoard, sortType, searchType, searchKeyword],
           (oldData) => {
             if (!oldData) return oldData;
-            
+
             // 페이지별로 게시글 업데이트
             return {
               ...oldData,
-              pages: oldData.pages.map(page => ({
+              pages: oldData.pages.map((page) => ({
                 ...page,
-                content: page.content.map(post => {
+                content: page.content.map((post) => {
                   if (post.postId === postId) {
                     return {
                       ...post,
                       likeCount: data.likeCount,
-                      likedByCurrentUser: data.likedByCurrentUser
+                      likedByCurrentUser: data.likedByCurrentUser,
                     };
                   }
                   return post;
-                })
-              }))
+                }),
+              })),
             };
           }
         );
@@ -251,18 +255,18 @@ export default function Home() {
 
       if (response.status === 204) {
         // DELETE 요청은 보통 204 No Content를 반환
-        
+
         // React Query 캐시 직접 업데이트
         queryClient.setQueryData<{ pages: PostsResponse[] }>(
           ['posts', selectedBoard, sortType, searchType, searchKeyword],
           (oldData) => {
             if (!oldData) return oldData;
-            
+
             return {
               ...oldData,
-              pages: oldData.pages.map(page => ({
+              pages: oldData.pages.map((page) => ({
                 ...page,
-                content: page.content.map(post => {
+                content: page.content.map((post) => {
                   if (post.postId === postId) {
                     console.log('좋아요 취소:', {
                       이전: {
@@ -274,16 +278,16 @@ export default function Home() {
                         likedByCurrentUser: false,
                       },
                     });
-                    
+
                     return {
                       ...post,
                       likeCount: Math.max(0, post.likeCount - 1),
-                      likedByCurrentUser: false
+                      likedByCurrentUser: false,
                     };
                   }
                   return post;
-                })
-              }))
+                }),
+              })),
             };
           }
         );
@@ -297,8 +301,44 @@ export default function Home() {
     }
   };
 
+  // 게시글 삭제 핸들러 추가
+  const handleDelete = async (postId: number) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/${postId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      );
 
-  const posts = data?.pages.flatMap(page => page.content) || [];
+      if (response.ok) {
+        // React Query 캐시 업데이트
+        queryClient.setQueryData<{ pages: PostsResponse[] }>(
+          ['posts', selectedBoard, sortType, searchType, searchKeyword],
+          (oldData) => {
+            if (!oldData) return oldData;
+
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page) => ({
+                ...page,
+                content: page.content.filter((post) => post.postId !== postId),
+              })),
+            };
+          }
+        );
+      } else {
+        console.error('게시글 삭제 실패:', response.status);
+        alert('게시글 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('게시글 삭제 중 오류:', error);
+      alert('게시글 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  const posts = data?.pages.flatMap((page) => page.content) || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -492,8 +532,8 @@ export default function Home() {
           {/* 중앙 콘텐츠 - 게시판 */}
           <div className="md:col-span-2">
             <div className="bg-white rounded-lg shadow mb-6 flex flex-col h-[calc(100vh-2rem)]">
-            {/* 게시판 헤더 */}
-            <div className="bg-white sticky top-0 z-10">
+              {/* 게시판 헤더 */}
+              <div className="bg-white sticky top-0 z-10">
                 {/* 전체 게시판 헤더 */}
                 <div className="flex justify-between items-center px-5 py-4">
                   <div className="relative">
@@ -669,6 +709,7 @@ export default function Home() {
                         onLike={() => handleLike(post.postId)}
                         onUnlike={() => handleUnlike(post.postId)}
                         isLiked={post.likedByCurrentUser}
+                        onDelete={handleDelete}
                       />
                     </div>
                   );
