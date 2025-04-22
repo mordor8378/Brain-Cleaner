@@ -26,7 +26,7 @@ export default function VerificationWritePage({
   const router = useRouter();
   const { user } = useUser();
   const [category, setCategory] = useState('1'); // 인증=1, 정보공유=2, 자유=3
-  const [usageTime, setUsageTime] = useState<string>('');
+  const [detoxTime, setDetoxTime] = useState<number>(0);
   const [imageUrl, setImageUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,11 +34,10 @@ export default function VerificationWritePage({
     if (process.env.NODE_ENV === 'development') {
       console.log('Verification post data:', {
         imageUrl,
-        detoxTime: Number(usageTime),
-        content: usageTime,
+        detoxTime,
       });
     }
-  }, [imageUrl, usageTime]);
+  }, [imageUrl, detoxTime]);
 
   const handleCancel = () => {
     if (onClose) {
@@ -56,6 +55,15 @@ export default function VerificationWritePage({
     }
   };
 
+  const handleDetoxTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // 빈 문자열이거나 음수인 경우 0으로 설정
+    const numValue = Math.max(0, Number(value));
+    if (!isNaN(numValue)) {
+      setDetoxTime(numValue);
+    }
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -67,8 +75,8 @@ export default function VerificationWritePage({
   };
 
   const handleSubmit = async () => {
-    if (!imageUrl || !usageTime) {
-      alert('휴대폰 이용시간 캡쳐와 이용시간을 모두 입력해야 합니다.');
+    if (!imageUrl || detoxTime <= 0) {
+      alert('휴대폰 이용시간 캡쳐와 디톡스 시간을 모두 입력해야 합니다.');
       return;
     }
 
@@ -76,9 +84,9 @@ export default function VerificationWritePage({
     const verificationPost: VerificationPost = {
       userId,
       title: '도파민 디톡스 인증',
-      content: usageTime,
+      content: detoxTime.toString(), // 기존 동작 유지를 위해 문자열로 변환
       imageUrl,
-      detoxTime: Number(usageTime),
+      detoxTime,
     };
 
     const res = await fetch(
@@ -176,8 +184,8 @@ export default function VerificationWritePage({
             <div className="flex items-center">
               <input
                 type="number"
-                value={usageTime}
-                onChange={(e) => setUsageTime(e.target.value)}
+                value={detoxTime}
+                onChange={handleDetoxTimeChange}
                 placeholder="0"
                 min="0"
                 className="w-16 text-right focus:outline-none text-black [caret-color:#F742CD]"
