@@ -29,6 +29,5 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
             Long userId,
             LocalDateTime start,
             LocalDateTime end,
-            List<VerificationStatus> statuses
-    );
+            List<VerificationStatus> statuses);
 }
