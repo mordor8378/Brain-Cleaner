@@ -7,6 +7,7 @@ export interface Comment {
   parentId: number | null;
   createdAt: string;
   updatedAt: string;
+  detoxTime?: number;
 }
 
 export interface CommentRequestDto {

@@ -13,6 +13,7 @@ interface CommentModalProps {
   isOwnPost?: boolean;
   onUpdate?: (count: number) => void;
   onImageUpdate?: (newImage: File) => void;
+  detoxTime?: number;
 }
 
 export default function CommentModal({
@@ -25,18 +26,16 @@ export default function CommentModal({
   isOwnPost,
   onUpdate,
   onImageUpdate,
+  detoxTime,
 }: CommentModalProps) {
   const { user } = useUser();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
-  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [replyToId, setReplyToId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingContent, setIsEditingContent] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(postContent || '');
   const [editedContent, setEditedContent] = useState(postContent || '');
-  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 댓글 목록 불러오기
@@ -68,7 +67,7 @@ export default function CommentModal({
 
     const commentData: CommentRequestDto = {
       content: newComment.trim(),
-      parentId: replyTo,
+      parentId: replyToId,
     };
 
     try {
@@ -87,7 +86,7 @@ export default function CommentModal({
 
       if (response.ok) {
         setNewComment('');
-        setReplyTo(null);
+        setReplyToId(null);
         await fetchComments();
       }
     } catch (error) {
@@ -137,7 +136,6 @@ export default function CommentModal({
   // 게시글 수정 함수
   const handleSaveContent = async () => {
     if (!postId) {
-      setError('게시글 ID가 없습니다.');
       return;
     }
 
@@ -166,11 +164,6 @@ export default function CommentModal({
       }
     } catch (error) {
       console.error('Error updating post:', error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : '게시글 수정 중 오류가 발생했습니다.'
-      );
     }
   };
 
@@ -291,7 +284,9 @@ export default function CommentModal({
                     {isOwnPost && !isEditingContent ? (
                       <div className="relative flex-1">
                         <p className="ml-2 text-[14px] text-gray-900">
-                          {postContent}
+                          {detoxTime && detoxTime > 0
+                            ? `detoxed for ${detoxTime} hours`
+                            : postContent}
                         </p>
                         <button
                           onClick={() => setIsEditingContent(true)}
@@ -341,7 +336,9 @@ export default function CommentModal({
                       </div>
                     ) : (
                       <span className="ml-2 text-[14px] text-gray-900">
-                        {postContent}
+                        {detoxTime && detoxTime > 0
+                          ? `detoxed for ${detoxTime} hours`
+                          : postContent}
                       </span>
                     )}
                   </div>
@@ -389,7 +386,21 @@ export default function CommentModal({
                             {comment.userNickname}
                           </span>
                           <span className="ml-2 text-[14px] text-gray-900">
-                            {comment.content}
+                            {(() => {
+                              if (
+                                typeof comment.detoxTime === 'number' &&
+                                !isNaN(comment.detoxTime) &&
+                                comment.detoxTime > 0
+                              ) {
+                                return `detoxed for ${comment.detoxTime} hours`;
+                              }
+
+                              if (!comment.content) {
+                                return '';
+                              }
+
+                              return comment.content;
+                            })()}
                           </span>
                         </div>
                         {user?.id === comment.userId && (
@@ -406,7 +417,7 @@ export default function CommentModal({
                           {getTimeAgo(comment.createdAt)} 전
                         </span>
                         <button
-                          onClick={() => setReplyTo(comment.id)}
+                          onClick={() => setReplyToId(comment.id)}
                           className="text-xs font-semibold text-gray-400 hover:text-gray-600"
                         >
                           답글 달기
@@ -421,11 +432,11 @@ export default function CommentModal({
 
           {/* 댓글 입력 영역 */}
           <div className="border-t px-3 py-2">
-            {replyTo && (
+            {replyToId && (
               <div className="flex items-center justify-between mb-2 bg-gray-50 p-2 rounded-sm text-xs">
                 <span className="text-gray-600">답글 작성 중</span>
                 <button
-                  onClick={() => setReplyTo(null)}
+                  onClick={() => setReplyToId(null)}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   취소

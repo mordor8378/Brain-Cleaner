@@ -11,7 +11,6 @@ export interface PostProps {
   title: string;
   content: string;
   imageUrl: string;
-  viewCount: number;
   likeCount: number;
   commentCount: number;
   verificationImageUrl: string;
@@ -34,7 +33,6 @@ export default function Post({
   title,
   content,
   imageUrl,
-  viewCount,
   likeCount,
   commentCount,
   verificationImageUrl,
@@ -295,6 +293,9 @@ export default function Post({
               </Link>
               <span className="text-xs text-gray-500">
                 • {getTimeAgo(createdAt)}
+                {updatedAt && updatedAt !== createdAt && (
+                  <span className="ml-1">• 수정됨</span>
+                )}
               </span>
               <span className="ml-1 text-xs text-green-500">
                 <svg
@@ -581,6 +582,7 @@ export default function Post({
           createdAt={createdAt}
           isOwnPost={user?.id === userId}
           onUpdate={handleCommentCountUpdate}
+          detoxTime={detoxTime}
           onImageUpdate={async (newImage) => {
             const formData = new FormData();
             formData.append('image', newImage);
