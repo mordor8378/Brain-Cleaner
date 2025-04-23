@@ -18,6 +18,13 @@ interface VerificationPost {
   detoxTime: number;
 }
 
+interface VerificationRequest {
+  postId: number;
+  userId: number;
+  detoxTime: number;
+  status: string;
+}
+
 export default function VerificationWritePage({
   onClose,
   onSuccess,
@@ -89,28 +96,63 @@ export default function VerificationWritePage({
       detoxTime,
     };
 
-    const res = await fetch(
-      `http://localhost:8090/api/v1/posts/category/${category}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(verificationPost),
-        credentials: 'include',
-      }
-    );
+    try {
+      const postResponse = await fetch(
+        `http://localhost:8090/api/v1/posts/category/${category}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(verificationPost),
+          credentials: 'include',
+        }
+      );
 
-    if (res.ok) {
-      alert('게시글 등록 완료!');
+      if (!postResponse.ok) {
+        throw new Error('게시글 등록에 실패했습니다');
+      }
+
+      // 게시글 등록 응답에서 postId를 추출
+      const postData = await postResponse.json();
+      const postId = postData.postId;
+
+      // 인증 정보를 등록
+      const verificationRequest: VerificationRequest = {
+        postId: postId,
+        userId: userId,
+        detoxTime: detoxTime,
+        status: 'PENDING' // 기본 상태
+      };
+
+      const verificationResponse = await fetch(
+        'http://localhost:8090/api/v1/verifications',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(verificationRequest),
+          credentials: 'include',
+        }
+      );
+
+      if (!verificationResponse.ok) {
+        console.error('인증 등록 실패:', await verificationResponse.text());
+        // 인증 등록은 실패해도 게시글은 등록
+        alert('게시글은 등록되었으나 인증 정보 등록에 실패했습니다');
+      } else {
+        alert('인증 게시글 등록 완료!');
+      }
+
       if (onSuccess) {
         onSuccess();
       }
+      
       if (onClose) {
         onClose();
       } else {
         router.push('/');
       }
-    } else {
-      alert('등록 실패');
+    } catch (error) {
+      console.error('인증 게시글 등록 중 오류:', error);
+      alert('등록 실패: ' + (error as Error).message);
     }
   };
 

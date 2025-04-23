@@ -75,6 +75,15 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "birth_date")
     private LocalDate birthDate;
 
+    // 연속 인증 일수
+    @Column(name = "streak_days")
+    @Builder.Default
+    private Integer streakDays = 0;
+
+    // 마지막 인증 날짜
+    @Column(name = "last_verification_date")
+    private LocalDate lastVerificationDate;
+
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Post> posts = new ArrayList<>();
