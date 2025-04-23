@@ -14,8 +14,7 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
 
     // 지정된 상태(status)의 인증 요청 목록을 ID 오름차순으로 페이징하여 조회
     Page<Verification> findByStatusOrderByIdAsc(VerificationStatus status, Pageable pageable);
-
-    // 사용자의 인증 요청 목록 조회
+    
     List<Verification> findByUserIdAndCreatedAtBetweenAndStatusIn(
             Long userId,
             LocalDateTime start,
