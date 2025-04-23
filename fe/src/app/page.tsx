@@ -57,7 +57,7 @@ export default function Home() {
   const [topPosts, setTopPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
-
+  const [weeklyVerifications, setWeeklyVerifications] = useState<string[]>([]);
 
   // QueryClient 인스턴스 -> 캐시 조작용
   const queryClient = useQueryClient();
