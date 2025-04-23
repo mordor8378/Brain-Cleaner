@@ -46,6 +46,7 @@ export default function Home() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [sortType, setSortType] = useState<'latest' | 'popular'>('latest');
   const [followStats, setFollowStats] = useState({ followers: 0, following: 0 });
+  const [weeklyVerifications, setWeeklyVerifications] = useState<string[]>([]);
   const [streakDays, setStreakDays] = useState(0);
   const [userLevel, setUserLevel] = useState('디톡스새싹');
   const [nextLevel, setNextLevel] = useState('절제수련생');
@@ -54,6 +55,7 @@ export default function Home() {
   const [topPosts, setTopPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
+  
 
   // QueryClient 인스턴스 -> 캐시 조작용
   const queryClient = useQueryClient();
@@ -251,14 +253,35 @@ export default function Home() {
         }
       };
 
-      // 연속 인증일(스트릭) 가져오기 - 백엔드 API 미구현 상태
-      /* 
-      const fetchStreakData = async () => {
+      // 주간 인증 현황 + 연속 인증일(스트릭) 가져오기
+      const fetchVerificationData = async () => {
+        if (!user) return;
         
+        try {
+          // 주간 인증 현황 조회
+          const weeklyResponse = await fetch('http://localhost:8090/api/v1/verifications/weekly', {
+            credentials: 'include'
+          });
+          
+          if (weeklyResponse.ok) {
+            const weeklyData = await weeklyResponse.json();
+            setWeeklyVerifications(weeklyData.map((date: string) => date));
+          }
+          
+          // 연속 인증 일수 조회
+          const streakResponse = await fetch('http://localhost:8090/api/v1/verifications/streak', {
+            credentials: 'include'
+          });
+          
+          if (streakResponse.ok) {
+            const streakData = await streakResponse.json();
+            setStreakDays(streakData);
+          }
+          console.log('주간/연속 인증 현황 조회 완료')
+        } catch (error) {
+          console.error('인증 현황 조회 중 오류:', error);
+        }
       };
-      */
-      // 임시로 고정값 사용
-      setStreakDays(5);
 
       // 유저 레벨 계산
       const calculateUserLevel = () => {
@@ -298,7 +321,7 @@ export default function Home() {
       };
 
       fetchFollowStats();
-      // fetchStreakData(); // 백엔드 API 구현 전까지 주석 처리
+      fetchVerificationData();
       calculateUserLevel();
     }
   }, [user]);
@@ -668,27 +691,31 @@ export default function Home() {
                       이번 주 인증 현황
                     </p>
                     <div className="flex justify-between mb-4">
-                      <span className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-medium">
-                        월
-                      </span>
-                      <span className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-medium">
-                        화
-                      </span>
-                      <span className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-medium">
-                        수
-                      </span>
-                      <span className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-medium">
-                        목
-                      </span>
-                      <span className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-medium">
-                        금
-                      </span>
-                      <span className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-medium">
-                        토
-                      </span>
-                      <span className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-medium">
-                        일
-                      </span>
+                      {['월', '화', '수', '목', '금', '토', '일'].map((day, index) => {
+                        // 요일에 해당하는 날짜 계산
+                        const today = new Date();
+                        const dayOfWeek = today.getDay(); // 0: 일요일, 1: 월요일, ...
+                        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                        const currentDate = new Date(today);
+                        currentDate.setDate(today.getDate() + mondayOffset + index);
+                        
+                        // 날짜 문자열로 변환 (YYYY-MM-DD)
+                        const dateString = currentDate.toISOString().split('T')[0];
+                        
+                        // 이 날짜에 인증했는지 확인
+                        const isVerified = weeklyVerifications.includes(dateString);
+                        
+                        return (
+                          <span 
+                            key={day}
+                            className={`w-8 h-8 rounded-full ${
+                              isVerified ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-500'
+                            } flex items-center justify-center font-medium`}
+                          >
+                            {day}
+                          </span>
+                        );
+                      })}
                     </div>
 
                     <div className="mt-4">
