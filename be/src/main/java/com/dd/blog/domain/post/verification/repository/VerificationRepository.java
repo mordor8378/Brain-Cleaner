@@ -23,4 +23,12 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
 
     // 지정된 상태(status)와 지정된 기간 (start - end)사이 인증 요청 개수 반환
     long countByStatusInAndUpdatedAtBetween(List<VerificationStatus> statuses, LocalDateTime start, LocalDateTime end);
+
+    // 사용자의 인증 요청 목록 조회
+    List<Verification> findByUserIdAndCreatedAtBetweenAndStatusIn(
+            Long userId,
+            LocalDateTime start,
+            LocalDateTime end,
+            List<VerificationStatus> statuses
+    );
 }
