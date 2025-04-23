@@ -44,7 +44,7 @@ export default function Post({
   onUnlike,
   isLiked,
   onDelete,
-  userProfileImage
+  userProfileImage,
 }: PostProps) {
   const { user } = useUser();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -56,17 +56,22 @@ export default function Post({
   const postRef = useRef<HTMLDivElement>(null);
 
   // 프로필 이미지 URL 가져오기
-  const [profileImage, setProfileImage] = useState<string | null>(userProfileImage || null);
+  const [profileImage, setProfileImage] = useState<string | null>(
+    userProfileImage || null
+  );
 
   // 프로필 이미지가 props로 전달되지 않았을 경우 API에서 가져오기
   useEffect(() => {
     if (!userProfileImage && userId) {
       const fetchUserProfile = async () => {
         try {
-          const response = await fetch(`http://localhost:8090/api/v1/users/${userId}`, {
-            credentials: 'include',
-          });
-          
+          const response = await fetch(
+            `http://localhost:8090/api/v1/users/${userId}`,
+            {
+              credentials: 'include',
+            }
+          );
+
           if (response.ok) {
             const userData = await response.json();
             if (userData.profileImage) {
@@ -77,7 +82,7 @@ export default function Post({
           console.error('프로필 이미지를 가져오는 중 오류 발생:', error);
         }
       };
-      
+
       fetchUserProfile();
     }
   }, [userId, userProfileImage]);
@@ -219,7 +224,7 @@ export default function Post({
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
+
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
@@ -269,7 +274,9 @@ export default function Post({
                   {userNickname}
                 </span>
               </Link>
-              <span className="text-xs text-gray-500">• {getTimeAgo(createdAt)}</span>
+              <span className="text-xs text-gray-500">
+                • {getTimeAgo(createdAt)}
+              </span>
               <span className="ml-1 text-xs text-green-500">
                 <svg
                   className="w-3.5 h-3.5 inline"

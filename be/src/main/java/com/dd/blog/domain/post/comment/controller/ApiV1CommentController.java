@@ -4,12 +4,14 @@ import com.dd.blog.domain.post.comment.dto.CommentRequestDto;
 import com.dd.blog.domain.post.comment.dto.CommentResponseDto;
 import com.dd.blog.domain.post.comment.dto.CommentUpdateResponseDto;
 import com.dd.blog.domain.post.comment.service.CommentService;
+import com.dd.blog.global.security.SecurityUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,9 +20,12 @@ import java.util.List;
 @RequestMapping("/api/v1/comments")
 @RequiredArgsConstructor
 public class ApiV1CommentController {
+
     private final CommentService commentService;
 
-    //특정 게시글의 모든 댓글 조회(대댓글 포함)
+
+    // READ
+    // ALL COMMENTS(특정 게시글, 대댓글 포함)
     @Operation(
             summary = "댓글 전체 조회",
             description = "게시글 ID를 통해 해당 게시글의 댓글 및 대댓글을 조회합니다.",
@@ -35,7 +40,9 @@ public class ApiV1CommentController {
         return ResponseEntity.ok(comments);
     }
 
-    //댓글, 대댓글 작성
+
+    // CREATE
+    // 댓글, 대댓글
     @Operation(
             summary = "댓글 또는 대댓글 작성",
             description = "게시글 ID를 기반으로 댓글 또는 대댓글을 작성합니다.",
@@ -46,13 +53,17 @@ public class ApiV1CommentController {
             }
     )
     @PostMapping("/{postId}")
-    public ResponseEntity<CommentResponseDto> writeComment(@PathVariable Long postId, @RequestParam Long userId,
-                                                           @Valid @RequestBody CommentRequestDto commentRequestDto){
-        CommentResponseDto postComment = commentService.writeComment(postId, commentRequestDto, userId);
+    public ResponseEntity<CommentResponseDto> writeComment(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal SecurityUser user,
+            @Valid @RequestBody CommentRequestDto commentRequestDto){
+        CommentResponseDto postComment = commentService.writeComment(postId, commentRequestDto, user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(postComment);
     }
 
-    //댓글 수정
+
+    // UPDATE
+    // UPDATE COMMENT
     @Operation(
             summary = "댓글 수정",
             description = "댓글 ID를 기반으로 기존 댓글을 수정합니다.",
@@ -62,14 +73,18 @@ public class ApiV1CommentController {
                     @ApiResponse(responseCode = "404", description = "해당 댓글 없음")
             }
     )
-    @PutMapping("/{commentId}/{userId}")
-    public ResponseEntity<CommentUpdateResponseDto> updateComment(@PathVariable Long commentId, @RequestParam Long userId,
-                                                                  @Valid @RequestBody CommentRequestDto commentRequestDto){
-        CommentUpdateResponseDto updatedComment = commentService.updateComment(commentId, commentRequestDto, userId);
+    @PutMapping("/{commentId}")
+    public ResponseEntity<CommentUpdateResponseDto> updateComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal SecurityUser user,
+            @RequestBody CommentRequestDto commentRequestDto){
+        CommentUpdateResponseDto updatedComment = commentService.updateComment(commentId, commentRequestDto, user.getId());
         return ResponseEntity.ok(updatedComment);
     }
 
-    //댓글 삭제
+
+    // DELETE
+    // DELETE COMMENT
     @Operation(
             summary = "댓글 삭제",
             description = "댓글 ID를 기반으로 댓글을 삭제합니다.",
@@ -79,9 +94,11 @@ public class ApiV1CommentController {
             }
     )
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<String> deleteComment(@PathVariable Long commentId){
-        commentService.deleteComment(commentId);
-        return ResponseEntity.ok("댓글이 삭제되었습니다.");
+    public ResponseEntity<String> deleteComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal SecurityUser user){
+            commentService.deleteComment(commentId, user.getId());
+            return ResponseEntity.ok("댓글이 삭제되었습니다.");
     }
 
 }
