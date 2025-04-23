@@ -37,7 +37,7 @@ public class PostResponseDto {
                 .title(post.getTitle())
                 .content(post.getContent())
                 .imageUrl(post.getImageUrl())
-                .commentCount(post.getComments().size())
+                .commentCount(post.getComments() != null ? post.getComments().size() : 0) // null 체크
                 .likeCount(post.getLikeCount())
                 .verificationImageUrl(post.getVerificationImageUrl())
                 .detoxTime(post.getDetoxTime())

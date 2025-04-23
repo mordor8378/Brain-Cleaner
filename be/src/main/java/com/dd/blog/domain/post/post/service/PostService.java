@@ -56,6 +56,7 @@ public class PostService {
                 .user(user)
                 .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
                 .verificationImageUrl(postRequestDto.getVerificationImageUrl()) // String: 인증 이미지 URL
+                .viewCount(0) // 핫게시물 TOP5 위해 재추가
                 .build();
 
         Post savedPost = postRepository.save(post);
@@ -142,6 +143,8 @@ public class PostService {
     public PostResponseDto getPostById(Long postId){
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
+        // 조회수 증가
+        post.increaseViewCount();
         return PostResponseDto.fromEntity(post);
     }
 
