@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
@@ -24,6 +25,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 카테고리 ID로 게시글 페이지 조회
     Page<Post> findByCategoryIdOrderByCreatedAtDesc(Long categoryId, Pageable pageable);
+
+    // 오늘 생성된 게시글 개수 반환
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
     // 사용자 정의 JPQL 쿼리: 검색 타입(type)이 'title'이면 제목에서, 'writer'면 작성자 닉네임에서 keyword를 LIKE 검색
     @Query("SELECT p FROM Post p " +
