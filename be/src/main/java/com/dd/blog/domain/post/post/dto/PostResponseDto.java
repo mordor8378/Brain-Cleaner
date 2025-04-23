@@ -19,6 +19,7 @@ public class PostResponseDto {
     private String title;
     private String content;
     private String imageUrl;
+    private int viewCount;
     private int likeCount;
     private int commentCount;
 
@@ -37,8 +38,9 @@ public class PostResponseDto {
                 .title(post.getTitle())
                 .content(post.getContent())
                 .imageUrl(post.getImageUrl())
-                .commentCount(post.getComments() != null ? post.getComments().size() : 0) // null 체크
+                .viewCount(post.getViewCount())
                 .likeCount(post.getLikeCount())
+                .commentCount(post.getComments() != null ? post.getComments().size() : 0) // null 체크
                 .verificationImageUrl(post.getVerificationImageUrl())
                 .detoxTime(post.getDetoxTime())
                 .createdAt(post.getCreatedAt())
