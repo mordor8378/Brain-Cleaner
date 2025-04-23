@@ -23,10 +23,13 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CommentService {
+
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
 
+
+    // READ
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getAllComments(Long postId){
         // 댓글과 대댓글은 프론트에서 parentId를 활용하여 계층구조처럼 보이게 설정 가능(백엔드에서는 모든댓글을 return)
@@ -40,6 +43,8 @@ public class CommentService {
                 .collect(Collectors.toList());
     };
 
+
+    // CREATE
     @Transactional
     public CommentResponseDto writeComment(Long postId, CommentRequestDto commentRequestDto, Long userId){
         Post post = postRepository.findById(postId)
@@ -66,6 +71,8 @@ public class CommentService {
         return CommentResponseDto.fromEntity(newComment);
     };
 
+
+    // UPDATE
     @Transactional
     public CommentUpdateResponseDto updateComment(Long commentId, CommentRequestDto dto, Long userId) {
         Comment comment = commentRepository.findById(commentId)
@@ -79,10 +86,17 @@ public class CommentService {
         return new CommentUpdateResponseDto(comment.getId(), comment.getContent(), comment.getUpdatedAt());
     }
 
+
+    // DELETE
     @Transactional
-    public void deleteComment(Long commentId){
+    public void deleteComment(Long commentId, Long userId){
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("댓글을 찾을 수 없습니다."));
+
+        // 삭제 권한 체크 로직
+        if (!comment.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("자신이 작성한 댓글만 삭제할 수 있습니다.");
+        }
 
         // 부모 댓글이 삭제되어도 대댓글들은 남아있게 하기위해 부모관계를 끊음
         if (comment.getParent() != null) {
