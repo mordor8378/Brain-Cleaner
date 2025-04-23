@@ -9,7 +9,7 @@ import { useState } from 'react';
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // 각 요청마다 QueryClient 인스턴스 생성
+  // 각 요청마다 QueryClient 인스턴스 생성 방지
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
