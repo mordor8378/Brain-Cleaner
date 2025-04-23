@@ -23,6 +23,7 @@ export interface Post {
   createdAt: string;
   updatedAt: string;
   likedByCurrentUser?: boolean;
+  userProfileImage?: string | null;
 }
 
 interface PostsResponse {
@@ -42,6 +43,12 @@ export default function Home() {
   const [searchType, setSearchType] = useState('title');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [sortType, setSortType] = useState<'latest' | 'popular'>('latest');
+  const [followStats, setFollowStats] = useState({ followers: 0, following: 0 });
+  const [streakDays, setStreakDays] = useState(0);
+  const [userLevel, setUserLevel] = useState('디톡스새싹');
+  const [nextLevel, setNextLevel] = useState('절제수련생');
+  const [nextLevelPoints, setNextLevelPoints] = useState(100);
+  const [maxProgressPoints, setMaxProgressPoints] = useState(100);
 
   // QueryClient 인스턴스 -> 캐시 조작용
   const queryClient = useQueryClient();
@@ -81,9 +88,25 @@ export default function Home() {
       throw new Error(`게시글 로드 실패: ${response.status}`);
     }
 
+    // 게시글 데이터 받기
     const data = await response.json();
     console.log('=== 게시글 API 응답 데이터 ===');
     console.log('전체 데이터:', data);
+
+    // 각 게시글 작성자의 프로필 이미지 정보 가져오기
+    // (실제 API가 사용자 정보를 함께 리턴하는 방식으로 최적화될 수 있음)
+    let postsWithProfileImages = data;
+    
+    if (Array.isArray(data.content)) {
+      // 페이징된 응답일 경우
+      postsWithProfileImages = {
+        ...data,
+        content: data.content
+      };
+    } else if (Array.isArray(data)) {
+      // 배열 형태의 응답일 경우
+      postsWithProfileImages = data;
+    }
 
     if (Array.isArray(data)) {
       // 검색 결과가 배열인 경우 페이지네이션 객체 형태로 변환
@@ -178,6 +201,82 @@ export default function Home() {
       }
     };
   }, []);
+
+  // 사용자 팔로워/팔로잉 정보 로드
+  useEffect(() => {
+    if (user?.id) {
+      const fetchFollowStats = async () => {
+        try {
+          const [followersRes, followingRes] = await Promise.all([
+            fetch(`http://localhost:8090/api/v1/follows/${user.id}/followers/number`, {
+              credentials: 'include',
+            }),
+            fetch(`http://localhost:8090/api/v1/follows/${user.id}/followings/number`, {
+              credentials: 'include',
+            })
+          ]);
+
+          if (followersRes.ok && followingRes.ok) {
+            const followers = await followersRes.json();
+            const following = await followingRes.json();
+            setFollowStats({ followers, following });
+          }
+        } catch (error) {
+          console.error('Error fetching follow stats:', error);
+        }
+      };
+
+      // 연속 인증일(스트릭) 가져오기 - 백엔드 API 미구현 상태
+      /* 
+      const fetchStreakData = async () => {
+        
+      };
+      */
+      // 임시로 고정값 사용
+      setStreakDays(5);
+
+      // 유저 레벨 계산
+      const calculateUserLevel = () => {
+        const totalPoint = user.totalPoint || 0;
+        
+        if (totalPoint >= 7500) {
+          setUserLevel('브레인클리너');
+          setNextLevel('최고 등급');
+          setNextLevelPoints(0);
+          setMaxProgressPoints(7500);
+        } else if (totalPoint >= 4500) {
+          setUserLevel('도파민파괴자');
+          setNextLevel('브레인클리너');
+          setNextLevelPoints(7500 - totalPoint);
+          setMaxProgressPoints(3000); // 7500 - 4500
+        } else if (totalPoint >= 2000) {
+          setUserLevel('선명한의식');
+          setNextLevel('도파민파괴자');
+          setNextLevelPoints(4500 - totalPoint);
+          setMaxProgressPoints(2500); // 4500 - 2000
+        } else if (totalPoint >= 600) {
+          setUserLevel('집중탐험가');
+          setNextLevel('선명한의식');
+          setNextLevelPoints(2000 - totalPoint);
+          setMaxProgressPoints(1400); // 2000 - 600
+        } else if (totalPoint >= 100) {
+          setUserLevel('절제수련생');
+          setNextLevel('집중탐험가');
+          setNextLevelPoints(600 - totalPoint);
+          setMaxProgressPoints(500); // 600 - 100
+        } else {
+          setUserLevel('디톡스새싹');
+          setNextLevel('절제수련생');
+          setNextLevelPoints(100 - totalPoint);
+          setMaxProgressPoints(100);
+        }
+      };
+
+      fetchFollowStats();
+      // fetchStreakData(); // 백엔드 API 구현 전까지 주석 처리
+      calculateUserLevel();
+    }
+  }, [user]);
 
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     console.log('선택된 카테고리:', e.target.value); // 카테고리 변경 확인용 로그
@@ -384,22 +483,24 @@ export default function Home() {
                 </div>
               ) : user ? (
                 <div className="flex flex-col items-center">
-                  <div className="rounded-full bg-pink-100 border-4 border-pink-200 p-4 mb-3">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-10 w-10 text-gray-700"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
+                  <Link href={`/profile/${user.id}`}>
+                    <div className="rounded-full bg-pink-100 border-4 border-pink-200 p-4 mb-3 cursor-pointer">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-10 w-10 text-gray-700"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  </Link>
                   <Link
-                    href="/profile/me"
+                    href={`/profile/${user.id}`}
                     className="hover:text-pink-500 transition-colors"
                   >
                     <h3 className="text-lg font-bold text-gray-900">
@@ -407,16 +508,16 @@ export default function Home() {
                     </h3>
                   </Link>
                   <div className="px-2 py-0.5 bg-yellow-100 rounded-full text-sm text-yellow-800 font-medium mb-3 mt-1">
-                    절제 수련생
+                    {userLevel}
                   </div>
 
                   <div className="w-full flex justify-center space-x-12 text-center border-t border-b py-3 my-2">
                     <div>
-                      <p className="text-lg text-black font-bold">245</p>
+                      <p className="text-lg text-black font-bold">{followStats.followers}</p>
                       <p className="text-xs text-gray-500">팔로워</p>
                     </div>
                     <div>
-                      <p className="text-lg text-black font-bold">180</p>
+                      <p className="text-lg text-black font-bold">{followStats.following}</p>
                       <p className="text-xs text-gray-500">팔로잉</p>
                     </div>
                   </div>
@@ -465,7 +566,7 @@ export default function Home() {
                       </div>
                       <div className="flex justify-between text-sm mb-4">
                         <span className="text-gray-600">연속 인증</span>
-                        <span className="font-bold text-pink-500">5일째</span>
+                        <span className="font-bold text-pink-500">{streakDays}일째</span>
                       </div>
 
                       <div className="flex justify-between text-sm mb-1">
@@ -478,11 +579,14 @@ export default function Home() {
                       <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
                         <div
                           className="bg-pink-500 h-2.5 rounded-full"
-                          style={{ width: '60%' }}
+                          style={{ width: `${Math.min(100, ((user.totalPoint || 0) / maxProgressPoints) * 100)}%` }}
                         ></div>
                       </div>
                       <p className="text-xs text-gray-500 text-left">
-                        도파민 파괴자까지 1,550 포인트
+                        {nextLevel === '최고 등급' 
+                          ? '최고 등급에 도달했습니다!'
+                          : `${nextLevel}까지 ${nextLevelPoints} 포인트`
+                        }
                       </p>
                     </div>
                   </div>
@@ -710,6 +814,7 @@ export default function Home() {
                         onUnlike={() => handleUnlike(post.postId)}
                         isLiked={post.likedByCurrentUser}
                         onDelete={handleDelete}
+                        userProfileImage={post.userProfileImage}
                       />
                     </div>
                   );

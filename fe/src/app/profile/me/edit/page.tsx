@@ -65,10 +65,27 @@ export default function EditProfile() {
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    console.log('Selected file:', file);
+    
     if (file) {
+      // 파일 크기 제한 (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('파일 크기는 10MB를 초과할 수 없습니다.');
+        return;
+      }
+
+      // 이미지 파일 타입 체크
+      if (!file.type.startsWith('image/')) {
+        toast.error('이미지 파일만 업로드 가능합니다.');
+        return;
+      }
+
       try {
+        toast.loading('이미지 업로드 중...');
         const formData = new FormData();
         formData.append('file', file);
+
+        console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
 
         const response = await fetch('http://localhost:8090/api/v1/users/profile-image', {
           method: 'POST',
@@ -76,19 +93,28 @@ export default function EditProfile() {
           body: formData,
         });
 
+        console.log('Upload response status:', response.status);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log('Upload response data:', data);
+          
           setProfileImage(data.imageUrl);
           setUserInfo(prev => ({
             ...prev,
             profileImage: data.imageUrl
           }));
+          toast.dismiss();
           toast.success('프로필 이미지가 업로드되었습니다.');
         } else {
-          toast.error('이미지 업로드에 실패했습니다.');
+          const errorData = await response.text();
+          console.error('Upload failed:', errorData);
+          toast.dismiss();
+          toast.error('이미지 업로드에 실패했습니다: ' + (errorData || response.statusText));
         }
       } catch (error) {
         console.error('Error uploading image:', error);
+        toast.dismiss();
         toast.error('이미지 업로드 중 오류가 발생했습니다.');
       }
     }
@@ -236,7 +262,7 @@ export default function EditProfile() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div className="max-w-2xl mx-auto p-4 bg-white min-h-screen">
       <h1 className="text-2xl font-bold mb-8">프로필 수정</h1>
       
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -264,9 +290,15 @@ export default function EditProfile() {
                 accept="image/*"
                 className="hidden"
                 onChange={handleImageChange}
+                onClick={(e) => {
+                  // 같은 파일을 다시 선택할 수 있도록 value 초기화
+                  (e.target as HTMLInputElement).value = '';
+                }}
               />
             </div>
-            <button type="button" className="text-pink-500 text-sm">사진 변경</button>
+            <button type="button" className="text-pink-500 text-sm" onClick={() => document.getElementById('profile-image')?.click()}>
+              사진 변경
+            </button>
           </div>
 
           <div className="space-y-4">
