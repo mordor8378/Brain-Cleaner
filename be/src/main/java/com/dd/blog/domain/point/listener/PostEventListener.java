@@ -15,7 +15,7 @@ public class PostEventListener {
 
     private final PointService pointService;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void handlePostCreatedEvent(PostCreatedEvent event) {
 
         try {

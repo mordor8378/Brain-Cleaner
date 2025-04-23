@@ -82,7 +82,7 @@ export default function UserDetailPage() {
         // 나중에 여기에 포인트 내역 로딩 상태(isLoading 같은)를 true로 설정하는 코드 추가 가능
 
         try {
-            const historyApiUrl = `http://localhost:8090/api/admin/users/${userId}/point-history?page=${apiPage}&size=10&sort=createdAt,desc`;
+            const historyApiUrl = `http://localhost:8090/api/admin/users/${userId}/point-history?page=${apiPage}&size=10`;
             console.log(`[fetchPointHistory] 요청 URL: ${historyApiUrl}`);
 
             // API 호출
@@ -162,6 +162,8 @@ export default function UserDetailPage() {
         // 드롭다운 초기 선택값  설정
         setSelectedStatus(data.status || '');
         setSelectedRole(data.role || '');
+
+        await fetchPointHistory(1);
       } catch (err) {
          console.error('[UserDetail] Error fetching user data:', err);
          setError(err instanceof Error ? err.message : '알 수 없는 오류 발생');
@@ -440,12 +442,17 @@ export default function UserDetailPage() {
               <button 
                 className="px-3 py-1 border border-gray-300 rounded-button bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 disabled={pointHistoryCurrentPage === 1}
-                onClick={() => setPointHistoryCurrentPage(prev => prev - 1)}
+                onClick={() => {
+                    const newPage = pointHistoryCurrentPage - 1;
+                    setPointHistoryCurrentPage(newPage);
+                    fetchPointHistory(newPage);
+                    }}
               >
                 <div className="w-5 h-5 flex items-center justify-center">
                   <i className="ri-arrow-left-s-line"></i>
                 </div>
               </button>
+              {/* 페이지 번호 버튼들 */}
               <div className="flex space-x-1">
                 {Array.from({ length: pointHistoryTotalPages }, (_, i) => i + 1)
                   .filter(page => Math.abs(page - pointHistoryCurrentPage) < 3 || page === 1 || page === pointHistoryTotalPages)
@@ -460,17 +467,26 @@ export default function UserDetailPage() {
                             ? 'border-primary bg-primary text-white'
                             : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                         }`}
-                        onClick={() => setPointHistoryCurrentPage(page)}
+                        onClick={() => {
+                            setPointHistoryCurrentPage(page)
+                            fetchPointHistory(page);
+                            }}
                       >
                         {page}
                       </button>
                     </React.Fragment>
                   ))}
               </div>
+
+              {/* 다음 페이지 버튼 */}
               <button 
                 className="px-3 py-1 border border-gray-300 rounded-button bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 disabled={pointHistoryCurrentPage === pointHistoryTotalPages}
-                onClick={() => setPointHistoryCurrentPage(prev => prev + 1)}
+                onClick={() => {
+                    const newPage = pointHistoryCurrentPage +1;
+                    setPointHistoryCurrentPage(newPage);
+                    fetchPointHistory(newPage);
+                    }}
               >
                 <div className="w-5 h-5 flex items-center justify-center">
                   <i className="ri-arrow-right-s-line"></i>

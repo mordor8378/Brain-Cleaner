@@ -1,5 +1,6 @@
 package com.dd.blog.domain.post.comment.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -11,8 +12,10 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class CommentRequestDto {
-    private Long post_id;
-    private Long parent_id;
+    @JsonProperty("post_id")
+    private Long postId;
+    @JsonProperty("parent_id")
+    private Long parentId;
 
     @NotBlank(message = "내용 입력은 필수입니다.")
     private String content;

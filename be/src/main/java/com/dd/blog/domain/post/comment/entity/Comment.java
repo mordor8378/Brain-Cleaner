@@ -4,14 +4,12 @@ import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.global.jpa.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
