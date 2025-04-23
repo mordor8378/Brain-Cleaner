@@ -8,6 +8,9 @@ import com.dd.blog.domain.post.post.dto.PostRequestDto;
 import com.dd.blog.domain.post.post.dto.PostResponseDto;
 import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.domain.post.post.repository.PostRepository;
+import com.dd.blog.domain.post.verification.dto.VerificationRequestDto;
+import com.dd.blog.domain.post.verification.repository.VerificationRepository;
+import com.dd.blog.domain.post.verification.service.VerificationService;
 import com.dd.blog.domain.user.follow.entity.Follow;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
@@ -35,6 +38,8 @@ public class PostService {
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final VerificationService verificationService;
+    private final VerificationRepository verificationRepository;
 
 
 
@@ -59,6 +64,20 @@ public class PostService {
                 .build();
 
         Post savedPost = postRepository.save(post);
+
+        if (categoryId == 1L) {
+            VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
+                    .userId(userId)
+                    .postId(savedPost.getId())
+                    .detoxTime(savedPost.getDetoxTime())
+                    .build();
+
+            verificationService.createVerification(verificationRequest);
+        }
+
+
+
+
         this.eventPublisher.publishEvent(new PostCreatedEvent(this, savedPost));
 
         return PostResponseDto.fromEntity(savedPost);
@@ -164,6 +183,8 @@ public class PostService {
     public void deletePost(Long postId){
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+
+        verificationRepository.deleteByPost(post);
         postRepository.delete(post);
     }
 

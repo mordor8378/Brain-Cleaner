@@ -2,6 +2,7 @@ package com.dd.blog.domain.admin.controller;
 
 import com.dd.blog.domain.admin.dto.VerificationStatusUpdateDto;
 import com.dd.blog.domain.admin.service.AdminVerificationService;
+import com.dd.blog.domain.post.verification.dto.VerificationResponseDto;
 import com.dd.blog.domain.post.verification.entity.Verification;
 import com.dd.blog.domain.post.verification.entity.VerificationStatus;
 import jakarta.validation.Valid;
@@ -39,8 +40,8 @@ public class AdminVerificationV1Controller {
 
     // PENDING 상태인 인증 요청 목록을 페이징하여 조회
     @GetMapping
-    public ResponseEntity<Page<Verification>> getPendingVerifications(Pageable pageable) {
-        Page<Verification> pendingVerifications = adminVerificationService.getPendingVerification(pageable);
+    public ResponseEntity<Page<VerificationResponseDto>> getPendingVerifications(Pageable pageable) {
+        Page<VerificationResponseDto> pendingVerifications = adminVerificationService.getPendingVerification(pageable);
         return ResponseEntity.ok(pendingVerifications);
     }
 

@@ -55,7 +55,7 @@ export default function AdminDashboardPage() {
           <Link href="/admin/users" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
             회원 목록 관리
           </Link>
-          <Link href="/admin/approvals" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
+          <Link href="/admin/verifications" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
             인증 승인 관리
           </Link>
           <Link href="/admin/posts" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
@@ -90,7 +90,7 @@ export default function AdminDashboardPage() {
           </div>
           <p className="text-gray-600 mb-4">대기 중: 15건</p> {/* 나중에 데이터 연동 */}
           <p className="text-gray-600 mb-6">오늘 처리: 8건</p> {/* 나중에 데이터 연동 */}
-          <Link href="/admin/approvals" className="block w-full bg-primary text-white text-center py-3 !rounded-button hover:bg-opacity-90 transition-colors">
+          <Link href="/admin/verifications" className="block w-full bg-primary text-white text-center py-3 !rounded-button hover:bg-opacity-90 transition-colors">
             인증 승인 관리
           </Link>
         </div>
