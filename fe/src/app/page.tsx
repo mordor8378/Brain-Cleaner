@@ -7,6 +7,8 @@ import WritePostPage from './post/write/page';
 import VerificationWritePage from './verification/write/page';
 import Post from '@/components/Post';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import Image from 'next/image';
+import { toast } from 'react-hot-toast';
 
 export interface Post {
   postId: number;
@@ -49,6 +51,9 @@ export default function Home() {
   const [nextLevel, setNextLevel] = useState('절제수련생');
   const [nextLevelPoints, setNextLevelPoints] = useState(100);
   const [maxProgressPoints, setMaxProgressPoints] = useState(100);
+  const [topPosts, setTopPosts] = useState<Post[]>([]);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [showPostModal, setShowPostModal] = useState(false);
 
   // QueryClient 인스턴스 -> 캐시 조작용
   const queryClient = useQueryClient();
@@ -93,19 +98,39 @@ export default function Home() {
     console.log('=== 게시글 API 응답 데이터 ===');
     console.log('전체 데이터:', data);
 
-    // 각 게시글 작성자의 프로필 이미지 정보 가져오기
-    // (실제 API가 사용자 정보를 함께 리턴하는 방식으로 최적화될 수 있음)
-    let postsWithProfileImages = data;
-    
-    if (Array.isArray(data.content)) {
-      // 페이징된 응답일 경우
-      postsWithProfileImages = {
-        ...data,
-        content: data.content
-      };
-    } else if (Array.isArray(data)) {
-      // 배열 형태의 응답일 경우
-      postsWithProfileImages = data;
+    // 각 게시글의 좋아요 상태 가져오기 (로그인한 경우에만)
+    if (user?.id) {
+      try {
+        let postsToProcess = [];
+        
+        if (Array.isArray(data)) {
+          postsToProcess = data;
+        } else if (data.content && Array.isArray(data.content)) {
+          postsToProcess = data.content;
+        }
+        
+        // 게시글별 좋아요 상태 확인을 위한 API 호출
+        const likeStatusPromises = postsToProcess.map((post: Post) => 
+          fetch(`http://localhost:8090/api/v1/posts/${post.postId}/like/check`, {
+            credentials: 'include',
+          }).then(res => {
+            if (res.ok) return res.json();
+            return { liked: false };
+          }).catch(() => ({ liked: false }))
+        );
+        
+        // 모든 좋아요 상태 요청 완료 대기
+        const likeStatuses = await Promise.all(likeStatusPromises);
+        
+        // 좋아요 상태 정보 병합
+        for (let i = 0; i < postsToProcess.length; i++) {
+          postsToProcess[i].likedByCurrentUser = likeStatuses[i].liked;
+        }
+        
+        console.log('좋아요 상태 업데이트 후 게시글:', postsToProcess);
+      } catch (error) {
+        console.error('좋아요 상태 가져오기 실패:', error);
+      }
     }
 
     if (Array.isArray(data)) {
@@ -277,6 +302,115 @@ export default function Home() {
       calculateUserLevel();
     }
   }, [user]);
+
+  // 인기 게시글 가져오기
+  useEffect(() => {
+    const fetchTopPosts = async () => {
+      try {
+        // 더 많은 게시글을 가져와서 정렬하기 위해 size 증가
+        const response = await fetch(
+          'http://localhost:8090/api/v1/posts/pageable?page=0&size=50&sort=likeCount,desc',
+          {
+            credentials: 'include',
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('인기 게시글 원본 데이터:', data);
+          
+          // 좋아요 수가 많은 상위 5개 게시글 선택
+          if (data.content && Array.isArray(data.content)) {
+            // 프론트엔드에서 한번 더 좋아요 수로 정렬
+            const sortedPosts = [...data.content].sort((a, b) => {
+              // 좋아요 수로 내림차순 정렬
+              const likeDiff = (b.likeCount || 0) - (a.likeCount || 0);
+              if (likeDiff !== 0) return likeDiff;
+              
+              // 좋아요 수가 같으면 조회수로 내림차순 정렬
+              return (b.viewCount || 0) - (a.viewCount || 0);
+            });
+            
+            // 정렬된 상위 5개 게시글 선택
+            const top5Posts = sortedPosts.slice(0, 5);
+            console.log('정렬 후 상위 5개 게시글:', top5Posts);
+            
+            // 인기 게시글의 좋아요 상태 확인 (로그인한 경우에만)
+            if (user?.id) {
+              try {
+                // 각 게시글의 좋아요 상태 가져오기
+                const likeStatusPromises = top5Posts.map((post: Post) => 
+                  fetch(`http://localhost:8090/api/v1/posts/${post.postId}/like/check`, {
+                    credentials: 'include',
+                  }).then(res => {
+                    if (res.ok) return res.json();
+                    return { liked: false };
+                  }).catch(() => ({ liked: false }))
+                );
+                
+                // 모든 좋아요 상태 요청 완료 대기
+                const likeStatuses = await Promise.all(likeStatusPromises);
+                
+                // 좋아요 상태 정보 병합
+                for (let i = 0; i < top5Posts.length; i++) {
+                  top5Posts[i].likedByCurrentUser = likeStatuses[i].liked;
+                }
+                
+                console.log('좋아요 상태 업데이트 후 인기 게시글:', top5Posts);
+              } catch (error) {
+                console.error('인기 게시글 좋아요 상태 가져오기 실패:', error);
+              }
+            }
+            
+            setTopPosts(top5Posts);
+          }
+        } else {
+          console.error('인기 게시글을 가져오는데 실패했습니다:', response.status);
+        }
+      } catch (error) {
+        console.error('인기 게시글 조회 중 오류:', error);
+      }
+    };
+
+    fetchTopPosts();
+  }, [user]);
+
+  // 게시글 세부 정보 가져오기
+  const fetchPostDetail = async (postId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8090/api/v1/posts/${postId}`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // 좋아요 상태 확인 (로그인한 경우에만)
+        if (user?.id) {
+          try {
+            const likeStatusResponse = await fetch(`http://localhost:8090/api/v1/posts/${postId}/like/check`, {
+              credentials: 'include',
+            });
+            
+            if (likeStatusResponse.ok) {
+              const likeStatus = await likeStatusResponse.json();
+              data.likedByCurrentUser = likeStatus.liked;
+            }
+          } catch (error) {
+            console.error('좋아요 상태 확인 중 오류:', error);
+          }
+        }
+        
+        setSelectedPost(data);
+        setShowPostModal(true);
+      } else {
+        toast.error('게시글을 불러오는데 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('게시글 조회 중 오류:', error);
+      toast.error('서버 연결에 실패했습니다.');
+    }
+  };
 
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     console.log('선택된 카테고리:', e.target.value); // 카테고리 변경 확인용 로그
@@ -814,7 +948,7 @@ export default function Home() {
                         onUnlike={() => handleUnlike(post.postId)}
                         isLiked={post.likedByCurrentUser}
                         onDelete={handleDelete}
-                        userProfileImage={post.userProfileImage}
+                        //userProfileImage={post.userProfileImage}
                       />
                     </div>
                   );
@@ -837,26 +971,122 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 오른쪽 사이드바 - Weekly Best */}
+          {/* 오른쪽 사이드바 - Best게시글 */}
           <div className="md:col-span-1">
             <div className="bg-white rounded-lg shadow p-5 mb-4">
               <h3 className="text-lg text-black font-medium mb-4">
-                Weekly Best 5
+                인기글 
               </h3>
               <ul className="space-y-3">
-                {[1, 2, 3, 4, 5].map((item) => (
-                  <li key={item} className="flex items-center">
-                    <div className="bg-pink-100 rounded-full w-8 h-8 flex items-center justify-center text-pink-500 mr-3">
-                      {item}
-                    </div>
-                    <p className="text-sm text-gray-700 truncate">제목</p>
-                  </li>
-                ))}
+                {topPosts.length > 0 ? (
+                  topPosts.map((post, index) => (
+                    <li key={post.postId} className="flex items-center">
+                      <div className="bg-pink-100 rounded-full w-8 h-8 flex items-center justify-center text-pink-500 mr-3">
+                        {index + 1}
+                      </div>
+                      <button 
+                        className="text-sm text-gray-700 truncate text-left hover:text-pink-500 transition-colors"
+                        onClick={() => fetchPostDetail(post.postId)}
+                      >
+                        {post.title}
+                      </button>
+                    </li> 
+                  ))
+                ) : (
+                  [1, 2, 3, 4, 5].map((item) => (
+                    <li key={item} className="flex items-center">
+                      <div className="bg-pink-100 rounded-full w-8 h-8 flex items-center justify-center text-pink-500 mr-3">
+                        {item}
+                      </div>
+                      <p className="text-sm text-gray-700 truncate">로딩 중...</p>
+                    </li>
+                  ))
+                )}
               </ul>
             </div>
           </div>
         </div>
       </main>
+
+      {/* 게시글 상세 모달 */}
+      {showPostModal && selectedPost && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+              onClick={() => setShowPostModal(false)}
+            ></div>
+            
+            <div className="relative bg-white rounded-lg max-w-xl w-full mx-auto shadow-xl z-10">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-semibold">{selectedPost.title}</h3>
+                  <button 
+                    onClick={() => setShowPostModal(false)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="flex items-center mb-4">
+                  <div className="bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{selectedPost.userNickname}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(selectedPost.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="mb-4">
+                  <p className="text-gray-700">{selectedPost.content}</p>
+                </div>
+                
+                {selectedPost.imageUrl && (
+                  <div className="mb-4">
+                    <Image 
+                      src={selectedPost.imageUrl} 
+                      alt="게시글 이미지" 
+                      width={500} 
+                      height={300}
+                      className="rounded-lg w-full h-auto"
+                    />
+                  </div>
+                )}
+                
+                <div className="flex items-center text-gray-500 text-sm">
+                  <div className="flex items-center mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                    </svg>
+                    <span>{selectedPost.likeCount}</span>
+                  </div>
+                  <div className="flex items-center mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                    </svg>
+                    <span>{selectedPost.commentCount}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>{selectedPost.viewCount}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
