@@ -18,10 +18,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   const navigation = [
-    { name: '대시보드', href: '/admin', icon: 'ri-dashboard-line' },
+    { name: '관리자 대시보드', href: '/admin', icon: 'ri-dashboard-line' },
     { name: '회원 관리', href: '/admin/users', icon: 'ri-user-line' },
-    { name: '인증 관리', href: '/admin/approvals', icon: 'ri-check-double-line' },
+    { name: '인증 관리', href: '/admin/verifications', icon: 'ri-check-double-line' },
     { name: '게시글 관리', href: '/admin/posts', icon: 'ri-file-list-line' },
+    { name: '사이트 바로가기', href: '/', icon: 'ri-home-4-line'}
   ];
 
   return (

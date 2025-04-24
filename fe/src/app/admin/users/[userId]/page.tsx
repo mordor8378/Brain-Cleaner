@@ -413,15 +413,14 @@ export default function UserDetailPage() {
                         </td>
                       </tr>
                     ) : (
-                      pointHistory.map((history) => ( // ★★★ history 객체 타입 명시 (선택 사항) ★★★
-                        <tr key={history.historyId} className="hover:bg-gray-50"> {/* key는 고유 ID 사용 권장 */}
+                      pointHistory.map((history) => (
+                        <tr key={history.historyId} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {/* ▼▼▼ history.date -> history.createdAt 으로 수정 + 포맷팅 ▼▼▼ */}
                             {history.createdAt ? new Date(history.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {/* ▼▼▼ history.reason -> history.type 으로 수정 (+ 필요시 변환 함수) ▼▼▼ */}
-                            {history.type} {/* 또는 getPointHistoryReason(history.type) */}
+                            {history.type}
                           </td>
                           <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${history.pointChange >= 0 ? 'text-green-600' : 'text-red-600'}`}> {/* ▼▼▼ history.amount -> history.pointChange 로 수정 + 포맷팅 ▼▼▼ */}
                             {history.pointChange >= 0 ? '+' : ''}{history.pointChange.toLocaleString('ko-KR')} P

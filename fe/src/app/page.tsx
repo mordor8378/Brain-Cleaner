@@ -621,6 +621,13 @@ export default function Home() {
     }
   };
 
+  const renderAdminButton = () => (
+        <Link href="/admin" className="mt-3 block w-full bg-pink-500 text-white py-3 px-4 rounded-full hover:bg-pink-600 transition font-medium text-center">
+          관리자 대시보드
+        </Link>
+      );
+
+
   // 댓글 수 업데이트 핸들러
   const handleCommentUpdate = async (postId: number, count: number) => {
     // React Query 캐시 업데이트
@@ -746,12 +753,18 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={openWriteModal}
-                    className="mt-3 w-full bg-pink-500 text-white py-3 px-4 rounded-full hover:bg-pink-600 transition font-medium"
-                  >
-                    오늘 인증하기
-                  </button>
+                  {user && ( // 로그인된 상태인지 먼저 확인
+                      user.role === 'ROLE_ADMIN'
+                        ? renderAdminButton()
+                        : (
+                            <button
+                              onClick={openWriteModal}
+                              className="mt-3 w-full bg-pink-500 text-white py-3 px-4 rounded-full hover:bg-pink-600 transition font-medium"
+                            >
+                              오늘 인증하기
+                             </button>
+                           )
+                   )}
 
                   <div className="mt-4 w-full">
                     <p className="text-sm font-medium text-gray-800 mb-3">

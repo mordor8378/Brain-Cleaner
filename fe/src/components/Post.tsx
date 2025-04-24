@@ -312,7 +312,7 @@ export default function Post({
               </span>
             </div>
             <div className="group">
-              {user?.id === userId && (
+              {(user?.id === userId || user?.role === 'ROLE_ADMIN') &&  (
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"

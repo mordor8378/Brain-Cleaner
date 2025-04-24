@@ -2,11 +2,13 @@ package com.dd.blog.domain.post.verification.dto;
 
 import com.dd.blog.domain.post.verification.entity.VerificationStatus;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@Builder
 public class VerificationRequestDto {
     // 인증 요청 게시글 ID, 사용자 ID
     private Long postId;
