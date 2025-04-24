@@ -21,6 +21,7 @@ public class PostResponseDto {
     private String imageUrl;
     private int viewCount;
     private int likeCount;
+    private int commentCount;
 
     private String verificationImageUrl;
     private Integer detoxTime;
@@ -39,6 +40,7 @@ public class PostResponseDto {
                 .imageUrl(post.getImageUrl())
                 .viewCount(post.getViewCount())
                 .likeCount(post.getLikeCount())
+                .commentCount(post.getComments() != null ? post.getComments().size() : 0) // null 체크
                 .verificationImageUrl(post.getVerificationImageUrl())
                 .detoxTime(post.getDetoxTime())
                 .createdAt(post.getCreatedAt())

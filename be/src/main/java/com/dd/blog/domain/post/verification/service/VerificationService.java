@@ -8,12 +8,18 @@ import com.dd.blog.domain.post.verification.dto.*;
 import com.dd.blog.domain.post.verification.entity.*;
 import com.dd.blog.domain.post.verification.repository.VerificationRepository;
 
+import com.dd.blog.global.exception.ApiException;
+import com.dd.blog.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,6 +52,9 @@ public class VerificationService {
 
             // 인증 정보 저장
             verificationRepository.save(verification);
+
+            // 연속 인증 일수 업데이트
+            updateStreakDays(requestDto.getUserId());
 
             // 엔티티 DTO 변환
             return toDto(verification);
@@ -124,4 +133,60 @@ public class VerificationService {
                 .build();
     }
 
+    // 주간 인증 현황
+    @Transactional(readOnly = true)
+    public List<LocalDate> getWeeklyVerifications(Long userId) {
+        LocalDate today = LocalDate.now();
+        LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+
+        // PENDING 또는 APPROVED 상태인 인증만 조회
+        List<VerificationStatus> validStatuses = Arrays.asList(VerificationStatus.PENDING, VerificationStatus.APPROVED);
+
+        // 해당 사용자의 이번 주 유효한 인증 날짜들을 조회
+        return verificationRepository.findByUserIdAndCreatedAtBetweenAndStatusIn(
+                userId,
+                startOfWeek.atStartOfDay(),
+                endOfWeek.atTime(23, 59, 59),
+                validStatuses)
+                .stream()
+                .map(verification -> verification.getCreatedAt().toLocalDate())
+                .distinct() // 같은 날 여러 번 인증한 경우 중복 제거
+                .collect(Collectors.toList());
+    }
+
+    // 인증 스트릭
+    @Transactional
+    public int getStreakDays(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+        return user.getStreakDays();
+    }
+
+    // 인증 생성시 연속 인증 업데이트
+    @Transactional
+    public void updateStreakDays(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        LocalDate today = LocalDate.now();
+        LocalDate lastVerificationDate = user.getLastVerificationDate();
+
+        if (lastVerificationDate == null) {
+            // 첫 인증인 경우
+            user.setStreakDays(1);
+        } else if (lastVerificationDate.equals(today.minusDays(1))) {
+            // 어제 인증했다면 연속 인증 +1
+            user.setStreakDays(user.getStreakDays() + 1);
+        } else if (lastVerificationDate.equals(today)) {
+            // 오늘 이미 인증한 경우는 변경 없음
+            return;
+        } else {
+            // 연속 인증이 끊긴 경우 1부터 다시 시작
+            user.setStreakDays(1);
+        }
+
+        user.setLastVerificationDate(today);
+        userRepository.save(user);
+    }
 }
