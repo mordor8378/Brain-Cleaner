@@ -89,9 +89,7 @@ export default function Home() {
 
     console.log('요청 URL:', url);
 
-    const response = await fetch(url, {
-      credentials: 'include',
-    });
+    const response = await fetch(url);
 
     if (!response.ok) {
       throw new Error(`게시글 로드 실패: ${response.status}`);
@@ -882,7 +880,7 @@ export default function Home() {
 
           {/* 중앙 콘텐츠 - 게시판 */}
           <div className="md:col-span-2">
-            <div className="bg-white rounded-lg shadow mb-6 flex flex-col h-[calc(100vh-2rem)]">
+            <div className="bg-white rounded-lg shadow mb-6">
               {/* 게시판 헤더 */}
               <div className="bg-white sticky top-0 z-10">
                 {/* 전체 게시판 헤더 */}
@@ -1017,7 +1015,7 @@ export default function Home() {
               </div>
 
               {/* 게시글 목록 */}
-              <div className="divide-y divide-gray-100 overflow-y-auto flex-1">
+              <div className="divide-y divide-gray-100">
                 {/* 초기 로딩 중 */}
                 {isFetching && !isFetchingNextPage && posts.length === 0 && (
                   <div className="p-8 flex justify-center">
