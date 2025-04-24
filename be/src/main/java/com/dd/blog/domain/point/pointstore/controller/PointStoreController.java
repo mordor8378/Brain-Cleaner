@@ -8,8 +8,11 @@ import com.dd.blog.domain.point.pointstore.entity.PointItem;
 import com.dd.blog.domain.point.pointstore.repository.PointItemRepository;
 import com.dd.blog.domain.point.pointstore.service.PointStoreService;
 import com.dd.blog.domain.user.user.entity.User;
+import com.dd.blog.domain.user.user.repository.UserRepository;
+import com.dd.blog.global.security.SecurityUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +33,7 @@ public class PointStoreController {
 
     private final PointStoreService pointStoreService;
     private final PointItemRepository pointItemRepository;
+    private final UserRepository userRepository;
 
 
     /**
@@ -84,14 +88,17 @@ public class PointStoreController {
      * 로그인 유저가 지금까지 구매한 아이템 목록을 조회
      * - 마이페이지 > 구매 내역에서 사용
      *
-     * @param user 인증된 유저 정보
-     * @return PointItemPurchaseListDto 리스트
+     * @param principal Spring Security 인증 객체 (SecurityUser)
+     * @return 내가 구매한 아이템 정보 리스트
      */
     @Operation(summary = "내가 구매한 아이템 목록", description = "유저가 구매한 포인트 아이템을 모두 반환합니다.")
     @GetMapping("/my-purchases")
     public ResponseEntity<List<PointItemPurchaseListDto>> getMyPurchases(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal SecurityUser principal
     ) {
+        Long userId = principal.getId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
         return ResponseEntity.ok(pointStoreService.getMyPurchases(user));
     }
 }

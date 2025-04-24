@@ -100,10 +100,12 @@ public class PointStoreService {
      * @param user 현재 로그인된 유저
      * @return 구매한 아이템 리스트 DTO
      */
+    @Transactional(readOnly = true)
     public List<PointItemPurchaseListDto> getMyPurchases(User user) {
         return pointItemPurchaseRepository.findByUser(user).stream()
                 .map(purchase -> {
                     PointItem item = purchase.getItem();
+                    System.out.println("구매 이력에서 꺼낸 itemId = " + item.getId());
                     return PointItemPurchaseListDto.builder()
                             .itemId(item.getId())
                             .name(item.getName())
