@@ -1,8 +1,8 @@
-package com.dd.blog.domain.point.service;
+package com.dd.blog.domain.point.point.service;
 
-import com.dd.blog.domain.point.dto.PointHistoryResponseDto;
-import com.dd.blog.domain.point.entity.PointHistory;
-import com.dd.blog.domain.point.repository.PointHistoryRepository;
+import com.dd.blog.domain.point.point.dto.PointHistoryResponseDto;
+import com.dd.blog.domain.point.point.entity.PointHistory;
+import com.dd.blog.domain.point.point.repository.PointHistoryRepository;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

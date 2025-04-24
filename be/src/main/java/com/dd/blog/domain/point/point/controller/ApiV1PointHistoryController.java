@@ -1,7 +1,7 @@
-package com.dd.blog.domain.point.controller;
+package com.dd.blog.domain.point.point.controller;
 
-import com.dd.blog.domain.point.dto.PointHistoryResponseDto;
-import com.dd.blog.domain.point.service.PointHistoryService;
+import com.dd.blog.domain.point.point.dto.PointHistoryResponseDto;
+import com.dd.blog.domain.point.point.service.PointHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

@@ -1,7 +1,7 @@
-package com.dd.blog.domain.point.service;
+package com.dd.blog.domain.point.point.service;
 
-import com.dd.blog.domain.point.entity.PointHistory;
-import com.dd.blog.domain.point.repository.PointHistoryRepository;
+import com.dd.blog.domain.point.point.entity.PointHistory;
+import com.dd.blog.domain.point.point.repository.PointHistoryRepository;
 import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.domain.post.verification.entity.Verification;
 import com.dd.blog.domain.user.user.entity.User;

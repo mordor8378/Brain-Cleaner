@@ -1,4 +1,4 @@
-package com.dd.blog.domain.point.entity;
+package com.dd.blog.domain.point.point.entity;
 
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.global.jpa.BaseEntity;

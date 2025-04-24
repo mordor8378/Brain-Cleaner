@@ -1,6 +1,6 @@
 package com.dd.blog.domain.admin.dto;
 
-import com.dd.blog.domain.point.dto.PointHistoryResponseDto;
+import com.dd.blog.domain.point.point.dto.PointHistoryResponseDto;
 import com.dd.blog.domain.user.user.entity.UserRole;
 import com.dd.blog.domain.user.user.entity.UserStatus;
 import lombok.Builder;
