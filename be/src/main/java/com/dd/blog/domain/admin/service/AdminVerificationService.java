@@ -1,5 +1,5 @@
 package com.dd.blog.domain.admin.service;
-import com.dd.blog.domain.point.service.PointService;
+import com.dd.blog.domain.point.point.service.PointService;
 import com.dd.blog.domain.post.verification.dto.VerificationResponseDto;
 import com.dd.blog.domain.post.verification.entity.Verification;
 import com.dd.blog.domain.post.verification.entity.VerificationStatus;

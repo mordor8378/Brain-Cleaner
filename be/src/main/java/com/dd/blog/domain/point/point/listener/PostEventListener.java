@@ -1,6 +1,6 @@
-package com.dd.blog.domain.point.listener;
+package com.dd.blog.domain.point.point.listener;
 
-import com.dd.blog.domain.point.service.PointService;
+import com.dd.blog.domain.point.point.service.PointService;
 import com.dd.blog.domain.post.event.PostCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

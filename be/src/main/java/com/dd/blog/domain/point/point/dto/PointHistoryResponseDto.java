@@ -1,4 +1,4 @@
-package com.dd.blog.domain.point.dto;
+package com.dd.blog.domain.point.point.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
