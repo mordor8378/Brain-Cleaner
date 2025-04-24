@@ -21,6 +21,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.Query;
@@ -41,6 +44,20 @@ public class PostService {
     private final VerificationService verificationService;
     private final VerificationRepository verificationRepository;
 
+    private void checkAdminAuthority() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("로그인이 필요합니다.");
+        }
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN")); // 실제 사용하는 Role 이름 확인! (보통 "ROLE_ADMIN")
+
+        if (!isAdmin) {
+            throw new AccessDeniedException("관리자 권한이 없습니다.");
+        }
+    }
+
 
 
     // CREATE
@@ -52,6 +69,10 @@ public class PostService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+
+        if(category.getId() == 4L)
+            checkAdminAuthority();
+
 
         Post post = Post.builder()
                 .title(postRequestDto.getTitle())
@@ -175,6 +196,9 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
 
+        if(post.getCategory().getId() == 4L)
+            checkAdminAuthority();
+
         post.update(postPatchRequestDto.getTitle(), postPatchRequestDto.getContent(), postPatchRequestDto.getImageUrl());
         return PostResponseDto.fromEntity(post);
     }
@@ -186,6 +210,9 @@ public class PostService {
     public void deletePost(Long postId){
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+
+        if(post.getCategory().getId() == 4L)
+            checkAdminAuthority();
 
         verificationRepository.deleteByPost(post);
         postRepository.delete(post);
