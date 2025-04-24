@@ -621,7 +621,6 @@ export default function Home() {
     }
   };
 
-<<<<<<< HEAD
   const renderAdminButton = () => (
         <Link href="/admin" className="mt-3 block w-full bg-pink-500 text-white py-3 px-4 rounded-full hover:bg-pink-600 transition font-medium text-center">
           관리자 대시보드
@@ -629,7 +628,6 @@ export default function Home() {
       );
 
 
-=======
   // 댓글 수 업데이트 핸들러
   const handleCommentUpdate = async (postId: number, count: number) => {
     // React Query 캐시 업데이트
@@ -665,7 +663,6 @@ export default function Home() {
   const memoizedHandleUnlike = useCallback((postId: number) => {
     handleUnlike(postId);
   }, []);
->>>>>>> 4e565b2a3821ce88ada9246c9aff6b2db7db3981
 
   const posts = data?.pages.flatMap((page) => page.content) || [];
 
