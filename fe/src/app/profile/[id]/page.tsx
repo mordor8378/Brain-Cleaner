@@ -194,7 +194,6 @@ export default function OtherUserProfile() {
 
       if (isFollowing) {
         // 언팔로우 로직 - 백엔드 API 수정사항 반영
-        // 이제 followerId와 followingId 모두 @PathVariable로 경로에 포함
         const unfollowResponse = await fetch(
           `http://localhost:8090/api/v1/follows/${meData.id}/${userInfo.id}`,
           {
@@ -213,10 +212,19 @@ export default function OtherUserProfile() {
             fetchFollowStats(userInfo.id);
           }
         } else {
-          console.error("Failed to unfollow");
+          console.error(
+            `Failed to unfollow. Status: ${unfollowResponse.status}`,
+            await unfollowResponse.text()
+          );
         }
       } else {
-        // 팔로우 로직 - 이 부분은 백엔드 API와 일치함
+        // 팔로우 로직
+        // API 엔드포인트 확인 - "/api/v1/follows"로 POST 요청
+        console.log("Sending follow request:", {
+          followerId: meData.id,
+          followingId: userInfo.id,
+        });
+
         const followResponse = await fetch(
           "http://localhost:8090/api/v1/follows",
           {
@@ -239,7 +247,10 @@ export default function OtherUserProfile() {
             fetchFollowStats(userInfo.id);
           }
         } else {
-          console.error("Failed to follow");
+          console.error(
+            `Failed to follow. Status: ${followResponse.status}`,
+            await followResponse.text()
+          );
         }
       }
     } catch (error) {
@@ -272,11 +283,10 @@ export default function OtherUserProfile() {
     return "방금 전";
   };
 
-  // 팔로워 목록 가져오기
+  // 팔로워 목록 가져오기 - "나를 팔로우하는 사람들"
   const fetchFollowers = async (userId: number) => {
     try {
       setIsLoadingFollows(true);
-      // 새로운 API 엔드포인트로 수정 - 닉네임과 ID를 모두 반환하는 새 엔드포인트
       const response = await fetch(
         `http://localhost:8090/api/v1/follows/${userId}/followers`,
         {
@@ -286,7 +296,7 @@ export default function OtherUserProfile() {
 
       if (response.ok) {
         const data = await response.json();
-        setFollowers(data); // 응답이 이미 {id, nickname} 형태이므로 그대로 사용
+        setFollowers(data);
       }
     } catch (error) {
       console.error("Error fetching followers:", error);
@@ -295,11 +305,10 @@ export default function OtherUserProfile() {
     }
   };
 
-  // 팔로잉 목록 가져오기
+  // 팔로잉 목록 가져오기 - "내가 팔로우하는 사람들"
   const fetchFollowings = async (userId: number) => {
     try {
       setIsLoadingFollows(true);
-      // 새로운 API 엔드포인트로 수정 - 닉네임과 ID를 모두 반환하는 새 엔드포인트
       const response = await fetch(
         `http://localhost:8090/api/v1/follows/${userId}/followings`,
         {
@@ -309,7 +318,7 @@ export default function OtherUserProfile() {
 
       if (response.ok) {
         const data = await response.json();
-        setFollowings(data); // 응답이 이미 {id, nickname} 형태이므로 그대로 사용
+        setFollowings(data);
       }
     } catch (error) {
       console.error("Error fetching followings:", error);

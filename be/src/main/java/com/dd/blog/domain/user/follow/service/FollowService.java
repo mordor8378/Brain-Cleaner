@@ -89,7 +89,7 @@ public class FollowService {
         User follower = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
 
-        List<Follow> followerList = followRepository.findByFollower(follower);
+        List<Follow> followerList = followRepository.findByFollowing(follower);
 
         return followerList.stream()
                 .map(FollowResponseDto::fromEntity)
@@ -103,7 +103,7 @@ public class FollowService {
         User following = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
 
-        List<Follow> followingList = followRepository.findByFollowing(following);
+        List<Follow> followingList = followRepository.findByFollower(following);
 
         return followingList.stream()
                 .map(FollowResponseDto::fromEntity)

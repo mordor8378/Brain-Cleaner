@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@RestController
 @RequestMapping("/api/v1/follows")
 @RequiredArgsConstructor
 @Tag(name = "Follow", description = "팔로우 관련 API")
@@ -80,7 +81,4 @@ public class ApiV1FollowerController {
         int followingNum = followService.getFollowings(userId).size();
         return ResponseEntity.ok(followingNum);
     }
-
-    // TODO: 팔로워/팔로잉 목록 조회
-
 }
