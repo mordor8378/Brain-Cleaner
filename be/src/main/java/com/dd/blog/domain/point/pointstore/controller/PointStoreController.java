@@ -39,7 +39,6 @@ public class PointStoreController {
     /**
      * [POST] /purchase
      * 사용자가 아이템을 포인트로 구매하는 API
-     * - 현재는 mock 사용자 ID(1L) 사용 중 → 추후 인증 연동 필요
      *
      * @param requestDto 구매할 아이템 ID 포함
      * @return 구매 결과 DTO (이름, 가격, 잔여 포인트)
@@ -47,10 +46,10 @@ public class PointStoreController {
     @Operation(summary = "아이템 구매", description = "사용자가 포인트로 아이템을 구매합니다.")
     @PostMapping("/purchase")
     public ResponseEntity<PointItemPurchaseResultDto> purchaseItem(
+            @AuthenticationPrincipal SecurityUser principal,
             @RequestBody @Valid PointItemPurchaseRequestDto requestDto
     ) {
-        // TODO: 실제 로그인 사용자 ID로 대체해야 함
-        Long currentUserId = 1L;
+        Long currentUserId = principal.getId();
 
         PointItemPurchaseResultDto response = pointStoreService.purchaseItem(currentUserId, requestDto);
         return ResponseEntity.ok(response);
