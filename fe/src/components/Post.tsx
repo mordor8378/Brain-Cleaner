@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useUser } from '@/contexts/UserContext';
 import Link from 'next/link';
+import CommentModal from './CommentModal';
 
 export interface PostProps {
   postId: number;
@@ -10,7 +11,6 @@ export interface PostProps {
   title: string;
   content: string;
   imageUrl: string;
-  viewCount: number;
   likeCount: number;
   commentCount: number;
   verificationImageUrl: string;
@@ -18,10 +18,11 @@ export interface PostProps {
   createdAt: string;
   updatedAt: string;
   onUpdate?: () => void;
-  onLike: () => void;
-  onUnlike: () => void;
+  onLike: (postId: number) => void;
+  onUnlike: (postId: number) => void;
   isLiked?: boolean;
   onDelete?: (postId: number) => void;
+  onCommentUpdate?: (count: number) => void;
   userProfileImage?: string | null;
 }
 
@@ -32,7 +33,6 @@ export default function Post({
   title,
   content,
   imageUrl,
-  viewCount,
   likeCount,
   commentCount,
   verificationImageUrl,
@@ -44,6 +44,7 @@ export default function Post({
   onUnlike,
   isLiked,
   onDelete,
+  onCommentUpdate,
   userProfileImage,
 }: PostProps) {
   const { user } = useUser();
@@ -53,6 +54,7 @@ export default function Post({
   const [editedContent, setEditedContent] = useState(content);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCommentModal, setShowCommentModal] = useState(false);
   const postRef = useRef<HTMLDivElement>(null);
 
   // 프로필 이미지 URL 가져오기
@@ -235,6 +237,21 @@ export default function Post({
     return '방금 전';
   };
 
+  // 댓글 모달이 닫힐 때 댓글 수 업데이트
+  const handleCommentModalClose = () => {
+    setShowCommentModal(false);
+  };
+
+  const handleCommentCountUpdate = (count: number) => {
+    if (onCommentUpdate) {
+      onCommentUpdate(count);
+    }
+  };
+
+  const handleImageClick = () => {
+    // Implementation of handleImageClick
+  };
+
   return (
     <div className="p-5" ref={postRef}>
       <div className="flex items-start mb-3">
@@ -276,6 +293,9 @@ export default function Post({
               </Link>
               <span className="text-xs text-gray-500">
                 • {getTimeAgo(createdAt)}
+                {updatedAt && updatedAt !== createdAt && (
+                  <span className="ml-1">• 수정됨</span>
+                )}
               </span>
               <span className="ml-1 text-xs text-green-500">
                 <svg
@@ -423,7 +443,7 @@ export default function Post({
       {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
 
       {imageUrl && (
-        <div className="rounded-lg overflow-hidden mb-3 mt-3">
+        <div className="rounded-lg overflow-hidden mb-3 mt-3 relative group">
           <Image
             src={imageUrl}
             alt="게시글 이미지"
@@ -431,18 +451,39 @@ export default function Post({
             height={300}
             className="w-full h-auto object-cover"
           />
+          {user?.id === userId && (
+            <button
+              onClick={handleImageClick}
+              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-white hover:text-gray-200 bg-black bg-opacity-50 rounded-full p-1.5"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       )}
 
       <div className="mt-4 flex items-center gap-4">
         <button
-          onClick={() => (isLiked ? onUnlike() : onLike())}
-          className="flex items-center gap-1"
+          onClick={() => (isLiked ? onUnlike(postId) : onLike(postId))}
+          className={`flex items-center gap-1 group ${
+            isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'
+          } transition-colors`}
         >
           {isLiked ? (
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-pink-500"
+              className="h-5 w-5"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -455,7 +496,7 @@ export default function Post({
           ) : (
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-gray-400"
+              className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -468,13 +509,16 @@ export default function Post({
               />
             </svg>
           )}
-          <span className="text-sm text-gray-500">{likeCount}</span>
+          <span className="text-sm">{likeCount}</span>
         </button>
 
-        <div className="flex items-center gap-1">
+        <button
+          onClick={() => setShowCommentModal(true)}
+          className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-gray-400"
+            className="h-5 w-5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -482,8 +526,8 @@ export default function Post({
           >
             <path d="M8 12h.01M12 12h.01M16 12h.01M3 12c0 4.97 4.03 9 9 9a9.863 9.863 0 004.255-.949L21 21l-1.395-4.72C20.488 15.042 21 13.574 21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9z" />
           </svg>
-          <span className="text-sm text-gray-500">{commentCount}</span>
-        </div>
+          <span className="text-sm">{commentCount}</span>
+        </button>
       </div>
 
       {/* 삭제 확인 모달 */}
@@ -525,6 +569,47 @@ export default function Post({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 댓글 모달 */}
+      {showCommentModal && (
+        <CommentModal
+          postId={postId}
+          onClose={handleCommentModalClose}
+          postImage={imageUrl}
+          postContent={content}
+          userNickname={userNickname}
+          createdAt={createdAt}
+          isOwnPost={user?.id === userId}
+          onUpdate={handleCommentCountUpdate}
+          detoxTime={detoxTime}
+          onImageUpdate={async (newImage) => {
+            const formData = new FormData();
+            formData.append('image', newImage);
+
+            try {
+              const response = await fetch(
+                `http://localhost:8090/api/v1/posts/${postId}/image`,
+                {
+                  method: 'PATCH',
+                  credentials: 'include',
+                  body: formData,
+                }
+              );
+
+              if (!response.ok) {
+                throw new Error('이미지 업데이트 실패');
+              }
+
+              if (onUpdate) {
+                onUpdate();
+              }
+            } catch (error) {
+              console.error('이미지 업데이트 중 오류:', error);
+              alert('이미지 업데이트에 실패했습니다.');
+            }
+          }}
+        />
       )}
     </div>
   );

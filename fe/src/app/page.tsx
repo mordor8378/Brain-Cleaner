@@ -621,6 +621,7 @@ export default function Home() {
     }
   };
 
+<<<<<<< HEAD
   const renderAdminButton = () => (
         <Link href="/admin" className="mt-3 block w-full bg-pink-500 text-white py-3 px-4 rounded-full hover:bg-pink-600 transition font-medium text-center">
           관리자 대시보드
@@ -628,6 +629,43 @@ export default function Home() {
       );
 
 
+=======
+  // 댓글 수 업데이트 핸들러
+  const handleCommentUpdate = async (postId: number, count: number) => {
+    // React Query 캐시 업데이트
+    queryClient.setQueryData<{ pages: PostsResponse[] }>(
+      ['posts', selectedBoard, sortType, searchType, searchKeyword],
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            content: page.content.map((post) => {
+              if (post.postId === postId) {
+                return {
+                  ...post,
+                  commentCount: count, // 실제 댓글 수 사용
+                };
+              }
+              return post;
+            }),
+          })),
+        };
+      }
+    );
+  };
+
+  // 좋아요/좋아요 취소 핸들러를 useCallback으로 메모이제이션
+  const memoizedHandleLike = useCallback((postId: number) => {
+    handleLike(postId);
+  }, []);
+
+  const memoizedHandleUnlike = useCallback((postId: number) => {
+    handleUnlike(postId);
+  }, []);
+>>>>>>> 4e565b2a3821ce88ada9246c9aff6b2db7db3981
 
   const posts = data?.pages.flatMap((page) => page.content) || [];
 
@@ -1022,11 +1060,13 @@ export default function Home() {
                         createdAt={post.createdAt || ''}
                         updatedAt={post.updatedAt || ''}
                         onUpdate={() => refetch()}
-                        onLike={() => handleLike(post.postId)}
-                        onUnlike={() => handleUnlike(post.postId)}
+                        onLike={memoizedHandleLike}
+                        onUnlike={memoizedHandleUnlike}
                         isLiked={post.likedByCurrentUser}
                         onDelete={handleDelete}
-                        //userProfileImage={post.userProfileImage}
+                        onCommentUpdate={(count) =>
+                          handleCommentUpdate(post.postId, count)
+                        }
                       />
                     </div>
                   );
