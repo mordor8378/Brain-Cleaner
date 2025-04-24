@@ -54,10 +54,10 @@ export default function OtherUserProfile() {
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
   const [followers, setFollowers] = useState<
-    { nickname: string; id: number }[]
+    { id: number; nickname: string }[]
   >([]);
   const [followings, setFollowings] = useState<
-    { nickname: string; id: number }[]
+    { id: number; nickname: string }[]
   >([]);
   const [isLoadingFollows, setIsLoadingFollows] = useState(false);
 
@@ -276,24 +276,17 @@ export default function OtherUserProfile() {
   const fetchFollowers = async (userId: number) => {
     try {
       setIsLoadingFollows(true);
-      // 실제로는 API가 닉네임만 반환하지만, 프론트에서 테스트용으로 ID를 임시 부여
+      // 새로운 API 엔드포인트로 수정 - 닉네임과 ID를 모두 반환하는 새 엔드포인트
       const response = await fetch(
-        `http://localhost:8090/api/v1/follows/${userId}/followers/nicknames`,
+        `http://localhost:8090/api/v1/follows/${userId}/followers`,
         {
           credentials: "include",
         }
       );
 
       if (response.ok) {
-        const nicknames = await response.json();
-        // 닉네임 목록에 임시 ID 할당 (실제 환경에서는 백엔드에서 ID도 함께 반환하도록 수정 필요)
-        const followersWithIds = nicknames.map(
-          (nickname: string, index: number) => ({
-            nickname,
-            id: parseInt(userId) + index + 100, // 임시 ID 생성 (실제 환경에서는 사용하지 않음)
-          })
-        );
-        setFollowers(followersWithIds);
+        const data = await response.json();
+        setFollowers(data); // 응답이 이미 {id, nickname} 형태이므로 그대로 사용
       }
     } catch (error) {
       console.error("Error fetching followers:", error);
@@ -306,23 +299,17 @@ export default function OtherUserProfile() {
   const fetchFollowings = async (userId: number) => {
     try {
       setIsLoadingFollows(true);
+      // 새로운 API 엔드포인트로 수정 - 닉네임과 ID를 모두 반환하는 새 엔드포인트
       const response = await fetch(
-        `http://localhost:8090/api/v1/follows/${userId}/followings/nicknames`,
+        `http://localhost:8090/api/v1/follows/${userId}/followings`,
         {
           credentials: "include",
         }
       );
 
       if (response.ok) {
-        const nicknames = await response.json();
-        // 닉네임 목록에 임시 ID 할당 (실제 환경에서는 백엔드에서 ID도 함께 반환하도록 수정 필요)
-        const followingsWithIds = nicknames.map(
-          (nickname: string, index: number) => ({
-            nickname,
-            id: parseInt(userId) + index + 200, // 임시 ID 생성 (실제 환경에서는 사용하지 않음)
-          })
-        );
-        setFollowings(followingsWithIds);
+        const data = await response.json();
+        setFollowings(data); // 응답이 이미 {id, nickname} 형태이므로 그대로 사용
       }
     } catch (error) {
       console.error("Error fetching followings:", error);
