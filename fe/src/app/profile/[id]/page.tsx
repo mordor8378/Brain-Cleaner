@@ -110,7 +110,12 @@ export default function OtherUserProfile() {
 
         if (response.ok) {
           const data = await response.json();
-          setUserInfo(data);
+          // profileImageUrl을 profileImage로 매핑
+          const userData = {
+            ...data,
+            profileImage: data.profileImageUrl,
+          };
+          setUserInfo(userData);
           // 사용자 정보를 가져온 후 팔로워/팔로잉 수와 게시글을 가져옴
           fetchFollowStats(data.id);
           fetchUserPosts(data.id);
@@ -367,11 +372,11 @@ export default function OtherUserProfile() {
         <div className="flex items-center gap-4">
           <div className="relative w-20 h-20">
             <Image
-              src="/placeholder-avatar.png"
+              src={userInfo.profileImage || "/placeholder-avatar.png"}
               alt="Profile"
               width={80}
               height={80}
-              className="rounded-full"
+              className="rounded-full object-cover"
             />
             <div className="absolute bottom-0 right-0 w-4 h-4 bg-gray-500 rounded-full border-2 border-white"></div>
           </div>
