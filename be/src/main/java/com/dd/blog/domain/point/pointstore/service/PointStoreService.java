@@ -113,7 +113,7 @@ public class PointStoreService {
                             .price(item.getPrice())
                             .imageUrl(item.getImageUrl())
                             .code(item.getCode()) // 이모지 코드 추가
-                            .purchasedAt(purchase.getPurchasedAt())
+           .purchasedAt(purchase.getPurchasedAt())
                             .build();
                 })
                 .toList();
@@ -135,4 +135,8 @@ public class PointStoreService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public boolean checkUserOwnsItem(User user, PointItem item) {
+        return pointItemPurchaseRepository.existsByUserAndItem(user, item);
+    }
 }

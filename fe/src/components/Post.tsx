@@ -3,6 +3,11 @@ import Image from "next/image";
 import { useUser } from "@/contexts/UserContext";
 import Link from "next/link";
 import CommentModal from "./CommentModal";
+import {
+  convertEmojiCodesToImages,
+  fetchPurchasedEmojis,
+  Emoji,
+} from "@/utils/emojiUtils";
 
 export interface PostProps {
   postId: number;
@@ -57,11 +62,31 @@ export default function Post({
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [purchasedEmojis, setPurchasedEmojis] = useState<Emoji[]>([]);
+  const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
   const postRef = useRef<HTMLDivElement>(null);
 
   // 이미지 캐러셀을 위한 상태
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [parsedImageUrls, setParsedImageUrls] = useState<string[]>([]);
+
+  // 이모티콘 로딩
+  useEffect(() => {
+    const loadEmojis = async () => {
+      if (user?.id) {
+        try {
+          const emojis = await fetchPurchasedEmojis();
+          setPurchasedEmojis(emojis);
+          setIsEmojiLoaded(true);
+        } catch (error) {
+          console.error("이모티콘 로드 중 오류:", error);
+          setIsEmojiLoaded(true); // 오류가 있어도 로딩은 완료됨
+        }
+      }
+    };
+
+    loadEmojis();
+  }, []);
 
   // 문자열 또는 JSON 문자열로 전달된 imageUrl을 파싱
   useEffect(() => {
@@ -94,28 +119,30 @@ export default function Post({
 
   // 프로필 이미지가 props로 전달되지 않았을 경우 API에서 가져오기
   useEffect(() => {
-    if (!userProfileImage && userId) {
-      const fetchUserProfile = async () => {
-        try {
-          const response = await fetch(
-            `http://localhost:8090/api/v1/users/${userId}`,
-            {
-              credentials: "include",
-            }
-          );
+    if (user?.id) {
+      if (!userProfileImage && userId) {
+        const fetchUserProfile = async () => {
+          try {
+            const response = await fetch(
+              `http://localhost:8090/api/v1/users/${userId}`,
+              {
+                credentials: "include",
+              }
+            );
 
-          if (response.ok) {
-            const userData = await response.json();
-            if (userData.profileImageUrl) {
-              setProfileImage(userData.profileImageUrl);
+            if (response.ok) {
+              const userData = await response.json();
+              if (userData.profileImageUrl) {
+                setProfileImage(userData.profileImageUrl);
+              }
             }
+          } catch (error) {
+            console.error("프로필 이미지를 가져오는 중 오류 발생:", error);
           }
-        } catch (error) {
-          console.error("프로필 이미지를 가져오는 중 오류 발생:", error);
-        }
-      };
+        };
 
-      fetchUserProfile();
+        fetchUserProfile();
+      }
     }
   }, [userId, userProfileImage]);
 
@@ -456,23 +483,42 @@ export default function Post({
           </div>
         ) : (
           <div className="flex items-start">
-            <p className="text-sm text-gray-700 flex-1">
-              {(() => {
-                if (
-                  typeof detoxTime === "number" &&
-                  !isNaN(detoxTime) &&
-                  detoxTime > 0
-                ) {
-                  return `detoxed for ${detoxTime} hours`;
-                }
+            <div className="text-sm text-gray-700 flex-1">
+              {isEmojiLoaded ? (
+                <>
+                  {(() => {
+                    if (
+                      typeof detoxTime === "number" &&
+                      !isNaN(detoxTime) &&
+                      detoxTime > 0
+                    ) {
+                      return `detoxed for ${detoxTime} hours`;
+                    }
 
-                if (!content) {
-                  return "";
-                }
+                    if (!content) {
+                      return "";
+                    }
 
-                return content;
-              })()}
-            </p>
+                    // 이모티콘 변환 함수
+                    return convertEmojiCodesToImages(content, purchasedEmojis);
+                  })()}
+                </>
+              ) : (
+                // 이모티콘 로딩 중에는 원본 텍스트 표시
+                <p>
+                  {(() => {
+                    if (
+                      typeof detoxTime === "number" &&
+                      !isNaN(detoxTime) &&
+                      detoxTime > 0
+                    ) {
+                      return `detoxed for ${detoxTime} hours`;
+                    }
+                    return content || "";
+                  })()}
+                </p>
+              )}
+            </div>
             {user?.id === userId && (
               <button
                 onClick={handleEditContent}

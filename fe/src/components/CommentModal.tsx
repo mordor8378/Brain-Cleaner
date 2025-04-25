@@ -4,6 +4,12 @@ import { Comment, CommentRequestDto } from "@/types/comment";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  convertEmojiCodesToImages,
+  fetchPurchasedEmojis,
+  Emoji,
+} from "@/utils/emojiUtils";
+import EmojiPicker from "./EmojiPicker";
 
 interface CommentModalProps {
   postId: number;
@@ -40,7 +46,9 @@ export default function CommentModal({
   const [newComment, setNewComment] = useState("");
   const [replyToId, setReplyToId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showEmoji, setShowEmoji] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [purchasedEmojis, setPurchasedEmojis] = useState<Emoji[]>([]);
+  const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [editedContent, setEditedContent] = useState(postContent || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +66,30 @@ export default function CommentModal({
   // 이미지 캐러셀을 위한 상태
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [parsedImageUrls, setParsedImageUrls] = useState<string[]>([]);
+
+  // 이모티콘 로딩
+  useEffect(() => {
+    const loadEmojis = async () => {
+      if (user?.id) {
+        try {
+          const emojis = await fetchPurchasedEmojis();
+          setPurchasedEmojis(emojis);
+          setIsEmojiLoaded(true);
+        } catch (error) {
+          console.error("이모티콘 로드 중 오류:", error);
+          setIsEmojiLoaded(true); // 오류가 있어도 로딩은 완료됨
+        }
+      }
+    };
+
+    loadEmojis();
+  }, []);
+
+  // 이모티콘 선택
+  const handleEmojiSelect = (emojiCode: string) => {
+    setNewComment((prev) => prev + emojiCode);
+    setShowEmojiPicker(false);
+  };
 
   // 원글 작성자의 프로필 이미지 가져오기
   useEffect(() => {
@@ -815,9 +847,18 @@ export default function CommentModal({
                     {isOwnPost && !isEditingContent ? (
                       <div className="relative flex-1">
                         <p className="ml-2 text-[14px] text-gray-900">
-                          {detoxTime && detoxTime > 0
-                            ? `detoxed for ${detoxTime} hours`
-                            : postContent}
+                          {detoxTime && detoxTime > 0 ? (
+                            `detoxed for ${detoxTime} hours`
+                          ) : isEmojiLoaded ? (
+                            <>
+                              {convertEmojiCodesToImages(
+                                postContent || "",
+                                purchasedEmojis
+                              )}
+                            </>
+                          ) : (
+                            postContent
+                          )}
                         </p>
                         <button
                           onClick={() => setIsEditingContent(true)}
@@ -867,9 +908,18 @@ export default function CommentModal({
                       </div>
                     ) : (
                       <span className="ml-2 text-[14px] text-gray-900">
-                        {detoxTime && detoxTime > 0
-                          ? `detoxed for ${detoxTime} hours`
-                          : postContent}
+                        {detoxTime && detoxTime > 0 ? (
+                          `detoxed for ${detoxTime} hours`
+                        ) : isEmojiLoaded ? (
+                          <>
+                            {convertEmojiCodesToImages(
+                              postContent || "",
+                              purchasedEmojis
+                            )}
+                          </>
+                        ) : (
+                          postContent
+                        )}
                       </span>
                     )}
                   </div>
@@ -949,7 +999,16 @@ export default function CommentModal({
                                 return "";
                               }
 
-                              return comment.content;
+                              return isEmojiLoaded ? (
+                                <>
+                                  {convertEmojiCodesToImages(
+                                    comment.content,
+                                    purchasedEmojis
+                                  )}
+                                </>
+                              ) : (
+                                comment.content
+                              );
                             })()}
                           </span>
                         </div>
@@ -1023,7 +1082,7 @@ export default function CommentModal({
               </div>
 
               <button
-                onClick={() => setShowEmoji(!showEmoji)}
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-md"
               >
                 <svg
@@ -1040,6 +1099,16 @@ export default function CommentModal({
                   />
                 </svg>
               </button>
+
+              {/* 이모티콘 선택창 */}
+              <div className="relative">
+                <EmojiPicker
+                  isOpen={showEmojiPicker}
+                  onClose={() => setShowEmojiPicker(false)}
+                  onEmojiSelect={handleEmojiSelect}
+                />
+              </div>
+
               <input
                 type="text"
                 value={newComment}
