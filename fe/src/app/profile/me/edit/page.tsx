@@ -315,322 +315,271 @@ export default function EditProfile() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-2xl font-bold mb-8">프로필 수정</h1>
+    <div className="min-h-screen bg-white">
+      <div className="max-w-md mx-auto bg-white min-h-screen">
+        <div className="flex items-center justify-between p-4 border-b">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-gray-500 text-sm hover:text-gray-700 transition-colors"
+          >
+            취소
+          </button>
+          <h1 className="text-base font-bold">프로필 수정</h1>
+          <button
+            onClick={handleSubmit}
+            className="text-sm hover:opacity-80 transition-colors"
+            style={{ color: CUSTOM_PINK }}
+          >
+            완료
+          </button>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* 기본 프로필 정보 */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">기본 프로필 정보</h2>
-              <div className="flex flex-col items-center mb-6">
-                <div className="relative w-24 h-24 mb-4">
-                  <Image
-                    src={profileImage}
-                    alt="Profile"
-                    width={96}
-                    height={96}
-                    className="rounded-full object-cover"
-                  />
-                  <label
-                    htmlFor="profile-image"
-                    className="absolute bottom-0 right-0 bg-pink-500 text-white p-2 rounded-full cursor-pointer hover:bg-pink-600 transition-colors"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                      <circle cx="12" cy="13" r="4" />
-                    </svg>
-                  </label>
-                  <input
-                    id="profile-image"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageChange}
-                    onClick={(e) => {
-                      // 같은 파일을 다시 선택할 수 있도록 value 초기화
-                      (e.target as HTMLInputElement).value = '';
-                    }}
-                  />
-                </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-0">
+          {/* 프로필 이미지 */}
+          <div className="flex flex-col items-center mb-6 pb-6 border-b border-gray-100">
+            <div className="relative w-20 h-20 mb-2">
+              <Image
+                src={profileImage}
+                alt="Profile"
+                width={80}
+                height={80}
+                className="rounded-full object-cover"
+              />
+              <label
+                htmlFor="profile-image"
+                className="absolute bottom-0 right-0 w-6 h-6 flex items-center justify-center text-white rounded-full cursor-pointer hover:opacity-80 transition-colors"
+                style={{ backgroundColor: CUSTOM_PINK }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              </label>
+              <input
+                id="profile-image"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageChange}
+                onClick={(e) => {
+                  (e.target as HTMLInputElement).value = '';
+                }}
+              />
+            </div>
+          </div>
+
+          {/* 기본 정보 */}
+          <div className="space-y-6">
+            <div className="pb-6 border-b border-gray-100">
+              <label className="block text-xs text-gray-500 mb-1">닉네임</label>
+              <input
+                type="text"
+                name="nickname"
+                value={userInfo.nickname}
+                onChange={handleChange}
+                className="w-full px-0 py-1 bg-transparent border-0 focus:ring-0 text-sm"
+                required
+              />
+            </div>
+
+            <div className="pb-6 border-b border-gray-100">
+              <label className="block text-xs text-gray-500 mb-1">
+                상태 메시지
+              </label>
+              <textarea
+                name="statusMessage"
+                value={userInfo.statusMessage}
+                onChange={handleChange}
+                rows={2}
+                className="w-full px-0 py-1 bg-transparent border-0 focus:ring-0 resize-none text-sm"
+                placeholder="상태 메시지를 입력하세요"
+              />
+            </div>
+
+            <div className="pb-6 border-b border-gray-100">
+              <label className="block text-xs text-gray-500 mb-1">
+                도파민 디톡스 목표
+              </label>
+              <textarea
+                name="detoxGoal"
+                value={userInfo.detoxGoal}
+                onChange={handleChange}
+                rows={2}
+                className="w-full px-0 py-1 bg-transparent border-0 focus:ring-0 resize-none text-sm"
+                placeholder="도파민 디톡스 목표를 입력하세요"
+              />
+            </div>
+
+            <div className="pb-6 border-b border-gray-100">
+              <label className="block text-xs text-gray-500 mb-1">이메일</label>
+              <input
+                type="email"
+                name="email"
+                value={userInfo.email}
+                onChange={handleChange}
+                className="w-full px-0 py-1 bg-transparent border-0 focus:ring-0 text-sm"
+                required
+              />
+            </div>
+
+            <div className="pb-6 border-b border-gray-100">
+              <label className="block text-xs text-gray-500 mb-1">
+                생년월일
+              </label>
+              <DatePicker
+                selected={userInfo.birthDate}
+                onChange={(date: Date | null) =>
+                  setUserInfo((prev) => ({ ...prev, birthDate: date }))
+                }
+                dateFormat="yyyy년 MM월 dd일"
+                locale={ko}
+                showYearDropdown
+                scrollableYearDropdown
+                yearDropdownItemNumber={100}
+                placeholderText="생년월일을 선택하세요"
+                className="w-full px-0 py-1 bg-transparent border-0 focus:ring-0 text-sm"
+              />
+            </div>
+          </div>
+
+          {/* 계정 관리 */}
+          <div className="pt-6">
+            <div className="flex flex-col items-start gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPasswordModalOpen(true)}
+                className="text-gray-500 text-xs hover:text-gray-700 transition-colors"
+              >
+                비밀번호 변경
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="text-red-500 text-xs hover:text-red-700 transition-colors"
+              >
+                계정 삭제
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {/* 비밀번호 변경 모달 */}
+        {isPasswordModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg w-[640px] h-[400px] flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b">
                 <button
                   type="button"
-                  className="text-pink-500 text-sm"
-                  onClick={() =>
-                    document.getElementById('profile-image')?.click()
-                  }
+                  onClick={() => {
+                    setIsPasswordModalOpen(false);
+                    setPasswordForm({
+                      newPassword: '',
+                      confirmPassword: '',
+                    });
+                    setPasswordError('');
+                  }}
+                  className="text-gray-500 text-sm hover:text-gray-700 transition-colors"
                 >
-                  사진 변경
+                  취소
+                </button>
+                <h2 className="text-base font-bold">비밀번호 변경</h2>
+                <button
+                  type="button"
+                  onClick={handlePasswordChange}
+                  className="text-sm hover:opacity-80 transition-colors"
+                  style={{ color: CUSTOM_PINK }}
+                >
+                  완료
                 </button>
               </div>
-
-              <div className="space-y-4">
+              <div className="flex-1 p-4 space-y-6">
                 <div>
-                  <label
-                    htmlFor="nickname"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    닉네임
+                  <label className="block text-xs text-gray-500 mb-1">
+                    새 비밀번호
                   </label>
                   <input
-                    type="text"
-                    id="nickname"
-                    name="nickname"
-                    value={userInfo.nickname}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="statusMessage"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    상태 메시지
-                  </label>
-                  <textarea
-                    id="statusMessage"
-                    name="statusMessage"
-                    value={userInfo.statusMessage}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                    placeholder="상태 메시지를 입력하세요"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="birthDate"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    생년월일
-                  </label>
-                  <DatePicker
-                    selected={userInfo.birthDate}
-                    onChange={(date: Date | null) =>
-                      setUserInfo((prev) => ({ ...prev, birthDate: date }))
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        newPassword: e.target.value,
+                      }))
                     }
-                    dateFormat="yyyy년 MM월 dd일"
-                    locale={ko}
-                    showYearDropdown
-                    scrollableYearDropdown
-                    yearDropdownItemNumber={100}
-                    placeholderText="생년월일을 선택하세요"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                    className="w-full px-0 py-1 bg-transparent border-0 focus:ring-0 focus:outline-none text-sm caret-[#F742CD] placeholder-shown:placeholder-gray-400 placeholder-transparent hover:placeholder-gray-400 transition-colors"
+                    placeholder="새 비밀번호를 입력해주세요"
                   />
                 </div>
-              </div>
-            </section>
-
-            {/* 계정 정보 */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">계정 정보</h2>
-              <div className="space-y-4">
                 <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    이메일 주소
+                  <label className="block text-xs text-gray-500 mb-1">
+                    비밀번호 확인
                   </label>
                   <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={userInfo.email}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                    required
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        confirmPassword: e.target.value,
+                      }))
+                    }
+                    className="w-full px-0 py-1 bg-transparent border-0 focus:ring-0 focus:outline-none text-sm caret-[#F742CD] placeholder-shown:placeholder-gray-400 placeholder-transparent hover:placeholder-gray-400 transition-colors"
+                    placeholder="비밀번호를 한 번 더 입력해주세요"
                   />
                 </div>
+                {passwordError && (
+                  <p className="text-red-500 text-xs">{passwordError}</p>
+                )}
               </div>
-            </section>
+            </div>
+          </div>
+        )}
 
-            {/* 도파민 디톡스 목표 */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">도파민 디톡스 목표</h2>
-              <div>
-                <label
-                  htmlFor="detoxGoal"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  도파민 디톡스 목표
-                </label>
-                <textarea
-                  id="detoxGoal"
-                  name="detoxGoal"
-                  value={userInfo.detoxGoal}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                  placeholder="도파민 디톡스 목표를 입력하세요"
-                />
-              </div>
-            </section>
-
-            {/* 프라이버시 설정 */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">프라이버시 설정</h2>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="private-profile"
-                  className="h-4 w-4 text-pink-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="private-profile"
-                  className="ml-2 text-sm text-gray-700"
-                >
-                  전체 공개
-                </label>
-              </div>
-            </section>
-
-            {/* 커뮤니티 설정 */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">커뮤니티 설정</h2>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="push-notifications"
-                  className="h-4 w-4 text-pink-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="push-notifications"
-                  className="ml-2 text-sm text-gray-700"
-                >
-                  댓글 알림
-                </label>
-              </div>
-            </section>
-
-            {/* 계정 관리 */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">계정 관리</h2>
-              <div className="space-y-2">
+        {/* 계정 삭제 모달 */}
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg w-[640px] h-[400px] flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b">
                 <button
                   type="button"
-                  onClick={() => setIsPasswordModalOpen(true)}
-                  className="text-red-500 text-sm hover:underline"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="text-gray-500 text-sm hover:text-gray-700 transition-colors"
                 >
-                  비밀번호 변경
+                  취소
                 </button>
+                <h2 className="text-base font-bold">계정 삭제</h2>
                 <button
                   type="button"
                   onClick={handleDeleteAccount}
-                  className="block text-red-500 text-sm hover:underline"
+                  className="text-sm hover:opacity-80 transition-colors"
+                  style={{ color: CUSTOM_PINK }}
                 >
-                  계정 삭제
+                  완료
                 </button>
               </div>
-            </section>
-
-            {/* 버튼 그룹 */}
-            <div className="flex justify-end gap-4 pt-4">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                type="submit"
-                className="text-white px-6 py-2 rounded-full text-sm hover:opacity-90 transition-colors"
-                style={{ backgroundColor: CUSTOM_PINK }}
-              >
-                저장하기
-              </button>
-            </div>
-          </form>
-
-          {/* 비밀번호 변경 모달 */}
-          {isPasswordModalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 w-96">
-                <h2 className="text-xl font-semibold mb-4">비밀번호 변경</h2>
+              <div className="flex-1 p-4">
                 <div className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="newPassword"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      새 비밀번호
-                    </label>
-                    <input
-                      type="password"
-                      id="newPassword"
-                      value={passwordForm.newPassword}
-                      onChange={(e) =>
-                        setPasswordForm((prev) => ({
-                          ...prev,
-                          newPassword: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="confirmPassword"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      비밀번호 확인
-                    </label>
-                    <input
-                      type="password"
-                      id="confirmPassword"
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) =>
-                        setPasswordForm((prev) => ({
-                          ...prev,
-                          confirmPassword: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                    />
-                  </div>
-                  {passwordError && (
-                    <p className="text-red-500 text-sm">{passwordError}</p>
-                  )}
-                  <div className="flex justify-end gap-2 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsPasswordModalOpen(false);
-                        setPasswordForm({
-                          newPassword: '',
-                          confirmPassword: '',
-                        });
-                        setPasswordError('');
-                      }}
-                      className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-                    >
-                      취소
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handlePasswordChange}
-                      className="px-4 py-2 text-white bg-pink-500 rounded-md hover:bg-pink-600 transition-colors"
-                    >
-                      변경하기
-                    </button>
-                  </div>
+                  <p className="text-base text-center">
+                    정말로 계정을 삭제하시겠습니까?
+                  </p>
+                  <p className="text-sm text-gray-500 text-center">
+                    계정을 삭제하면 모든 데이터가 영구적으로 삭제되며,
+                    <br />이 작업은 되돌릴 수 없습니다.
+                  </p>
                 </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
