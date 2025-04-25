@@ -165,15 +165,33 @@ export default function EditProfile() {
       console.log("Sending update request with data:", updateData);
       console.log("User ID:", userInfo.id);
 
+      // FormData 객체 생성
+      const formData = new FormData();
+
+      // profileData를 JSON 문자열로 변환하여 추가
+      formData.append(
+        "profileData",
+        new Blob([JSON.stringify(updateData)], {
+          type: "application/json",
+        })
+      );
+
+      // 프로필 이미지가 변경된 경우에만 이미지 파일 추가
+      if (
+        userInfo.profileImage &&
+        userInfo.profileImage !== "/placeholder-avatar.png" &&
+        userInfo.profileImage.startsWith("http")
+      ) {
+        // 이미지가 URL인 경우는 FormData에 포함하지 않고 profileImageUrl로 전송
+        console.log("프로필 이미지 URL이 전송됩니다:", userInfo.profileImage);
+      }
+
       const response = await fetch(
         `http://localhost:8090/api/v1/users/${userInfo.id}`,
         {
           method: "PUT",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updateData),
+          body: formData, // Content-Type은 자동으로 multipart/form-data로 설정됨
         }
       );
 
