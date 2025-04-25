@@ -4,7 +4,7 @@ package com.dd.blog.domain.user.user.entity;
 //import com.dd.blog.domain.post.comment.entity.Comment;
 //import com.dd.blog.domain.post.post.entity.Post;
 //import com.dd.blog.domain.post.postlike.entity.PostLike;
-import com.dd.blog.domain.point.entity.PointHistory;
+import com.dd.blog.domain.point.point.entity.PointHistory;
 import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.global.jpa.BaseEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;

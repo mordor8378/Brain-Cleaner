@@ -19,6 +19,7 @@ export default function WritePostPage({
 }: WritePostPageProps) {
   const router = useRouter();
   const { user } = useUser();
+  const isAdmin = user?.role === 'ROLE_ADMIN';
   const [category, setCategory] = useState(initialCategory);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -106,6 +107,8 @@ export default function WritePostPage({
     }
   };
 
+
+
   return (
     <div className="w-full max-w-2xl bg-white rounded-md shadow-md min-h-[600px] max-h-[90vh] overflow-y-auto">
       {/* 상단 헤더 - 게시판 선택과 취소/등록 버튼 */}
@@ -125,6 +128,7 @@ export default function WritePostPage({
             <option value="1">인증게시판</option>
             <option value="2">정보공유게시판</option>
             <option value="3">자유게시판</option>
+            {isAdmin && <option value="4">공지사항</option>}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
             <svg

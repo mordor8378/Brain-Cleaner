@@ -5,10 +5,7 @@ import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.post.comment.entity.Comment;
 import com.dd.blog.global.jpa.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.util.ArrayList; // for 댓글 list
@@ -42,7 +39,7 @@ public class Post extends BaseEntity {
 
     // 인기게시글 TOP5 위해 다시 추가
     @Column(name = "view_count")
-    private int viewCount = 0;
+    private int viewCount;
 
     @Column(name="like_count")
     private int likeCount;
@@ -55,6 +52,7 @@ public class Post extends BaseEntity {
     private Integer detoxTime;
 
     // 게시글 - 댓글 관계 JPA 상에서 연결
+    @Builder.Default
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 

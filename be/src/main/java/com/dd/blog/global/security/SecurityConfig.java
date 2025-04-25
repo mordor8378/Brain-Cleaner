@@ -51,6 +51,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers("/h2-console/**").permitAll()
+                                .requestMatchers("/api/v1/users/check-email", "/api/v1/users/check-nickname").permitAll()
                                 .requestMatchers("/api/v1/users/signup", "/api/v1/users/login", "/api/v1/users/refresh").permitAll()
                                 .requestMatchers("/api/v1/posts", "/api/v1/posts/pageable", "/api/v1/posts/search").permitAll()
                                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll() // OAuth2 엔드포인트

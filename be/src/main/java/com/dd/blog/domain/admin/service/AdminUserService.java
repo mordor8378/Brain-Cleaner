@@ -2,8 +2,8 @@ package com.dd.blog.domain.admin.service;
 
 import com.dd.blog.domain.admin.dto.AdminUserDetailResponseDto;
 import com.dd.blog.domain.admin.dto.UserInfoResponseDto;
-import com.dd.blog.domain.point.dto.PointHistoryResponseDto;
-import com.dd.blog.domain.point.service.PointHistoryService;
+import com.dd.blog.domain.point.point.dto.PointHistoryResponseDto;
+import com.dd.blog.domain.point.point.service.PointHistoryService;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.entity.UserRole;
 import com.dd.blog.domain.user.user.entity.UserStatus;
@@ -15,10 +15,6 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 // 관리자의 사용자 관련 로직 처리
 @Service

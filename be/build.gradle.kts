@@ -58,6 +58,9 @@ dependencies {
 
 	// Oauth2
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+
+	// Amazon s3
+	implementation ("org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE")
 }
 
 tasks.withType<JavaCompile> {

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { UserInfo } from '@/types/user';
+import Image from "next/image";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { UserInfo } from "@/types/user";
 
 interface Post {
   postId: number;
@@ -25,38 +25,49 @@ export default function MyProfile() {
   const router = useRouter();
   const [userInfo, setUserInfo] = useState<UserInfo>({
     id: null,
-    nickname: '',
-    email: '',
+    nickname: "",
+    email: "",
     remainingPoint: 0,
     totalPoint: 0,
-    createdAt: null
+    createdAt: null,
   });
   const [followStats, setFollowStats] = useState({
     followers: 0,
-    following: 0
+    following: 0,
   });
   const [stats] = useState({
     detoxDays: 45,
     streakDays: 12,
     detoxTime: 32,
     completionRate: 85,
-    badges: 12
+    badges: 12,
   });
 
-  const [selectedTab, setSelectedTab] = useState('feed');
+  const [selectedTab, setSelectedTab] = useState("feed");
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 팔로워/팔로잉 모달 상태
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
+  const [followers, setFollowers] = useState<
+    { id: number; nickname: string }[]
+  >([]);
+  const [followings, setFollowings] = useState<
+    { id: number; nickname: string }[]
+  >([]);
+  const [isLoadingFollows, setIsLoadingFollows] = useState(false);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch('http://localhost:8090/api/v1/users/me', {
-          credentials: 'include',
+        const response = await fetch("http://localhost:8090/api/v1/users/me", {
+          credentials: "include",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setUserInfo(data);
@@ -64,12 +75,12 @@ export default function MyProfile() {
           fetchFollowStats(data.id);
           fetchUserPosts(data.id);
         } else {
-          console.error('Failed to fetch user info');
-          router.push('/login');
+          console.error("Failed to fetch user info");
+          router.push("/login");
         }
       } catch (error) {
-        console.error('Error fetching user info:', error);
-        router.push('/login');
+        console.error("Error fetching user info:", error);
+        router.push("/login");
       } finally {
         setIsLoading(false);
       }
@@ -81,12 +92,18 @@ export default function MyProfile() {
   const fetchFollowStats = async (userId: number) => {
     try {
       const [followersRes, followingRes] = await Promise.all([
-        fetch(`http://localhost:8090/api/v1/follows/${userId}/followers/number`, {
-          credentials: 'include'
-        }),
-        fetch(`http://localhost:8090/api/v1/follows/${userId}/followings/number`, {
-          credentials: 'include'
-        })
+        fetch(
+          `http://localhost:8090/api/v1/follows/${userId}/followers/number`,
+          {
+            credentials: "include",
+          }
+        ),
+        fetch(
+          `http://localhost:8090/api/v1/follows/${userId}/followings/number`,
+          {
+            credentials: "include",
+          }
+        ),
       ]);
 
       if (followersRes.ok && followingRes.ok) {
@@ -95,30 +112,35 @@ export default function MyProfile() {
         setFollowStats({ followers, following });
       }
     } catch (error) {
-      console.error('Error fetching follow stats:', error);
+      console.error("Error fetching follow stats:", error);
     }
   };
 
   const fetchUserPosts = async (userId: number) => {
     try {
-      const response = await fetch(`http://localhost:8090/api/v1/posts/user/${userId}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/user/${userId}`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
         setPosts(data);
       }
     } catch (error) {
-      console.error('Error fetching user posts:', error);
+      console.error("Error fetching user posts:", error);
     }
   };
 
   // 날짜 포맷 함수
   const formatDate = (dateString: string) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     const date = new Date(dateString);
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+    return `${date.getFullYear()}년 ${
+      date.getMonth() + 1
+    }월 ${date.getDate()}일`;
   };
 
   // 시간 경과 표시 함수
@@ -126,7 +148,7 @@ export default function MyProfile() {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
+
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
@@ -134,7 +156,76 @@ export default function MyProfile() {
     if (days > 0) return `${days}일 전`;
     if (hours > 0) return `${hours}시간 전`;
     if (minutes > 0) return `${minutes}분 전`;
-    return '방금 전';
+    return "방금 전";
+  };
+
+  // 팔로워 목록 가져오기 - "나를 팔로우하는 사람들"
+  const fetchFollowers = async (userId: number) => {
+    try {
+      setIsLoadingFollows(true);
+      const response = await fetch(
+        `http://localhost:8090/api/v1/follows/${userId}/followers`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setFollowers(data);
+      }
+    } catch (error) {
+      console.error("Error fetching followers:", error);
+    } finally {
+      setIsLoadingFollows(false);
+    }
+  };
+
+  // 팔로잉 목록 가져오기 - "내가 팔로우하는 사람들"
+  const fetchFollowings = async (userId: number) => {
+    try {
+      setIsLoadingFollows(true);
+      const response = await fetch(
+        `http://localhost:8090/api/v1/follows/${userId}/followings`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setFollowings(data);
+      }
+    } catch (error) {
+      console.error("Error fetching followings:", error);
+    } finally {
+      setIsLoadingFollows(false);
+    }
+  };
+
+  // 팔로워 모달 열기
+  const handleShowFollowers = () => {
+    if (userInfo.id !== null) {
+      fetchFollowers(userInfo.id);
+      setShowFollowersModal(true);
+      setShowFollowingModal(false);
+    }
+  };
+
+  // 팔로잉 모달 열기
+  const handleShowFollowing = () => {
+    if (userInfo.id !== null) {
+      fetchFollowings(userInfo.id);
+      setShowFollowingModal(true);
+      setShowFollowersModal(false);
+    }
+  };
+
+  // 유저 프로필로 이동
+  const navigateToUserProfile = (userId: number) => {
+    setShowFollowersModal(false);
+    setShowFollowingModal(false);
+    router.push(`/profile/${userId.toString()}`);
   };
 
   if (isLoading) {
@@ -146,7 +237,7 @@ export default function MyProfile() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div className="max-w-2xl mx-auto p-4 bg-white min-h-screen">
       {/* Profile Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
@@ -163,40 +254,144 @@ export default function MyProfile() {
           <div>
             <h1 className="text-xl font-semibold">@{userInfo.nickname}</h1>
             <div className="flex gap-4 my-2 text-sm">
-              <div className="flex items-center gap-1">
+              <div
+                className="flex items-center gap-1 cursor-pointer hover:text-pink-500"
+                onClick={handleShowFollowers}
+              >
                 <span className="font-semibold">{followStats.followers}</span>
-                <span className="text-gray-600">팔로워</span>
+                <span className="text-gray-600 hover:text-pink-500">
+                  팔로워
+                </span>
               </div>
-              <div className="flex items-center gap-1">
+              <div
+                className="flex items-center gap-1 cursor-pointer hover:text-pink-500"
+                onClick={handleShowFollowing}
+              >
                 <span className="font-semibold">{followStats.following}</span>
-                <span className="text-gray-600">팔로잉</span>
+                <span className="text-gray-600 hover:text-pink-500">
+                  팔로잉
+                </span>
               </div>
             </div>
             <p className="text-gray-600 text-sm">{userInfo.statusMessage}</p>
-            <p className="text-gray-400 text-xs mt-1">가입일: {formatDate(userInfo.createdAt || '')}</p>
+            <p className="text-gray-400 text-xs mt-1">
+              가입일: {formatDate(userInfo.createdAt || "")}
+            </p>
           </div>
         </div>
-        <button 
-          onClick={() => router.push('/profile/me/edit')}
+        <button
+          onClick={() => router.push("/profile/me/edit")}
           className="bg-pink-500 text-white px-4 py-2 rounded-full text-sm hover:bg-pink-600 transition-colors"
         >
           프로필 설정
         </button>
       </div>
 
+      {/* 팔로워 모달 */}
+      {showFollowersModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 w-72 max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">팔로워</h3>
+              <button
+                onClick={() => setShowFollowersModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-60">
+              {isLoadingFollows ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500"></div>
+                </div>
+              ) : followers.length > 0 ? (
+                <ul className="space-y-2">
+                  {followers.map((follower, index) => (
+                    <li
+                      key={index}
+                      className="py-2 px-3 hover:bg-gray-100 rounded cursor-pointer"
+                      onClick={() => navigateToUserProfile(follower.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                        <span>@{follower.nickname}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-center text-gray-500 py-4">
+                  팔로워가 없습니다.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 팔로잉 모달 */}
+      {showFollowingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 w-72 max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">팔로잉</h3>
+              <button
+                onClick={() => setShowFollowingModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-60">
+              {isLoadingFollows ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500"></div>
+                </div>
+              ) : followings.length > 0 ? (
+                <ul className="space-y-2">
+                  {followings.map((following, index) => (
+                    <li
+                      key={index}
+                      className="py-2 px-3 hover:bg-gray-100 rounded cursor-pointer"
+                      onClick={() => navigateToUserProfile(following.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                        <span>@{following.nickname}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-center text-gray-500 py-4">
+                  팔로잉하는 사용자가 없습니다.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="text-center">
           <p className="text-gray-600">총 인증일수</p>
-          <p className="text-2xl font-bold text-pink-500">{stats.detoxDays}일</p>
+          <p className="text-2xl font-bold text-pink-500">
+            {stats.detoxDays}일
+          </p>
         </div>
         <div className="text-center">
-          <p className="text-gray-600">현재 스트릭</p>
-          <p className="text-2xl font-bold text-pink-500">{stats.streakDays}일</p>
+          <p className="text-gray-600">연속인증일수</p>
+          <p className="text-2xl font-bold text-pink-500">
+            {stats.streakDays}일
+          </p>
         </div>
         <div className="text-center">
           <p className="text-gray-600">현재 포인트</p>
-          <p className="text-2xl font-bold text-pink-500">{userInfo.remainingPoint} P</p>
+          <p className="text-2xl font-bold text-pink-500">
+            {userInfo.remainingPoint} P
+          </p>
         </div>
       </div>
 
@@ -208,19 +403,21 @@ export default function MyProfile() {
             <span className="text-sm text-pink-500">{stats.detoxTime}시간</span>
           </div>
           <div className="h-2 bg-gray-200 rounded-full">
-            <div 
+            <div
               className="h-full bg-pink-500 rounded-full"
-              style={{ width: `${(stats.detoxTime/48)*100}%` }}
+              style={{ width: `${(stats.detoxTime / 48) * 100}%` }}
             ></div>
           </div>
         </div>
         <div>
           <div className="flex justify-between mb-2">
             <span className="text-sm font-medium">목표 달성률</span>
-            <span className="text-sm text-pink-500">{stats.completionRate}%</span>
+            <span className="text-sm text-pink-500">
+              {stats.completionRate}%
+            </span>
           </div>
           <div className="h-2 bg-gray-200 rounded-full">
-            <div 
+            <div
               className="h-full bg-pink-500 rounded-full"
               style={{ width: `${stats.completionRate}%` }}
             ></div>
@@ -232,11 +429,16 @@ export default function MyProfile() {
       <div className="mb-8">
         <h2 className="text-lg font-semibold mb-4">획득한 뱃지</h2>
         <div className="grid grid-cols-4 gap-4">
-          {Array(stats.badges).fill(0).map((_, i) => (
-            <div key={i} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-              <span className="text-3xl">🏆</span>
-            </div>
-          ))}
+          {Array(stats.badges)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center"
+              >
+                <span className="text-3xl">🏆</span>
+              </div>
+            ))}
         </div>
       </div>
 
@@ -246,21 +448,21 @@ export default function MyProfile() {
         <div className="border-b border-gray-200 mb-4">
           <nav className="flex gap-4">
             <button
-              onClick={() => setSelectedTab('feed')}
+              onClick={() => setSelectedTab("feed")}
               className={`pb-4 px-2 ${
-                selectedTab === 'feed'
-                  ? 'border-b-2 border-pink-500 text-pink-500'
-                  : 'text-gray-500'
+                selectedTab === "feed"
+                  ? "border-b-2 border-pink-500 text-pink-500"
+                  : "text-gray-500"
               }`}
             >
               피드
             </button>
             <button
-              onClick={() => setSelectedTab('comments')}
+              onClick={() => setSelectedTab("comments")}
               className={`pb-4 px-2 ${
-                selectedTab === 'comments'
-                  ? 'border-b-2 border-pink-500 text-pink-500'
-                  : 'text-gray-500'
+                selectedTab === "comments"
+                  ? "border-b-2 border-pink-500 text-pink-500"
+                  : "text-gray-500"
               }`}
             >
               댓글
@@ -268,16 +470,23 @@ export default function MyProfile() {
           </nav>
         </div>
 
-        {selectedTab === 'feed' && (
+        {selectedTab === "feed" && (
           <div className="grid grid-cols-2 gap-4">
             {posts.length > 0 ? (
               posts.map((post) => (
-                <div key={post.postId} className="bg-white rounded-lg shadow p-4">
+                <div
+                  key={post.postId}
+                  className="bg-white rounded-lg shadow p-4"
+                >
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
                     <div>
-                      <p className="text-sm font-medium">@{post.userNickname}</p>
-                      <p className="text-xs text-gray-500">{getTimeAgo(post.createdAt)}</p>
+                      <p className="text-sm font-medium">
+                        @{post.userNickname}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {getTimeAgo(post.createdAt)}
+                      </p>
                     </div>
                   </div>
                   <div className="aspect-video bg-gray-100 rounded-lg mb-3"></div>
@@ -285,17 +494,21 @@ export default function MyProfile() {
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 col-span-2 text-center py-8">아직 작성한 글이 없습니다.</p>
+              <p className="text-gray-500 col-span-2 text-center py-8">
+                아직 작성한 글이 없습니다.
+              </p>
             )}
           </div>
         )}
 
-        {selectedTab === 'comments' && (
+        {selectedTab === "comments" && (
           <div className="space-y-4">
-            <p className="text-gray-500 text-center py-8">아직 작성한 댓글이 없습니다.</p>
+            <p className="text-gray-500 text-center py-8">
+              아직 작성한 댓글이 없습니다.
+            </p>
           </div>
         )}
       </div>
     </div>
   );
-} 
+}
