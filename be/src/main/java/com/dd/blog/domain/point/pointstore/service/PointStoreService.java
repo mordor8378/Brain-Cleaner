@@ -112,8 +112,8 @@ public class PointStoreService {
                             .description(item.getDescription())
                             .price(item.getPrice())
                             .imageUrl(item.getImageUrl())
-                            .code(item.getCode())
-                            .purchasedAt(purchase.getPurchasedAt())
+                            .code(item.getCode()) // 이모지 코드 추가
+           .purchasedAt(purchase.getPurchasedAt())
                             .build();
                 })
                 .toList();
