@@ -18,7 +18,9 @@ import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -43,14 +45,21 @@ public class ApiV1PostController {
                     @ApiResponse(responseCode = "404", description = "해당 카테고리 없음")
             }
     )
-    @PostMapping("/category/{categoryId}")
+    @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<PostResponseDto> createPost(
-            @Parameter(description = "카테고리 ID", required = true) @PathVariable("categoryId") Long categoryId,
-            @Valid @RequestBody PostRequestDto postRequestDto,
-            @AuthenticationPrincipal SecurityUser user){
-        PostResponseDto responseDto = postService.createPost(categoryId, user.getId(),postRequestDto);
+            @RequestPart("postRequestDto") @Valid PostRequestDto postRequestDto,
+            @RequestPart(value = "postImage", required = false) MultipartFile postImage,
+            @AuthenticationPrincipal SecurityUser user
+    ) throws IOException {
+        PostResponseDto responseDto = postService.createPost(
+                postRequestDto.getCategoryId(),
+                user.getId(),
+                postRequestDto,
+                postImage
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
+
 
 
     // READ
@@ -168,8 +177,9 @@ public class ApiV1PostController {
     @PatchMapping("/{postId}")  // 인라인 수정방식(부분 수정 위해)
     public ResponseEntity<PostResponseDto> updatePost(
             @Parameter(description = "게시글 ID", required = true) @PathVariable Long postId,
-            @Valid @RequestBody PostPatchRequestDto postPatchRequestDto){
-        PostResponseDto responseDto = postService.updatePost(postId, postPatchRequestDto);
+            @Valid @RequestPart PostPatchRequestDto postPatchRequestDto,
+            @RequestPart(value = "postImage", required = false) MultipartFile postImage) throws IOException {
+        PostResponseDto responseDto = postService.updatePost(postId, postPatchRequestDto, postImage);
         return ResponseEntity.ok(responseDto);
     }
 

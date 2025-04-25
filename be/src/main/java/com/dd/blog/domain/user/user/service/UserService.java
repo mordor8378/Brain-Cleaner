@@ -5,6 +5,7 @@ import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.entity.UserRole;
 import com.dd.blog.domain.user.user.entity.UserStatus;
 import com.dd.blog.domain.user.user.repository.UserRepository;
+import com.dd.blog.global.aws.AwsS3Uploader;
 import com.dd.blog.global.exception.ApiException;
 import com.dd.blog.global.exception.ErrorCode;
 import jakarta.persistence.EntityNotFoundException;
@@ -13,7 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +28,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenService authTokenService;
+    private final AwsS3Uploader awsS3Uploader;
 
     /**
      * 이메일 중복 체크
@@ -206,27 +210,42 @@ public class UserService {
         return dto.getRemainingPoint();
     }
 
-    //프로필정보 수정 - 프로필 상세조회 탭에 들어가면 수정가능-수정완료 버튼을 누르면 새롭게 들어온 UserResponseDTO를 가지고 update
+    //프로필정보 수정
     @Transactional
-    public UserResponseDto updateProfile(Long userId, UpdateProfileRequestDto request) {
-        User user = getUserById(userId);
-        
-        // 닉네임이 변경되었고, 새 닉네임이 이미 사용 중인 경우 체크
-        if (!user.getNickname().equals(request.getNickname()) &&
-                userRepository.findByNickname(request.getNickname()).isPresent()) {
-            throw new ApiException(ErrorCode.NICKNAME_ALREADY_EXISTS);
+    public UserResponseDto updateProfile(Long userId, UpdateProfileRequestDto request, MultipartFile profileImage) throws IOException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        String imageUrl = request.getProfileImageUrl(); //새로 바꾼 사진이 없다면 기존 사진 유지
+
+        // 이미지 파일이 있는 경우 확장자 및 크기 검증
+        if (profileImage != null && !profileImage.isEmpty()) {
+            // 파일 확장자 검증
+            String originalFilename = profileImage.getOriginalFilename();
+            if (originalFilename != null) {
+                String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                if (!extension.equals("jpg") && !extension.equals("jpeg") && !extension.equals("png")) {
+                    throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+                }
+            }
+
+            // 파일 크기 검증 (예: 5MB 이하)
+            if (profileImage.getSize() > 5 * 1024 * 1024) {
+                throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+            }
+            // 3. S3 업로드
+            imageUrl = awsS3Uploader.upload(profileImage, "images/profile");
         }
-        
+
         user.updateProfile(
-            request.getNickname(),
-            request.getEmail(),
-            request.getStatusMessage(),
-            request.getDetoxGoal(),
-            request.getBirthDate(),
-            request.getProfileImageUrl()
+                request.getNickname(),
+                request.getEmail(),
+                request.getStatusMessage(),
+                request.getDetoxGoal(),
+                request.getBirthDate(),
+                imageUrl
         );
-        
-        return UserResponseDto.fromEntity(userRepository.save(user));
+        return UserResponseDto.fromEntity(user);
     }
 
     /**

@@ -70,17 +70,23 @@ export default function MyProfile() {
 
         if (response.ok) {
           const data = await response.json();
-          setUserInfo(data);
-          // 사용자 정보를 가져온 후 팔로워/팔로잉 수와 게시글을 가져옴
-          fetchFollowStats(data.id);
-          fetchUserPosts(data.id);
+          console.log("프로필 데이터 로드:", data);
+          const userData = {
+            ...data,
+            profileImage: data.profileImageUrl,
+          };
+          setUserInfo(userData);
+
+          if (data.id) {
+            fetchFollowStats(data.id);
+            fetchUserPosts(data.id);
+          }
         } else {
-          console.error("Failed to fetch user info");
+          console.error("프로필 정보를 불러오는데 실패했습니다.");
           router.push("/login");
         }
       } catch (error) {
         console.error("Error fetching user info:", error);
-        router.push("/login");
       } finally {
         setIsLoading(false);
       }
@@ -243,11 +249,12 @@ export default function MyProfile() {
         <div className="flex items-center gap-4">
           <div className="relative w-20 h-20">
             <Image
-              src="/placeholder-avatar.png"
+              src={userInfo.profileImage || "/placeholder-avatar.png"}
               alt="Profile"
               width={80}
               height={80}
-              className="rounded-full"
+              className="rounded-full object-cover"
+              unoptimized={true}
             />
             <div className="absolute bottom-0 right-0 w-4 h-4 bg-pink-500 rounded-full border-2 border-white"></div>
           </div>
