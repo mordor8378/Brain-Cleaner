@@ -59,6 +59,34 @@ export default function Post({
   const [showCommentModal, setShowCommentModal] = useState(false);
   const postRef = useRef<HTMLDivElement>(null);
 
+  // 이미지 캐러셀을 위한 상태
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [parsedImageUrls, setParsedImageUrls] = useState<string[]>([]);
+
+  // 문자열 또는 JSON 문자열로 전달된 imageUrl을 파싱
+  useEffect(() => {
+    if (!imageUrl) {
+      setParsedImageUrls([]);
+      return;
+    }
+
+    try {
+      // JSON 형식으로 된 문자열인지 확인
+      if (imageUrl.startsWith("[") && imageUrl.endsWith("]")) {
+        const parsed = JSON.parse(imageUrl);
+        if (Array.isArray(parsed)) {
+          setParsedImageUrls(parsed);
+          return;
+        }
+      }
+      // 단일 URL 문자열인 경우
+      setParsedImageUrls([imageUrl]);
+    } catch (e) {
+      console.error("이미지 URL 파싱 오류:", e);
+      setParsedImageUrls([imageUrl]); // 파싱 실패 시 원본 URL을 사용
+    }
+  }, [imageUrl]);
+
   // 프로필 이미지 URL 가져오기
   const [profileImage, setProfileImage] = useState<string | null>(
     userProfileImage || null
@@ -248,6 +276,27 @@ export default function Post({
     if (onCommentUpdate) {
       onCommentUpdate(count);
     }
+  };
+
+  // 이미지 캐러셀 이전 이미지로 이동
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 이벤트 버블링 방지
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? parsedImageUrls.length - 1 : prev - 1
+    );
+  };
+
+  // 이미지 캐러셀 다음 이미지로 이동
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 이벤트 버블링 방지
+    setCurrentImageIndex((prev) =>
+      prev === parsedImageUrls.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  // 특정 이미지로 직접 이동
+  const goToImage = (index: number) => {
+    setCurrentImageIndex(index);
   };
 
   const handleImageClick = () => {
@@ -445,33 +494,91 @@ export default function Post({
 
       {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
 
-      {imageUrl && (
+      {parsedImageUrls.length > 0 && (
         <div className="rounded-lg overflow-hidden mb-3 mt-3 relative group">
-          <Image
-            src={imageUrl}
-            alt="게시글 이미지"
-            width={500}
-            height={300}
-            className="w-full h-auto object-cover"
-          />
-          {user?.id === userId && (
-            <button
-              onClick={handleImageClick}
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-white hover:text-gray-200 bg-black bg-opacity-50 rounded-full p-1.5"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+          <div className="relative">
+            <Image
+              src={parsedImageUrls[currentImageIndex]}
+              alt="게시글 이미지"
+              width={500}
+              height={300}
+              className="w-full h-auto object-cover"
+            />
+
+            {/* 이미지 내부 좌/우 화살표 - 여러 이미지일 때만 표시 */}
+            {parsedImageUrls.length > 1 && (
+              <>
+                <button
+                  onClick={handlePrevImage}
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleNextImage}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </>
+            )}
+
+            {user?.id === userId && (
+              <button
+                onClick={handleImageClick}
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-white hover:text-gray-200 bg-black bg-opacity-50 rounded-full p-1.5"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                  clipRule="evenodd"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* 이미지 인디케이터 (이미지가 여러 장일 때만 표시) */}
+          {parsedImageUrls.length > 1 && (
+            <div className="flex justify-center mt-2 space-x-1">
+              {parsedImageUrls.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToImage(index)}
+                  className={`w-2 h-2 rounded-full ${
+                    index === currentImageIndex ? "bg-pink-500" : "bg-gray-300"
+                  }`}
                 />
-              </svg>
-            </button>
+              ))}
+            </div>
           )}
         </div>
       )}
@@ -579,7 +686,26 @@ export default function Post({
         <CommentModal
           postId={postId}
           onClose={handleCommentModalClose}
-          postImage={imageUrl}
+          postImage={(() => {
+            // 단일 이미지 URL도 배열 형태로 변환하여 전달
+            console.log(
+              "Post에서 CommentModal로 전달되는 imageUrl 원본:",
+              imageUrl
+            );
+            if (!imageUrl) return "";
+
+            // 이미 JSON 배열 형태인지 확인
+            if (imageUrl.startsWith("[") && imageUrl.endsWith("]")) {
+              return imageUrl;
+            }
+            // 단일 URL인 경우 배열로 변환 - 실제 URL만 사용
+            const arrayFormat = JSON.stringify([imageUrl]);
+            console.log(
+              "Post에서 CommentModal로 전달되는 변환된 이미지 배열:",
+              arrayFormat
+            );
+            return arrayFormat;
+          })()}
           postContent={content}
           userNickname={userNickname}
           createdAt={createdAt}
@@ -588,11 +714,18 @@ export default function Post({
           detoxTime={detoxTime}
           onImageUpdate={async (newImage) => {
             const formData = new FormData();
-            formData.append("image", newImage);
+            formData.append("postImage", newImage);
+            // 빈 객체라도 PostPatchRequestDto 필요
+            formData.append(
+              "postPatchRequestDto",
+              new Blob([JSON.stringify({})], {
+                type: "application/json",
+              })
+            );
 
             try {
               const response = await fetch(
-                `http://localhost:8090/api/v1/posts/${postId}/image`,
+                `http://localhost:8090/api/v1/posts/${postId}`,
                 {
                   method: "PATCH",
                   credentials: "include",
@@ -612,6 +745,8 @@ export default function Post({
               alert("이미지 업데이트에 실패했습니다.");
             }
           }}
+          userProfileImage={userProfileImage}
+          userId={userId}
         />
       )}
     </div>

@@ -57,6 +57,10 @@ export default function Home() {
   const [topPosts, setTopPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [currentModalImageIndex, setCurrentModalImageIndex] = useState(0);
+  const [parsedModalImageUrls, setParsedModalImageUrls] = useState<string[]>(
+    []
+  );
   const [weeklyVerifications, setWeeklyVerifications] = useState<string[]>([]);
 
   // QueryClient 인스턴스 -> 캐시 조작용
@@ -483,6 +487,9 @@ export default function Home() {
 
         setSelectedPost(data);
         setShowPostModal(true);
+
+        // 이미지 URL 파싱
+        parseImageUrls(data.imageUrl);
       } else {
         toast.error("게시글을 불러오는데 실패했습니다.");
       }
@@ -491,6 +498,61 @@ export default function Home() {
       toast.error("서버 연결에 실패했습니다.");
     }
   };
+
+  // 이미지 URL 파싱 함수
+  const parseImageUrls = (imageUrl: string) => {
+    if (!imageUrl) {
+      setParsedModalImageUrls([]);
+      return;
+    }
+
+    try {
+      // JSON 형식으로 된 문자열인지 확인
+      if (imageUrl.startsWith("[") && imageUrl.endsWith("]")) {
+        const parsed = JSON.parse(imageUrl);
+        if (Array.isArray(parsed)) {
+          setParsedModalImageUrls(parsed);
+          setCurrentModalImageIndex(0);
+          return;
+        }
+      }
+      // 단일 URL 문자열인 경우
+      setParsedModalImageUrls([imageUrl]);
+      setCurrentModalImageIndex(0);
+    } catch (e) {
+      console.error("이미지 URL 파싱 오류:", e);
+      setParsedModalImageUrls([imageUrl]); // 파싱 실패 시 원본 URL을 사용
+      setCurrentModalImageIndex(0);
+    }
+  };
+
+  // 모달에서 이전 이미지로 이동
+  const handlePrevModalImage = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 이벤트 버블링 방지
+    setCurrentModalImageIndex((prev) =>
+      prev === 0 ? parsedModalImageUrls.length - 1 : prev - 1
+    );
+  };
+
+  // 모달에서 다음 이미지로 이동
+  const handleNextModalImage = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 이벤트 버블링 방지
+    setCurrentModalImageIndex((prev) =>
+      prev === parsedModalImageUrls.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  // 특정 이미지로 직접 이동
+  const goToModalImage = (index: number) => {
+    setCurrentModalImageIndex(index);
+  };
+
+  // 모달이 열릴 때마다 이미지 URL 파싱
+  useEffect(() => {
+    if (showPostModal && selectedPost) {
+      parseImageUrls(selectedPost.imageUrl);
+    }
+  }, [showPostModal, selectedPost]);
 
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     console.log("선택된 카테고리:", e.target.value); // 카테고리 변경 확인용 로그
@@ -1183,7 +1245,10 @@ export default function Home() {
               onClick={() => setShowPostModal(false)}
             ></div>
 
-            <div className="relative bg-white rounded-lg max-w-xl w-full mx-auto shadow-xl z-10">
+            <div
+              className="relative bg-white rounded-lg max-w-xl w-full mx-auto shadow-xl z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-semibold">
@@ -1239,15 +1304,83 @@ export default function Home() {
                   <p className="text-gray-700">{selectedPost.content}</p>
                 </div>
 
-                {selectedPost.imageUrl && (
-                  <div className="mb-4">
-                    <Image
-                      src={selectedPost.imageUrl}
-                      alt="게시글 이미지"
-                      width={500}
-                      height={300}
-                      className="rounded-lg w-full h-auto"
-                    />
+                {parsedModalImageUrls.length > 0 && (
+                  <div className="mb-4 rounded-lg overflow-hidden">
+                    <div className="relative">
+                      <Image
+                        src={parsedModalImageUrls[currentModalImageIndex]}
+                        alt="게시글 이미지"
+                        width={500}
+                        height={300}
+                        className="rounded-lg w-full h-auto"
+                      />
+
+                      {/* 이미지 내부 좌/우 화살표 - 여러 이미지일 때만 표시 */}
+                      {parsedModalImageUrls.length > 1 && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePrevModalImage(e);
+                            }}
+                            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNextModalImage(e);
+                            }}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* 이미지 인디케이터 (이미지가 여러 장일 때만 표시) */}
+                    {parsedModalImageUrls.length > 1 && (
+                      <div className="flex justify-center mt-2 space-x-1">
+                        {parsedModalImageUrls.map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              goToModalImage(index);
+                            }}
+                            className={`w-2 h-2 rounded-full ${
+                              index === currentModalImageIndex
+                                ? "bg-pink-500"
+                                : "bg-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

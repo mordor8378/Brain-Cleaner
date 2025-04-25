@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
+import Image from "next/image";
 
 interface VerificationWritePageProps {
   onClose?: () => void;
@@ -74,10 +75,41 @@ export default function VerificationWritePage({
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // TODO: Implement actual file upload logic
-      // For now, just create a temporary URL
-      const tempUrl = URL.createObjectURL(file);
-      setImageUrl(tempUrl);
+      // 파일 크기 제한 (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("파일 크기는 10MB를 초과할 수 없습니다.");
+        return;
+      }
+
+      // 이미지 파일 타입 체크
+      if (!file.type.startsWith("image/")) {
+        alert("이미지 파일만 업로드 가능합니다.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // S3 업로드 엔드포인트 사용
+      fetch("http://localhost:8090/api/v1/s3/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      })
+        .then((response) => {
+          if (response.ok) {
+            return response.text(); // 백엔드에서 문자열로 URL만 반환
+          }
+          throw new Error("이미지 업로드에 실패했습니다.");
+        })
+        .then((url) => {
+          console.log("Uploaded image URL:", url);
+          setImageUrl(url);
+        })
+        .catch((error) => {
+          console.error("Error uploading image:", error);
+          alert("이미지 업로드에 실패했습니다.");
+        });
     }
   };
 
@@ -88,26 +120,46 @@ export default function VerificationWritePage({
     }
 
     const userId = user?.id || 1;
-    const verificationPost: VerificationPost = {
-      userId,
-      title: "도파민 디톡스 인증",
-      content: detoxTime.toString(), // 기존 동작 유지를 위해 문자열로 변환
-      imageUrl,
-      detoxTime,
-    };
 
     try {
+      // FormData 객체 생성
+      const formData = new FormData();
+
+      // VerificationPost 객체 생성
+      const verificationPost = {
+        userId,
+        title: "도파민 디톡스 인증",
+        content: detoxTime.toString(),
+        imageUrl: imageUrl,
+        detoxTime: detoxTime,
+      };
+
+      // Blob으로 변환하여 추가
+      const postRequestDtoBlob = new Blob([JSON.stringify(verificationPost)], {
+        type: "application/json",
+      });
+      formData.append("postRequestDto", postRequestDtoBlob);
+
+      // 이미지 파일이 있으면 추가 (선택 사항)
+      if (
+        fileInputRef.current?.files &&
+        fileInputRef.current.files.length > 0
+      ) {
+        formData.append("postImage", fileInputRef.current.files[0]);
+      }
+
       const postResponse = await fetch(
         `http://localhost:8090/api/v1/posts/category/${category}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(verificationPost),
+          body: formData,
           credentials: "include",
         }
       );
 
       if (!postResponse.ok) {
+        const errorText = await postResponse.text();
+        console.error("게시글 등록 실패:", errorText);
         throw new Error("게시글 등록에 실패했습니다");
       }
 
@@ -152,7 +204,9 @@ export default function VerificationWritePage({
       }
     } catch (error) {
       console.error("인증 게시글 등록 중 오류:", error);
-      alert("등록 실패: " + (error as Error).message);
+      alert(
+        "등록 실패: " + (error instanceof Error ? error.message : String(error))
+      );
     }
   };
 
@@ -198,18 +252,29 @@ export default function VerificationWritePage({
         {/* 프로필 영역 */}
         <div className="p-4 relative">
           <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-gray-400"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                clipRule="evenodd"
+            {user?.profileImage ? (
+              <Image
+                src={user.profileImage}
+                alt={`${user?.nickname || "사용자"}의 프로필`}
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+                unoptimized={true}
               />
-            </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
           </div>
           {/* 세로 구분선 - 프로필 사진 아래부터 시작 */}
           <div className="absolute left-1/2 top-16 h-full w-px bg-gray-200"></div>

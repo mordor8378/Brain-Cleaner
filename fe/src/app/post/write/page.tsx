@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
+import Image from "next/image";
 
 interface WritePostPageProps {
   onClose?: () => void;
@@ -23,7 +24,8 @@ export default function WritePostPage({
   const [category, setCategory] = useState(initialCategory);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -54,43 +56,44 @@ export default function WritePostPage({
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      const file = files[0];
+      // 다중 파일 업로드 처리
+      Array.from(files).forEach((file) => {
+        // 파일 크기 제한 (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          alert("파일 크기는 10MB를 초과할 수 없습니다.");
+          return;
+        }
 
-      // 파일 크기 제한 (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        alert("파일 크기는 10MB를 초과할 수 없습니다.");
-        return;
-      }
+        // 이미지 파일 타입 체크
+        if (!file.type.startsWith("image/")) {
+          alert("이미지 파일만 업로드 가능합니다.");
+          return;
+        }
 
-      // 이미지 파일 타입 체크
-      if (!file.type.startsWith("image/")) {
-        alert("이미지 파일만 업로드 가능합니다.");
-        return;
-      }
+        const formData = new FormData();
+        formData.append("file", file);
 
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // S3 업로드 엔드포인트 사용
-      fetch("http://localhost:8090/api/v1/s3/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      })
-        .then((response) => {
-          if (response.ok) {
-            return response.text(); // 백엔드에서 문자열로 URL만 반환
-          }
-          throw new Error("이미지 업로드에 실패했습니다.");
+        // S3 업로드 엔드포인트 사용
+        fetch("http://localhost:8090/api/v1/s3/upload", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
         })
-        .then((imageUrl) => {
-          console.log("Uploaded image URL:", imageUrl);
-          setImageUrl(imageUrl);
-        })
-        .catch((error) => {
-          console.error("Error uploading image:", error);
-          alert("이미지 업로드에 실패했습니다.");
-        });
+          .then((response) => {
+            if (response.ok) {
+              return response.text(); // 백엔드에서 문자열로 URL만 반환
+            }
+            throw new Error("이미지 업로드에 실패했습니다.");
+          })
+          .then((imageUrl) => {
+            console.log("Uploaded image URL:", imageUrl);
+            setImageUrls((prev) => [...prev, imageUrl]);
+          })
+          .catch((error) => {
+            console.error("Error uploading image:", error);
+            alert("이미지 업로드에 실패했습니다.");
+          });
+      });
     }
   };
 
@@ -117,7 +120,7 @@ export default function WritePostPage({
       const postRequestDto = {
         title,
         content,
-        imageUrl,
+        imageUrl: imageUrls.length > 0 ? JSON.stringify(imageUrls) : "",
       };
 
       // RequestPart로 전송하기 위해 JSON 문자열을 Blob으로 변환 후 첨부
@@ -164,6 +167,28 @@ export default function WritePostPage({
     }
   };
 
+  // 이미지 캐러셀 이전 이미지로 이동
+  const handlePrevImage = () => {
+    setCurrentPreviewIndex((prev) =>
+      prev === 0 ? imageUrls.length - 1 : prev - 1
+    );
+  };
+
+  // 이미지 캐러셀 다음 이미지로 이동
+  const handleNextImage = () => {
+    setCurrentPreviewIndex((prev) =>
+      prev === imageUrls.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  // 특정 이미지 제거
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImageUrls((prev) => prev.filter((_, index) => index !== indexToRemove));
+    if (currentPreviewIndex >= indexToRemove && currentPreviewIndex > 0) {
+      setCurrentPreviewIndex((prev) => prev - 1);
+    }
+  };
+
   return (
     <div className="w-full max-w-2xl bg-white rounded-md shadow-md min-h-[600px] max-h-[90vh] overflow-y-auto">
       {/* 상단 헤더 - 게시판 선택과 취소/등록 버튼 */}
@@ -207,18 +232,29 @@ export default function WritePostPage({
         {/* 프로필 영역 */}
         <div className="p-4 relative">
           <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-gray-400"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                clipRule="evenodd"
+            {user?.profileImage ? (
+              <Image
+                src={user.profileImage}
+                alt={`${user?.nickname || "사용자"}의 프로필`}
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+                unoptimized={true}
               />
-            </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
           </div>
           {/* 세로 구분선 - 프로필 사진 아래부터 시작 */}
           <div className="absolute left-1/2 top-16 h-full w-px bg-gray-200"></div>
@@ -278,32 +314,92 @@ export default function WritePostPage({
                 onChange={handleFileUpload}
                 accept="image/*"
                 className="hidden"
+                multiple
               />
             </div>
-            {imageUrl && (
+            {imageUrls.length > 0 && (
               <div className="relative mt-4">
-                <img
-                  src={imageUrl}
-                  alt="첨부 이미지"
-                  className="w-full rounded-lg"
-                />
-                <button
-                  onClick={() => setImageUrl("")}
-                  className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
+                <div className="overflow-hidden rounded-lg">
+                  <div className="relative">
+                    <img
+                      src={imageUrls[currentPreviewIndex]}
+                      alt="첨부 이미지"
+                      className="w-full rounded-lg"
                     />
-                  </svg>
-                </button>
+                    {/* 이미지 내부 좌/우 화살표 */}
+                    {imageUrls.length > 1 && (
+                      <>
+                        <button
+                          onClick={handlePrevImage}
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={handleNextImage}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => handleRemoveImage(currentPreviewIndex)}
+                      className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  {/* 이미지 인디케이터 */}
+                  {imageUrls.length > 1 && (
+                    <div className="flex justify-center mt-2 space-x-1">
+                      {imageUrls.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentPreviewIndex(index)}
+                          className={`w-2 h-2 rounded-full ${
+                            index === currentPreviewIndex
+                              ? "bg-pink-500"
+                              : "bg-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
