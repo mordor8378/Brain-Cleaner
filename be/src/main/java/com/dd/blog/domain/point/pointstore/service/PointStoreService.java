@@ -112,6 +112,7 @@ public class PointStoreService {
                             .description(item.getDescription())
                             .price(item.getPrice())
                             .imageUrl(item.getImageUrl())
+                            .code(item.getCode())
                             .purchasedAt(purchase.getPurchasedAt())
                             .build();
                 })
@@ -134,4 +135,8 @@ public class PointStoreService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public boolean checkUserOwnsItem(User user, PointItem item) {
+        return pointItemPurchaseRepository.existsByUserAndItem(user, item);
+    }
 }

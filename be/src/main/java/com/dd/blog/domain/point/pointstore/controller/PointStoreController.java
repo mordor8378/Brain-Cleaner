@@ -75,6 +75,7 @@ public class PointStoreController {
                         .description(item.getDescription())
                         .price(item.getPrice())
                         .imageUrl(item.getImageUrl())
+                        .code(item.getCode())
                         .build())
                 .collect(Collectors.toList());
 
@@ -99,5 +100,22 @@ public class PointStoreController {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
         return ResponseEntity.ok(pointStoreService.getMyPurchases(user));
+    }
+
+    @Operation(summary = "이모티콘 구매 여부 확인", description = "특정 이모티콘을 구매했는지 확인합니다.")
+    @GetMapping("/check-purchased/{itemId}")
+    public ResponseEntity<Boolean> checkPurchased(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long itemId
+    ) {
+        Long userId = user.getId();
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
+
+        PointItem item = pointItemRepository.findById(itemId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 아이템이 존재하지 않습니다."));
+
+        boolean purchased = pointStoreService.checkUserOwnsItem(target, item);
+        return ResponseEntity.ok(purchased);
     }
 }
