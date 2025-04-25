@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -6,8 +6,8 @@ import {
   useState,
   useEffect,
   ReactNode,
-} from "react";
-import { usePathname, useRouter } from "next/navigation";
+} from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 
 export interface User {
   id: number;
@@ -26,6 +26,7 @@ interface UserContextType {
   error: string | null;
   logout: () => Promise<void>;
   refreshUserInfo: () => Promise<void>;
+  mutate: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -39,28 +40,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // fetchUserInfo 함수 (refreshUserInfo 에서 사용될 수 있음)
   const fetchUserInfo = async () => {
-    console.log("[UserContext:fetchUserInfo] 시작"); // 로그 추가
+    console.log('[UserContext:fetchUserInfo] 시작'); // 로그 추가
     try {
-      console.log("[UserContext:fetchUserInfo] setLoading(true) 호출 전");
+      console.log('[UserContext:fetchUserInfo] setLoading(true) 호출 전');
       setLoading(true);
       console.log(
-        "[UserContext:fetchUserInfo] setLoading(true) 호출 후, loading 상태:",
+        '[UserContext:fetchUserInfo] setLoading(true) 호출 후, loading 상태:',
         true
       ); // 로그 추가
 
-      console.log("[UserContext:fetchUserInfo] /api/v1/users/me 호출 시작"); // 로그 추가
-      const response = await fetch("http://localhost:8090/api/v1/users/me", {
-        credentials: "include",
+      console.log('[UserContext:fetchUserInfo] /api/v1/users/me 호출 시작'); // 로그 추가
+      const response = await fetch('http://localhost:8090/api/v1/users/me', {
+        credentials: 'include',
       });
       console.log(
-        "[UserContext:fetchUserInfo] /api/v1/users/me 응답 상태:",
+        '[UserContext:fetchUserInfo] /api/v1/users/me 응답 상태:',
         response.status
       ); // 로그 추가
 
       if (response.ok) {
         const data = await response.json();
         console.log(
-          "[UserContext:fetchUserInfo] /api/v1/users/me 성공. 데이터:",
+          '[UserContext:fetchUserInfo] /api/v1/users/me 성공. 데이터:',
           data
         ); // 로그 추가
 
@@ -71,51 +72,51 @@ export function UserProvider({ children }: { children: ReactNode }) {
         };
 
         console.log(
-          "[UserContext:fetchUserInfo] setUser(data) 호출 전. data:",
+          '[UserContext:fetchUserInfo] setUser(data) 호출 전. data:',
           userData
         ); // 로그 추가
         setUser(userData);
         console.log(
-          "[UserContext:fetchUserInfo] setUser(data) 호출 후. user 상태:",
+          '[UserContext:fetchUserInfo] setUser(data) 호출 후. user 상태:',
           userData
         ); // 로그 추가
 
         // 추가 정보도 로컬 스토리지에 저장
-        localStorage.setItem("userId", data.id.toString());
-        localStorage.setItem("nickname", data.nickname);
-        localStorage.setItem("email", data.email);
-        localStorage.setItem("isLoggedIn", "true");
-        console.log("[UserContext:fetchUserInfo] localStorage 업데이트 완료"); // 로그 추가
+        localStorage.setItem('userId', data.id.toString());
+        localStorage.setItem('nickname', data.nickname);
+        localStorage.setItem('email', data.email);
+        localStorage.setItem('isLoggedIn', 'true');
+        console.log('[UserContext:fetchUserInfo] localStorage 업데이트 완료'); // 로그 추가
 
         setError(null);
       } else {
-        console.log("[UserContext:fetchUserInfo] /api/v1/users/me 실패."); // 로그 추가
-        console.log("[UserContext:fetchUserInfo] setUser(null) 호출 전"); // 로그 추가
+        console.log('[UserContext:fetchUserInfo] /api/v1/users/me 실패.'); // 로그 추가
+        console.log('[UserContext:fetchUserInfo] setUser(null) 호출 전'); // 로그 추가
         setUser(null);
         console.log(
-          "[UserContext:fetchUserInfo] setUser(null) 호출 후. user 상태:",
+          '[UserContext:fetchUserInfo] setUser(null) 호출 후. user 상태:',
           null
         ); // 로그 추가
-        localStorage.removeItem("isLoggedIn");
-        setError("사용자 정보를 가져오는데 실패했습니다.");
+        localStorage.removeItem('isLoggedIn');
+        setError('사용자 정보를 가져오는데 실패했습니다.');
       }
     } catch (error) {
-      console.error("[UserContext:fetchUserInfo] 오류 발생:", error); // 로그 추가
-      console.log("[UserContext:fetchUserInfo] 오류 - setUser(null) 호출 전"); // 로그 추가
+      console.error('[UserContext:fetchUserInfo] 오류 발생:', error); // 로그 추가
+      console.log('[UserContext:fetchUserInfo] 오류 - setUser(null) 호출 전'); // 로그 추가
       setUser(null);
       console.log(
-        "[UserContext:fetchUserInfo] 오류 - setUser(null) 호출 후. user 상태:",
+        '[UserContext:fetchUserInfo] 오류 - setUser(null) 호출 후. user 상태:',
         null
       ); // 로그 추가
-      localStorage.removeItem("isLoggedIn"); // 오류 시에도 로그인 상태 제거
-      setError("인증 과정에서 오류가 발생했습니다.");
+      localStorage.removeItem('isLoggedIn'); // 오류 시에도 로그인 상태 제거
+      setError('인증 과정에서 오류가 발생했습니다.');
     } finally {
       console.log(
-        "[UserContext:fetchUserInfo] finally 블록 시작. setLoading(false) 호출 전"
+        '[UserContext:fetchUserInfo] finally 블록 시작. setLoading(false) 호출 전'
       ); // 로그 추가
       setLoading(false);
       console.log(
-        "[UserContext:fetchUserInfo] finally 블록 - setLoading(false) 호출 후. loading 상태:",
+        '[UserContext:fetchUserInfo] finally 블록 - setLoading(false) 호출 후. loading 상태:',
         false
       ); // 로그 추가
     }
@@ -123,44 +124,44 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // 사용자 정보 새로고침 함수
   const refreshUserInfo = async () => {
-    console.log("[UserContext:refreshUserInfo] 호출됨"); // 로그 추가
+    console.log('[UserContext:refreshUserInfo] 호출됨'); // 로그 추가
     await fetchUserInfo();
   };
 
   // 로그아웃 함수
   const logout = async () => {
     try {
-      console.log("[UserContext:logout] 시작"); // 로그 추가
+      console.log('[UserContext:logout] 시작'); // 로그 추가
       const response = await fetch(
-        "http://localhost:8090/api/v1/users/logout",
+        'http://localhost:8090/api/v1/users/logout',
         {
-          method: "POST",
-          credentials: "include",
+          method: 'POST',
+          credentials: 'include',
         }
       );
       console.log(
-        "[UserContext:logout] 로그아웃 API 응답 상태:",
+        '[UserContext:logout] 로그아웃 API 응답 상태:',
         response.status
       ); // 로그 추가
 
       localStorage.clear();
       sessionStorage.clear();
       console.log(
-        "[UserContext:logout] localStorage/sessionStorage 클리어 완료"
+        '[UserContext:logout] localStorage/sessionStorage 클리어 완료'
       ); // 로그 추가
 
-      console.log("[UserContext:logout] setUser(null) 호출 전"); // 로그 추가
+      console.log('[UserContext:logout] setUser(null) 호출 전'); // 로그 추가
       setUser(null);
       console.log(
-        "[UserContext:logout] setUser(null) 호출 후. user 상태:",
+        '[UserContext:logout] setUser(null) 호출 후. user 상태:',
         null
       ); // 로그 추가
 
-      router.push("/");
-      console.log("[UserContext:logout] 홈으로 리다이렉트 완료"); // 로그 추가
+      router.push('/');
+      console.log('[UserContext:logout] 홈으로 리다이렉트 완료'); // 로그 추가
     } catch (error) {
-      console.error("[UserContext:logout] 로그아웃 중 오류:", error); // 로그 추가
-      setError("로그아웃 중 오류가 발생했습니다.");
+      console.error('[UserContext:logout] 로그아웃 중 오류:', error); // 로그 추가
+      setError('로그아웃 중 오류가 발생했습니다.');
     }
   };
 
@@ -169,27 +170,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
     console.log(`[UserContext:useEffect] 시작. Pathname: ${pathname}`); // 로그 추가
 
     const checkAuth = async () => {
-      console.log("[UserContext:useEffect:checkAuth] 시작");
+      console.log('[UserContext:useEffect:checkAuth] 시작');
       try {
         console.log(
-          "[UserContext:useEffect:checkAuth] setLoading(true) 호출 전"
+          '[UserContext:useEffect:checkAuth] setLoading(true) 호출 전'
         );
         setLoading(true);
         console.log(
-          "[UserContext:useEffect:checkAuth] setLoading(true) 호출 후, loading 상태:",
+          '[UserContext:useEffect:checkAuth] setLoading(true) 호출 후, loading 상태:',
           true
         ); // 로그 추가
 
         const urlParams = new URLSearchParams(window.location.search);
-        const isSocialLogin = urlParams.get("social") === "true";
-        const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+        const isSocialLogin = urlParams.get('social') === 'true';
+        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
         console.log(
           `[UserContext:useEffect:checkAuth] 소셜로그인 감지: ${isSocialLogin}, 로컬로그인상태: ${isLoggedIn}`
         ); // 로그 추가
 
         if (isSocialLogin) {
           console.log(
-            "[UserContext:useEffect:checkAuth] 소셜 로그인 처리 시작 (URL 파라미터 제거)"
+            '[UserContext:useEffect:checkAuth] 소셜 로그인 처리 시작 (URL 파라미터 제거)'
           ); // 로그 추가
           window.history.replaceState(
             {},
@@ -200,23 +201,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         if (isSocialLogin || isLoggedIn) {
           console.log(
-            "[UserContext:useEffect:checkAuth] 로그인 상태 확인됨. /api/v1/users/me 호출 시작"
+            '[UserContext:useEffect:checkAuth] 로그인 상태 확인됨. /api/v1/users/me 호출 시작'
           ); // 로그 추가
           const response = await fetch(
-            "http://localhost:8090/api/v1/users/me",
+            'http://localhost:8090/api/v1/users/me',
             {
-              credentials: "include",
+              credentials: 'include',
             }
           );
           console.log(
-            "[UserContext:useEffect:checkAuth] /api/v1/users/me 응답 상태:",
+            '[UserContext:useEffect:checkAuth] /api/v1/users/me 응답 상태:',
             response.status
           ); // 로그 추가
 
           if (response.ok) {
             const data = await response.json();
             console.log(
-              "[UserContext:useEffect:checkAuth] /api/v1/users/me 성공. 데이터:",
+              '[UserContext:useEffect:checkAuth] /api/v1/users/me 성공. 데이터:',
               data
             ); // 로그 추가
 
@@ -227,82 +228,82 @@ export function UserProvider({ children }: { children: ReactNode }) {
             };
 
             console.log(
-              "[UserContext:useEffect:checkAuth] setUser(data) 호출 전. data:",
+              '[UserContext:useEffect:checkAuth] setUser(data) 호출 전. data:',
               userData
             ); // 로그 추가
             setUser(userData);
             console.log(
-              "[UserContext:useEffect:checkAuth] setUser(data) 호출 후. user 상태:",
+              '[UserContext:useEffect:checkAuth] setUser(data) 호출 후. user 상태:',
               userData
             ); // 로그 추가
 
             console.log(
-              "[UserContext:useEffect:checkAuth] localStorage 업데이트 시작"
+              '[UserContext:useEffect:checkAuth] localStorage 업데이트 시작'
             ); // 로그 추가
-            localStorage.setItem("isLoggedIn", "true");
-            localStorage.setItem("userId", data.id.toString());
-            localStorage.setItem("nickname", data.nickname);
-            localStorage.setItem("email", data.email);
-            localStorage.setItem("userRole", data.role); // 역할 저장 확인
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userId', data.id.toString());
+            localStorage.setItem('nickname', data.nickname);
+            localStorage.setItem('email', data.email);
+            localStorage.setItem('userRole', data.role); // 역할 저장 확인
             console.log(
-              "[UserContext:useEffect:checkAuth] localStorage 업데이트 완료"
+              '[UserContext:useEffect:checkAuth] localStorage 업데이트 완료'
             ); // 로그 추가
 
             setError(null);
 
             // 이 로직은 그대로 두자 (로그인 페이지에서 관리자 자동 리다이렉트용)
-            if (data.role === "ROLE_ADMIN" && pathname === "/login") {
+            if (data.role === 'ROLE_ADMIN' && pathname === '/login') {
               console.log(
-                "[UserContext:useEffect:checkAuth] 관리자이고 /login 경로. /admin으로 리다이렉트."
+                '[UserContext:useEffect:checkAuth] 관리자이고 /login 경로. /admin으로 리다이렉트.'
               ); // 로그 추가
-              router.push("/admin");
+              router.push('/admin');
             }
           } else {
             console.log(
-              "[UserContext:useEffect:checkAuth] /api/v1/users/me 실패."
+              '[UserContext:useEffect:checkAuth] /api/v1/users/me 실패.'
             ); // 로그 추가
             console.log(
-              "[UserContext:useEffect:checkAuth] setUser(null) 호출 전"
+              '[UserContext:useEffect:checkAuth] setUser(null) 호출 전'
             ); // 로그 추가
             setUser(null);
             console.log(
-              "[UserContext:useEffect:checkAuth] setUser(null) 호출 후. user 상태:",
+              '[UserContext:useEffect:checkAuth] setUser(null) 호출 후. user 상태:',
               null
             ); // 로그 추가
-            localStorage.removeItem("isLoggedIn");
-            localStorage.removeItem("userRole"); // 실패 시 역할 정보도 제거
-            setError("사용자 정보를 가져오는데 실패했습니다.");
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('userRole'); // 실패 시 역할 정보도 제거
+            setError('사용자 정보를 가져오는데 실패했습니다.');
           }
         } else {
           console.log(
-            "[UserContext:useEffect:checkAuth] 로그인 상태 아님 (소셜X, 로컬 isLoggedinX). setUser(null) 호출 전"
+            '[UserContext:useEffect:checkAuth] 로그인 상태 아님 (소셜X, 로컬 isLoggedinX). setUser(null) 호출 전'
           ); // 로그 추가
           setUser(null);
           console.log(
-            "[UserContext:useEffect:checkAuth] 로그인 상태 아님. setUser(null) 호출 후. user 상태:",
+            '[UserContext:useEffect:checkAuth] 로그인 상태 아님. setUser(null) 호출 후. user 상태:',
             null
           ); // 로그 추가
         }
       } catch (error) {
-        console.error("[UserContext:useEffect:checkAuth] 오류 발생:", error); // 로그 추가
+        console.error('[UserContext:useEffect:checkAuth] 오류 발생:', error); // 로그 추가
         console.log(
-          "[UserContext:useEffect:checkAuth] 오류 - setUser(null) 호출 전"
+          '[UserContext:useEffect:checkAuth] 오류 - setUser(null) 호출 전'
         ); // 로그 추가
         setUser(null);
         console.log(
-          "[UserContext:useEffect:checkAuth] 오류 - setUser(null) 호출 후. user 상태:",
+          '[UserContext:useEffect:checkAuth] 오류 - setUser(null) 호출 후. user 상태:',
           null
         ); // 로그 추가
-        localStorage.removeItem("isLoggedIn"); // 오류 시에도 로그인 상태 제거
-        localStorage.removeItem("userRole"); // 오류 시 역할 정보도 제거
-        setError("인증 과정에서 오류가 발생했습니다.");
+        localStorage.removeItem('isLoggedIn'); // 오류 시에도 로그인 상태 제거
+        localStorage.removeItem('userRole'); // 오류 시 역할 정보도 제거
+        setError('인증 과정에서 오류가 발생했습니다.');
       } finally {
         console.log(
-          "[UserContext:useEffect:checkAuth] finally 블록 시작. setLoading(false) 호출 전"
+          '[UserContext:useEffect:checkAuth] finally 블록 시작. setLoading(false) 호출 전'
         ); // 로그 추가
         setLoading(false);
         console.log(
-          "[UserContext:useEffect:checkAuth] finally 블록 - setLoading(false) 호출 후. loading 상태:",
+          '[UserContext:useEffect:checkAuth] finally 블록 - setLoading(false) 호출 후. loading 상태:',
           false
         ); // 로그 추가
       }
@@ -311,9 +312,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [pathname, router]); // 의존성 배열은 그대로 유지
 
+  const mutate = async () => {
+    await fetchUserInfo();
+  };
+
   return (
     <UserContext.Provider
-      value={{ user, loading, error, logout, refreshUserInfo }}
+      value={{ user, loading, error, logout, refreshUserInfo, mutate }}
     >
       {children}
     </UserContext.Provider>
@@ -324,7 +329,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 export function useUser() {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider");
+    throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 }
