@@ -43,6 +43,10 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 logging:
   level:
     com.dd.blog: DEBUG
@@ -64,3 +68,14 @@ custom:
     cookieDomain: "${custom.dev.cookieDomain}"
     frontUrl: "${custom.dev.frontUrl}"
     backUrl: "${custom.dev.backUrl}"
+cloud:
+  aws:
+    s3:
+      bucket: braincleaner-images
+    credentials:
+      accessKey: ${cloud.aws.credentials.access-key}
+      secretKey: ${cloud.aws.credentials.secret-key}
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false

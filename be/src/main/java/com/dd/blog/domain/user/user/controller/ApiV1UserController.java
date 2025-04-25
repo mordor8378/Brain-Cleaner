@@ -25,6 +25,20 @@ public class ApiV1UserController {
     private final UserService userService;
     private final Rq rq;
 
+    @GetMapping("/check-email")
+    @Operation(summary = "이메일 중복 체크", description = "이메일 중복 여부를 확인합니다.")
+    public ResponseEntity<Map<String, Boolean>> checkEmailDuplicate(@RequestParam String email) {
+        boolean isDuplicate = userService.isEmailDuplicate(email);
+        return ResponseEntity.ok(Map.of("exists", isDuplicate));
+    }
+
+    @GetMapping("/check-nickname")
+    @Operation(summary = "닉네임 중복 체크", description = "닉네임 중복 여부를 확인합니다.")
+    public ResponseEntity<Map<String, Boolean>> checkNicknameDuplicate(@RequestParam String nickname) {
+        boolean isDuplicate = userService.isNicknameDuplicate(nickname);
+        return ResponseEntity.ok(Map.of("exists", isDuplicate));
+    }
+
     @PostMapping("/signup")
     @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
     public ResponseEntity<UserResponseDto> signup(@Valid @RequestBody SignUpRequestDto request) {

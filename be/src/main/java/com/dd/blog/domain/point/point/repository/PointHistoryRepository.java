@@ -1,6 +1,6 @@
-package com.dd.blog.domain.point.repository;
+package com.dd.blog.domain.point.point.repository;
 
-import com.dd.blog.domain.point.entity.PointHistory;
+import com.dd.blog.domain.point.point.entity.PointHistory;
 import com.dd.blog.domain.user.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
