@@ -52,12 +52,11 @@ public class ApiV1CommentController {
                     @ApiResponse(responseCode = "404", description = "해당 게시글 없음")
             }
     )
-    @PostMapping("/{postId}")
+    @PostMapping
     public ResponseEntity<CommentResponseDto> writeComment(
-            @PathVariable Long postId,
             @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody CommentRequestDto commentRequestDto){
-        CommentResponseDto postComment = commentService.writeComment(postId, commentRequestDto, user.getId());
+        CommentResponseDto postComment = commentService.writeComment(commentRequestDto.getPostId(), commentRequestDto, user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(postComment);
     }
 

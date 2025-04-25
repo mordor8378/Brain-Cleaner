@@ -10,9 +10,11 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -43,13 +45,15 @@ public class ApiV1PostController {
                     @ApiResponse(responseCode = "404", description = "해당 카테고리 없음")
             }
     )
-    @PostMapping("/category/{categoryId}")
+    @PostMapping
     public ResponseEntity<PostResponseDto> createPost(
-            @Parameter(description = "카테고리 ID", required = true) @PathVariable("categoryId") Long categoryId,
-            @Valid @RequestPart PostRequestDto postRequestDto,
-            @RequestPart(value = "postImage", required = false) MultipartFile postImage,
-            @AuthenticationPrincipal SecurityUser user) throws IOException {
-        PostResponseDto responseDto = postService.createPost(categoryId, user.getId(),postRequestDto, postImage);
+            @Valid @RequestBody PostRequestDto postRequestDto,
+            @AuthenticationPrincipal SecurityUser user){
+        PostResponseDto responseDto = postService.createPost(
+                postRequestDto.getCategoryId(),
+                user.getId(),
+                postRequestDto
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 
