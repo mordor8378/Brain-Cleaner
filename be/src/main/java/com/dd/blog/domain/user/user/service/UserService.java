@@ -27,6 +27,22 @@ public class UserService {
     private final AuthTokenService authTokenService;
 
     /**
+     * 이메일 중복 체크
+     */
+    @Transactional(readOnly = true)
+    public boolean isEmailDuplicate(String email) {
+        return userRepository.findByEmail(email).isPresent();
+    }
+
+    /**
+     * 닉네임 중복 체크
+     */
+    @Transactional(readOnly = true)
+    public boolean isNicknameDuplicate(String nickname) {
+        return userRepository.findByNickname(nickname).isPresent();
+    }
+
+    /**
      * 회원가입
      */
     @Transactional
