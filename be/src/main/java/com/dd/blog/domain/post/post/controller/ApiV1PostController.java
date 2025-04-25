@@ -18,7 +18,9 @@ import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -171,8 +173,9 @@ public class ApiV1PostController {
     @PatchMapping("/{postId}")  // 인라인 수정방식(부분 수정 위해)
     public ResponseEntity<PostResponseDto> updatePost(
             @Parameter(description = "게시글 ID", required = true) @PathVariable Long postId,
-            @Valid @RequestBody PostPatchRequestDto postPatchRequestDto){
-        PostResponseDto responseDto = postService.updatePost(postId, postPatchRequestDto);
+            @Valid @RequestPart PostPatchRequestDto postPatchRequestDto,
+            @RequestPart(value = "postImage", required = false) MultipartFile postImage) throws IOException {
+        PostResponseDto responseDto = postService.updatePost(postId, postPatchRequestDto, postImage);
         return ResponseEntity.ok(responseDto);
     }
 

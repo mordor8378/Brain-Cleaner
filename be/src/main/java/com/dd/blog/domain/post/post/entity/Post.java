@@ -34,7 +34,7 @@ public class Post extends BaseEntity {
     @Column(name = "content", nullable = false, length=200)
     private String content;
 
-    @Column(name = "image_url", nullable = false, length=100)
+    @Column(name = "image_url", length=500)
     private String imageUrl;
 
     // 인기게시글 TOP5 위해 다시 추가
