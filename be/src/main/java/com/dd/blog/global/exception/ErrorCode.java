@@ -11,6 +11,7 @@ public enum ErrorCode {
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
     CANNOT_CHANGE_ADMIN_STATUS(HttpStatus.BAD_REQUEST, "관리자 계정의 상태는 변경 불가능합니다."),
     CANNOT_ChANGE_ADMIN_ROLE(HttpStatus.BAD_REQUEST, "관리자 계정의 등급은 변경 불가능합니다."),
+    CANNOT_REPORT_OWN_POST(HttpStatus.BAD_REQUEST, "본인의 게시글은 신고 불가능합니다."),
 
 
     // 401 UNAUTHORIZED
