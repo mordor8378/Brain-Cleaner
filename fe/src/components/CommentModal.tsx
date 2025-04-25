@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { Comment, CommentRequestDto } from "@/types/comment";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface CommentModalProps {
   postId: number;
@@ -33,6 +35,7 @@ export default function CommentModal({
   userId,
 }: CommentModalProps) {
   const { user } = useUser();
+  const router = useRouter();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [replyToId, setReplyToId] = useState<number | null>(null);
@@ -44,6 +47,8 @@ export default function CommentModal({
   const [profileImage, setProfileImage] = useState<string | null>(
     userProfileImage || null
   );
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   // 댓글 작성자의 프로필 이미지 저장 객체
   const [userProfileImages, setUserProfileImages] = useState<
@@ -60,6 +65,73 @@ export default function CommentModal({
       fetchUserProfile(userId, setProfileImage);
     }
   }, [userId, userProfileImage]);
+
+  // 팔로우 상태 확인
+  useEffect(() => {
+    if (userId && user && userId !== user.id) {
+      checkFollowStatus();
+    }
+  }, [userId, user]);
+
+  // 팔로우 상태 확인 함수
+  const checkFollowStatus = async () => {
+    if (!userId || !user) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:8090/api/v1/follows/check?followingId=${userId}`,
+        { credentials: "include" }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsFollowing(data.isFollowing);
+      }
+    } catch (error) {
+      console.error("팔로우 상태 확인 중 오류 발생:", error);
+    }
+  };
+
+  // 팔로우/언팔로우 토글 함수
+  const toggleFollow = async () => {
+    if (!userId || !user || userId === user.id) return;
+
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        // 언팔로우
+        const response = await fetch(
+          `http://localhost:8090/api/v1/follows/${userId}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+          }
+        );
+
+        if (response.ok) {
+          setIsFollowing(false);
+        }
+      } else {
+        // 팔로우
+        const response = await fetch(`http://localhost:8090/api/v1/follows`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ followingId: userId }),
+        });
+
+        if (response.ok) {
+          setIsFollowing(true);
+        }
+      }
+    } catch (error) {
+      console.error("팔로우 상태 변경 중 오류 발생:", error);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   // 사용자 프로필 이미지를 가져오는 함수
   const fetchUserProfile = async (
@@ -92,27 +164,52 @@ export default function CommentModal({
           credentials: "include",
         }
       );
+
       if (response.ok) {
         const data = await response.json();
-        setComments(data);
-        if (onUpdate) onUpdate(data.length);
+        console.log("원본 댓글 데이터:", data);
 
-        console.log("댓글 데이터:", data);
+        // 데이터 정제 및 타입 확인 - 모든 userId를 숫자로 변환
+        const processedData = data.map((comment: any) => {
+          // 백엔드에서 snake_case로 오는 필드를 처리 (user_id → userId)
+          const userId =
+            comment.user_id !== undefined
+              ? Number(comment.user_id)
+              : comment.userId !== undefined
+              ? Number(comment.userId)
+              : 0;
 
-        // 댓글 작성자들의 프로필 이미지 가져오기
-        if (data && data.length > 0) {
-          // 각 댓글의 userId를 먼저 확인해서 로깅합니다
           console.log(
-            "댓글 작성자 ID 목록:",
-            data.map((c: Comment) => ({ id: c.userId, type: typeof c.userId }))
+            `댓글 ID ${comment.id}의 userId 변환: ${
+              comment.user_id || comment.userId
+            } → ${userId}`
           );
 
+          return {
+            ...comment,
+            userId: isNaN(userId) ? 0 : userId, // NaN 방지
+            postId: comment.post_id || comment.postId, // post_id도 변환
+            parentId: comment.parent_id || comment.parentId, // parent_id도 변환
+            userNickname: comment.userNickname || "사용자",
+          };
+        });
+
+        console.log("처리된 댓글 데이터:", processedData);
+        setComments(processedData);
+        if (onUpdate) onUpdate(processedData.length);
+
+        // 댓글 작성자들의 프로필 이미지 가져오기
+        if (processedData && processedData.length > 0) {
+          // 유효한 userId만 필터링
           const uniqueUserIds = Array.from(
             new Set(
-              data
+              processedData
                 .filter(
                   (comment: Comment) =>
-                    comment.userId !== undefined && comment.userId !== null
+                    comment.userId !== undefined &&
+                    comment.userId !== null &&
+                    comment.userId !== 0 &&
+                    !isNaN(Number(comment.userId))
                 )
                 .map((comment: Comment) => Number(comment.userId))
             )
@@ -121,7 +218,22 @@ export default function CommentModal({
           console.log("필터링된 유니크 유저 IDs:", uniqueUserIds);
 
           if (uniqueUserIds.length > 0) {
-            await fetchCommenterProfiles(uniqueUserIds);
+            // 이미 프로필 이미지가 있는 유저를 제외하고 필요한 것만 가져오기
+            const userIdsToFetch = uniqueUserIds.filter(
+              (id) =>
+                !userProfileImages[id] ||
+                userProfileImages[id] === "/profile.png"
+            );
+
+            if (userIdsToFetch.length > 0) {
+              console.log(
+                "프로필 이미지를 가져올 유저 ID 목록:",
+                userIdsToFetch
+              );
+              await fetchCommenterProfiles(userIdsToFetch);
+            } else {
+              console.log("모든 유저의 프로필 이미지가 이미 캐시되어 있습니다");
+            }
           } else {
             console.log("프로필 이미지를 가져올 유저 ID가 없습니다");
           }
@@ -129,8 +241,9 @@ export default function CommentModal({
           console.log("댓글 데이터가 비어있습니다");
         }
 
-        return data;
+        return processedData;
       }
+      console.error("댓글 로드 응답 에러:", response.status);
       return [];
     } catch (error) {
       console.error("댓글 로드 중 오류:", error);
@@ -138,54 +251,77 @@ export default function CommentModal({
     }
   };
 
-  // 댓글 작성자들의 프로필 이미지 가져오기
+  // 댓글 작성자 프로필 이미지 가져오기
   const fetchCommenterProfiles = async (userIds: number[]) => {
-    console.log("프로필 이미지 가져오기 요청된 사용자 ID들:", userIds);
-
     try {
-      const promises = userIds.map((id) =>
-        fetch(`http://localhost:8090/api/v1/users/${id}`, {
-          credentials: "include",
-        })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((userData) => {
-            if (userData && userData.profileImageUrl) {
-              console.log(
-                `사용자 ID ${id}의 프로필 이미지 로드 성공:`,
-                userData.profileImageUrl
-              );
-              return { id, profileImageUrl: userData.profileImageUrl };
-            } else {
-              console.log(`사용자 ID ${id}에 대한 프로필 이미지 없음`);
-              return { id, profileImageUrl: null };
+      console.log("프로필 이미지 로드 시작. userIds:", userIds);
+
+      const profilePromises = userIds.map(async (userId) => {
+        if (!userId || isNaN(userId) || userId === 0) {
+          console.log(`유효하지 않은 userId 건너뜀: ${userId}`);
+          return null;
+        }
+
+        try {
+          console.log(`유저 ID ${userId}의 프로필 이미지 요청 중`);
+          // 프로필 정보를 가져오기 위한 API 요청 - 기본 사용자 API 엔드포인트 사용
+          const profileResponse = await fetch(
+            `http://localhost:8090/api/v1/users/${userId}`,
+            {
+              credentials: "include",
             }
-          })
-          .catch((err) => {
-            console.error(`사용자 ID ${id} 프로필 정보 가져오기 실패:`, err);
-            return { id, profileImageUrl: null };
-          })
-      );
+          );
 
-      const userDataResults = await Promise.all(promises);
-      const newProfileImages: Record<number, string | null> = {};
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+            console.log(
+              `유저 ID ${userId}의 프로필 데이터 로드 성공:`,
+              profileData
+            );
 
-      userDataResults.forEach((result) => {
-        if (result && result.id) {
-          newProfileImages[result.id] = result.profileImageUrl;
+            // profileImageUrl 필드에서 이미지 URL 가져오기
+            const profileImageUrl = profileData.profileImageUrl || null;
+            console.log(
+              `유저 ID ${userId}의 프로필 이미지 URL:`,
+              profileImageUrl
+            );
+
+            return {
+              userId,
+              profileImage: profileImageUrl || "/profile.png",
+            };
+          } else {
+            console.error(
+              `유저 ID ${userId}의 프로필 로드 실패:`,
+              profileResponse.status
+            );
+            return { userId, profileImage: "/profile.png" };
+          }
+        } catch (error) {
+          console.error(`유저 ID ${userId}의 프로필 로드 중 오류:`, error);
+          return { userId, profileImage: "/profile.png" };
         }
       });
 
-      console.log("업데이트할 프로필 이미지:", newProfileImages);
+      const profiles = await Promise.all(profilePromises);
+      const validProfiles = profiles.filter(
+        (profile): profile is { userId: number; profileImage: string } =>
+          profile !== null && typeof profile === "object"
+      );
 
-      if (Object.keys(newProfileImages).length > 0) {
-        setUserProfileImages((prev) => {
-          const updatedImages = { ...prev, ...newProfileImages };
-          console.log("최종 프로필 이미지 상태:", updatedImages);
-          return updatedImages;
-        });
-      }
+      console.log("로드된 프로필 이미지:", validProfiles);
+
+      // 프로필 이미지 매핑 업데이트
+      const newProfileImageMap = { ...userProfileImages };
+
+      validProfiles.forEach((profile) => {
+        newProfileImageMap[profile.userId] = profile.profileImage;
+      });
+
+      console.log("업데이트된 프로필 이미지 맵:", newProfileImageMap);
+      setUserProfileImages(newProfileImageMap);
     } catch (error) {
-      console.error("댓글 작성자 프로필 이미지 가져오기 실패:", error);
+      console.error("프로필 이미지 로드 중 오류:", error);
     }
   };
 
@@ -230,26 +366,28 @@ export default function CommentModal({
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
 
-    const commentData: CommentRequestDto = {
+    // 백엔드 DTO의 JsonProperty 형식에 맞춰 snake_case로 파라미터 전송
+    const commentData = {
+      post_id: postId,
       content: newComment.trim(),
-      parentId: replyToId,
+      parent_id: replyToId,
     };
+
+    console.log("전송하는 댓글 데이터:", commentData);
 
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `http://localhost:8090/api/v1/comments/${postId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(commentData),
-        }
-      );
+      const response = await fetch(`http://localhost:8090/api/v1/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(commentData),
+      });
 
       if (response.ok) {
+        console.log("댓글 작성 성공!");
         setNewComment("");
         setReplyToId(null);
 
@@ -277,9 +415,11 @@ export default function CommentModal({
             const commentUserIds = data
               .filter(
                 (comment: Comment) =>
-                  comment.userId !== undefined && comment.userId !== null
+                  comment.userId !== undefined &&
+                  comment.userId !== null &&
+                  typeof comment.userId === "number"
               )
-              .map((comment: Comment) => Number(comment.userId));
+              .map((comment: Comment) => comment.userId);
 
             // 누락된 프로필 이미지만 다시 가져오기
             const missingUserIds = commentUserIds.filter(
@@ -292,6 +432,23 @@ export default function CommentModal({
             }
           }
         }, 500);
+      } else {
+        // 에러 응답 로깅 추가
+        const errorText = await response.text();
+        console.error("댓글 작성 실패:", response.status, errorText);
+
+        // 상태 코드에 따른 오류 메시지 표시
+        if (response.status === 404) {
+          console.error("게시글을 찾을 수 없습니다.");
+        } else if (response.status === 400) {
+          console.error("댓글 내용이 유효하지 않습니다.");
+        } else if (response.status === 401) {
+          console.error("로그인이 필요합니다.");
+        } else if (response.status === 500) {
+          console.error(
+            "서버 내부 오류가 발생했습니다. 관리자에게 문의하세요."
+          );
+        }
       }
     } catch (error) {
       console.error("댓글 작성 중 오류:", error);
@@ -421,6 +578,32 @@ export default function CommentModal({
     setCurrentImageIndex(index);
   };
 
+  // 유저 프로필 페이지로 이동하는 함수
+  const navigateToUserProfile = (userId: number | string | undefined) => {
+    if (userId === undefined || userId === null) {
+      console.error("사용자 ID가 없습니다.");
+      return;
+    }
+
+    // userId가 문자열인 경우 숫자로 변환 시도
+    const numericUserId =
+      typeof userId === "string" ? parseInt(userId, 10) : userId;
+
+    // 유효한 숫자인지 확인
+    if (isNaN(Number(numericUserId))) {
+      console.error("유효하지 않은 사용자 ID:", userId);
+      return;
+    }
+
+    console.log(`프로필로 이동: /profile/${numericUserId}`);
+
+    // 먼저 모달을 닫고
+    onClose();
+
+    // 새 창에서 프로필 페이지 열기 (모달 닫는 과정에서 생기는 문제 방지)
+    window.open(`/profile/${numericUserId}`, "_blank");
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
@@ -536,34 +719,55 @@ export default function CommentModal({
           } flex flex-col bg-white`}
         >
           {/* 헤더 */}
-          <div className="flex items-center p-3 border-b">
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
-              {profileImage ? (
-                <Image
-                  src={profileImage}
-                  alt={`${userNickname || "사용자"}의 프로필`}
-                  width={32}
-                  height={32}
-                  className="w-full h-full object-cover"
-                  unoptimized={true}
-                />
-              ) : (
-                <svg
-                  className="w-4 h-4 text-gray-500"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                    clipRule="evenodd"
+          <div className="flex items-center justify-between p-3 border-b">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                {profileImage ? (
+                  <Image
+                    src={profileImage}
+                    alt={`${userNickname || "사용자"}의 프로필`}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                    unoptimized={true}
                   />
-                </svg>
-              )}
+                ) : (
+                  <svg
+                    className="w-4 h-4 text-gray-500"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </div>
+              <span className="ml-3 font-bold text-[14px] text-black hover:text-gray-900">
+                {userNickname}
+              </span>
             </div>
-            <span className="ml-3 font-bold text-[14px] text-black hover:text-gray-900">
-              {userNickname}
-            </span>
+            {userId && user && userId !== user.id && (
+              <button
+                onClick={toggleFollow}
+                disabled={followLoading}
+                className={`px-4 py-1.5 rounded text-sm font-bold ${
+                  isFollowing
+                    ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                    : "bg-[#F742CD] text-white hover:bg-pink-600"
+                } transition-colors ${
+                  followLoading ? "opacity-70 cursor-not-allowed" : ""
+                }`}
+              >
+                {followLoading
+                  ? "처리중..."
+                  : isFollowing
+                  ? "팔로우 취소"
+                  : "팔로우"}
+              </button>
+            )}
           </div>
 
           {/* 댓글 목록 */}
@@ -572,7 +776,10 @@ export default function CommentModal({
             <div className="p-3 border-b">
               <div className="flex space-x-3">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  <div
+                    className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
+                    onClick={() => userId && navigateToUserProfile(userId)}
+                  >
                     {profileImage ? (
                       <Image
                         src={profileImage}
@@ -599,7 +806,10 @@ export default function CommentModal({
                 </div>
                 <div className="flex-1 group">
                   <div className="flex items-baseline">
-                    <span className="font-bold text-[14px] text-black hover:text-gray-900">
+                    <span
+                      className="font-bold text-[14px] text-black hover:text-gray-900 cursor-pointer"
+                      onClick={() => userId && navigateToUserProfile(userId)}
+                    >
                       {userNickname}
                     </span>
                     {isOwnPost && !isEditingContent ? (
@@ -686,7 +896,10 @@ export default function CommentModal({
                     }`}
                   >
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                      <div
+                        className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
+                        onClick={() => navigateToUserProfile(comment.userId)}
+                      >
                         {userProfileImages[comment.userId] ? (
                           <Image
                             src={userProfileImages[comment.userId]!}
@@ -714,7 +927,12 @@ export default function CommentModal({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <span className="font-bold text-[14px] text-black hover:text-gray-900">
+                          <span
+                            className="font-bold text-[14px] text-black hover:text-gray-900 cursor-pointer"
+                            onClick={() =>
+                              navigateToUserProfile(comment.userId)
+                            }
+                          >
                             {comment.userNickname}
                           </span>
                           <span className="ml-2 text-[14px] text-gray-900">
@@ -776,6 +994,34 @@ export default function CommentModal({
               </div>
             )}
             <div className="flex items-center space-x-2">
+              {/* 현재 로그인한 사용자 프로필 이미지 */}
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  {user?.profileImage ? (
+                    <Image
+                      src={user.profileImage}
+                      alt={`${user.nickname || "사용자"}의 프로필`}
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover"
+                      unoptimized={true}
+                    />
+                  ) : (
+                    <svg
+                      className="w-4 h-4 text-gray-500"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </div>
+
               <button
                 onClick={() => setShowEmoji(!showEmoji)}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-md"
