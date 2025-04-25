@@ -14,4 +14,5 @@ public class PointItemResponseDto {
     private String description;  // 아이템 설명
     private int price;  // 아이템 가격(포인트 단위)
     private String imageUrl;  // 이미지 URL(아이템 미리보기용)
+    private String code; // 이모티콘 코드
 }
