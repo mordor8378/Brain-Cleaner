@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
-import { useUser } from '@/contexts/UserContext';
-import Link from 'next/link';
-import CommentModal from './CommentModal';
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { useUser } from "@/contexts/UserContext";
+import Link from "next/link";
+import CommentModal from "./CommentModal";
 
 export interface PostProps {
   postId: number;
@@ -24,6 +24,7 @@ export interface PostProps {
   onDelete?: (postId: number) => void;
   onCommentUpdate?: (count: number) => void;
   userProfileImage?: string | null;
+  viewCount?: number;
 }
 
 export default function Post({
@@ -46,6 +47,7 @@ export default function Post({
   onDelete,
   onCommentUpdate,
   userProfileImage,
+  viewCount,
 }: PostProps) {
   const { user } = useUser();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -70,18 +72,18 @@ export default function Post({
           const response = await fetch(
             `http://localhost:8090/api/v1/users/${userId}`,
             {
-              credentials: 'include',
+              credentials: "include",
             }
           );
 
           if (response.ok) {
             const userData = await response.json();
-            if (userData.profileImage) {
-              setProfileImage(userData.profileImage);
+            if (userData.profileImageUrl) {
+              setProfileImage(userData.profileImageUrl);
             }
           }
         } catch (error) {
-          console.error('프로필 이미지를 가져오는 중 오류 발생:', error);
+          console.error("프로필 이미지를 가져오는 중 오류 발생:", error);
         }
       };
 
@@ -90,11 +92,11 @@ export default function Post({
   }, [userId, userProfileImage]);
 
   useEffect(() => {
-    console.log('Post component rendered with id:', postId);
+    console.log("Post component rendered with id:", postId);
   }, [postId]);
 
   useEffect(() => {
-    console.log('Post verification data:', {
+    console.log("Post verification data:", {
       verificationImageUrl,
       detoxTime,
       content,
@@ -116,15 +118,15 @@ export default function Post({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isEditingTitle, isEditingContent, title, content]);
 
   const handleEditTitle = () => {
     if (user?.id !== userId) {
-      alert('자신의 게시글만 수정할 수 있습니다.');
+      alert("자신의 게시글만 수정할 수 있습니다.");
       return;
     }
     setIsEditingTitle(true);
@@ -133,7 +135,7 @@ export default function Post({
 
   const handleEditContent = () => {
     if (user?.id !== userId) {
-      alert('자신의 게시글만 수정할 수 있습니다.');
+      alert("자신의 게시글만 수정할 수 있습니다.");
       return;
     }
     setIsEditingContent(true);
@@ -142,8 +144,8 @@ export default function Post({
 
   const handleSaveTitle = async () => {
     if (!postId) {
-      console.error('Post ID is undefined');
-      setError('게시글 ID가 없습니다.');
+      console.error("Post ID is undefined");
+      setError("게시글 ID가 없습니다.");
       return;
     }
 
@@ -151,11 +153,11 @@ export default function Post({
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}`,
         {
-          method: 'PATCH',
+          method: "PATCH",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          credentials: 'include',
+          credentials: "include",
           body: JSON.stringify({
             title: editedTitle,
           }),
@@ -163,7 +165,7 @@ export default function Post({
       );
 
       if (!response.ok) {
-        throw new Error('게시글 수정에 실패했습니다.');
+        throw new Error("게시글 수정에 실패했습니다.");
       }
 
       setIsEditingTitle(false);
@@ -171,19 +173,19 @@ export default function Post({
         onUpdate();
       }
     } catch (error) {
-      console.error('Error updating post:', error);
+      console.error("Error updating post:", error);
       setError(
         error instanceof Error
           ? error.message
-          : '게시글 수정 중 오류가 발생했습니다.'
+          : "게시글 수정 중 오류가 발생했습니다."
       );
     }
   };
 
   const handleSaveContent = async () => {
     if (!postId) {
-      console.error('Post ID is undefined');
-      setError('게시글 ID가 없습니다.');
+      console.error("Post ID is undefined");
+      setError("게시글 ID가 없습니다.");
       return;
     }
 
@@ -191,11 +193,11 @@ export default function Post({
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}`,
         {
-          method: 'PATCH',
+          method: "PATCH",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          credentials: 'include',
+          credentials: "include",
           body: JSON.stringify({
             content: editedContent,
           }),
@@ -203,7 +205,7 @@ export default function Post({
       );
 
       if (!response.ok) {
-        throw new Error('게시글 수정에 실패했습니다.');
+        throw new Error("게시글 수정에 실패했습니다.");
       }
 
       setIsEditingContent(false);
@@ -211,18 +213,18 @@ export default function Post({
         onUpdate();
       }
     } catch (error) {
-      console.error('Error updating post:', error);
+      console.error("Error updating post:", error);
       setError(
         error instanceof Error
           ? error.message
-          : '게시글 수정 중 오류가 발생했습니다.'
+          : "게시글 수정 중 오류가 발생했습니다."
       );
     }
   };
 
   // 시간 경과 표시 함수
   const getTimeAgo = (dateString: string) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -234,7 +236,7 @@ export default function Post({
     if (days > 0) return `${days}일 전`;
     if (hours > 0) return `${hours}시간 전`;
     if (minutes > 0) return `${minutes}분 전`;
-    return '방금 전';
+    return "방금 전";
   };
 
   // 댓글 모달이 닫힐 때 댓글 수 업데이트
@@ -264,6 +266,7 @@ export default function Post({
                 width={32}
                 height={32}
                 className="rounded-full object-cover w-8 h-8"
+                unoptimized={true}
               />
             ) : (
               <div className="bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center">
@@ -312,7 +315,7 @@ export default function Post({
               </span>
             </div>
             <div className="group">
-              {(user?.id === userId || user?.role === 'ROLE_ADMIN') &&  (
+              {(user?.id === userId || user?.role === "ROLE_ADMIN") && (
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
@@ -345,7 +348,7 @@ export default function Post({
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
                 className="w-full text-lg font-semibold text-gray-900 focus:outline-none [caret-color:#F742CD] bg-transparent"
-                style={{ minHeight: 'inherit', height: 'auto' }}
+                style={{ minHeight: "inherit", height: "auto" }}
                 autoFocus
               />
             </h3>
@@ -390,7 +393,7 @@ export default function Post({
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
                 className="w-full text-sm text-gray-700 focus:outline-none [caret-color:#F742CD] resize-none bg-transparent overflow-hidden"
-                style={{ minHeight: 'inherit', height: 'auto' }}
+                style={{ minHeight: "inherit", height: "auto" }}
                 rows={1}
                 autoFocus
               />
@@ -407,7 +410,7 @@ export default function Post({
             <p className="text-sm text-gray-700 flex-1">
               {(() => {
                 if (
-                  typeof detoxTime === 'number' &&
+                  typeof detoxTime === "number" &&
                   !isNaN(detoxTime) &&
                   detoxTime > 0
                 ) {
@@ -415,7 +418,7 @@ export default function Post({
                 }
 
                 if (!content) {
-                  return '';
+                  return "";
                 }
 
                 return content;
@@ -477,7 +480,7 @@ export default function Post({
         <button
           onClick={() => (isLiked ? onUnlike(postId) : onLike(postId))}
           className={`flex items-center gap-1 group ${
-            isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'
+            isLiked ? "text-pink-500" : "text-gray-400 hover:text-pink-500"
           } transition-colors`}
         >
           {isLiked ? (
@@ -585,28 +588,28 @@ export default function Post({
           detoxTime={detoxTime}
           onImageUpdate={async (newImage) => {
             const formData = new FormData();
-            formData.append('image', newImage);
+            formData.append("image", newImage);
 
             try {
               const response = await fetch(
                 `http://localhost:8090/api/v1/posts/${postId}/image`,
                 {
-                  method: 'PATCH',
-                  credentials: 'include',
+                  method: "PATCH",
+                  credentials: "include",
                   body: formData,
                 }
               );
 
               if (!response.ok) {
-                throw new Error('이미지 업데이트 실패');
+                throw new Error("이미지 업데이트 실패");
               }
 
               if (onUpdate) {
                 onUpdate();
               }
             } catch (error) {
-              console.error('이미지 업데이트 중 오류:', error);
-              alert('이미지 업데이트에 실패했습니다.');
+              console.error("이미지 업데이트 중 오류:", error);
+              alert("이미지 업데이트에 실패했습니다.");
             }
           }}
         />

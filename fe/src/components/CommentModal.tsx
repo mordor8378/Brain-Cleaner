@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { useUser } from '@/contexts/UserContext';
-import { Comment, CommentRequestDto } from '@/types/comment';
-import Image from 'next/image';
+import { useState, useEffect, useRef } from "react";
+import { useUser } from "@/contexts/UserContext";
+import { Comment, CommentRequestDto } from "@/types/comment";
+import Image from "next/image";
 
 interface CommentModalProps {
   postId: number;
@@ -30,12 +30,12 @@ export default function CommentModal({
 }: CommentModalProps) {
   const { user } = useUser();
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [replyToId, setReplyToId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const [isEditingContent, setIsEditingContent] = useState(false);
-  const [editedContent, setEditedContent] = useState(postContent || '');
+  const [editedContent, setEditedContent] = useState(postContent || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 댓글 목록 불러오기
@@ -44,7 +44,7 @@ export default function CommentModal({
       const response = await fetch(
         `http://localhost:8090/api/v1/comments/${postId}`,
         {
-          credentials: 'include',
+          credentials: "include",
         }
       );
       if (response.ok) {
@@ -53,7 +53,7 @@ export default function CommentModal({
         if (onUpdate) onUpdate(data.length);
       }
     } catch (error) {
-      console.error('댓글 로드 중 오류:', error);
+      console.error("댓글 로드 중 오류:", error);
     }
   };
 
@@ -75,22 +75,22 @@ export default function CommentModal({
       const response = await fetch(
         `http://localhost:8090/api/v1/comments/${postId}`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          credentials: 'include',
+          credentials: "include",
           body: JSON.stringify(commentData),
         }
       );
 
       if (response.ok) {
-        setNewComment('');
+        setNewComment("");
         setReplyToId(null);
         await fetchComments();
       }
     } catch (error) {
-      console.error('댓글 작성 중 오류:', error);
+      console.error("댓글 작성 중 오류:", error);
     } finally {
       setIsLoading(false);
     }
@@ -102,8 +102,8 @@ export default function CommentModal({
       const response = await fetch(
         `http://localhost:8090/api/v1/comments/${commentId}`,
         {
-          method: 'DELETE',
-          credentials: 'include',
+          method: "DELETE",
+          credentials: "include",
         }
       );
 
@@ -111,13 +111,13 @@ export default function CommentModal({
         await fetchComments();
       }
     } catch (error) {
-      console.error('댓글 삭제 중 오류:', error);
+      console.error("댓글 삭제 중 오류:", error);
     }
   };
 
   // 시간 경과 표시 함수 수정
   const getTimeAgo = (dateString: string | undefined) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
 
     const date = new Date(dateString);
     const now = new Date();
@@ -130,7 +130,7 @@ export default function CommentModal({
     if (days > 0) return `${days}일`;
     if (hours > 0) return `${hours}시간`;
     if (minutes > 0) return `${minutes}분`;
-    return '방금';
+    return "방금";
   };
 
   // 게시글 수정 함수
@@ -143,11 +143,11 @@ export default function CommentModal({
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}`,
         {
-          method: 'PATCH',
+          method: "PATCH",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          credentials: 'include',
+          credentials: "include",
           body: JSON.stringify({
             content: editedContent,
           }),
@@ -155,7 +155,7 @@ export default function CommentModal({
       );
 
       if (!response.ok) {
-        throw new Error('게시글 수정에 실패했습니다.');
+        throw new Error("게시글 수정에 실패했습니다.");
       }
 
       setIsEditingContent(false);
@@ -163,7 +163,7 @@ export default function CommentModal({
         onUpdate(comments.length);
       }
     } catch (error) {
-      console.error('Error updating post:', error);
+      console.error("Error updating post:", error);
     }
   };
 
@@ -233,7 +233,7 @@ export default function CommentModal({
         {/* 오른쪽: 댓글 영역 */}
         <div
           className={`${
-            postImage ? 'w-[50%]' : 'w-full'
+            postImage ? "w-[50%]" : "w-full"
           } flex flex-col bg-white`}
         >
           {/* 헤더 */}
@@ -320,7 +320,7 @@ export default function CommentModal({
                           <button
                             onClick={() => {
                               setIsEditingContent(false);
-                              setEditedContent(postContent || '');
+                              setEditedContent(postContent || "");
                             }}
                             className="text-sm text-gray-500 hover:text-gray-700"
                           >
@@ -361,7 +361,7 @@ export default function CommentModal({
                   <div
                     key={comment.id}
                     className={`flex space-x-3 ${
-                      comment.parentId ? 'ml-8' : ''
+                      comment.parentId ? "ml-8" : ""
                     }`}
                   >
                     <div className="flex-shrink-0">
@@ -388,7 +388,7 @@ export default function CommentModal({
                           <span className="ml-2 text-[14px] text-gray-900">
                             {(() => {
                               if (
-                                typeof comment.detoxTime === 'number' &&
+                                typeof comment.detoxTime === "number" &&
                                 !isNaN(comment.detoxTime) &&
                                 comment.detoxTime > 0
                               ) {
@@ -396,7 +396,7 @@ export default function CommentModal({
                               }
 
                               if (!comment.content) {
-                                return '';
+                                return "";
                               }
 
                               return comment.content;
@@ -469,7 +469,7 @@ export default function CommentModal({
                 placeholder="댓글 달기..."
                 className="flex-1 text-sm text-black border-none focus:ring-0 focus:outline-none min-h-[36px] py-1 placeholder-gray-400 [caret-color:#F742CD] rounded-sm"
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSubmitComment();
                   }
@@ -480,8 +480,8 @@ export default function CommentModal({
                 disabled={isLoading || !newComment.trim()}
                 className={`text-sm font-semibold px-2 rounded-sm ${
                   isLoading || !newComment.trim()
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : 'text-[#F742CD] hover:text-pink-600'
+                    ? "text-gray-300 cursor-not-allowed"
+                    : "text-[#F742CD] hover:text-pink-600"
                 }`}
               >
                 게시

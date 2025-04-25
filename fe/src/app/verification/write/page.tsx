@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@/contexts/UserContext';
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/contexts/UserContext";
 
 interface VerificationWritePageProps {
   onClose?: () => void;
@@ -32,14 +32,14 @@ export default function VerificationWritePage({
 }: VerificationWritePageProps = {}) {
   const router = useRouter();
   const { user } = useUser();
-  const [category, setCategory] = useState('1'); // 인증=1, 정보공유=2, 자유=3
+  const [category, setCategory] = useState("1"); // 인증=1, 정보공유=2, 자유=3
   const [detoxTime, setDetoxTime] = useState<number>(0);
-  const [imageUrl, setImageUrl] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Verification post data:', {
+    if (process.env.NODE_ENV === "development") {
+      console.log("Verification post data:", {
         imageUrl,
         detoxTime,
       });
@@ -50,7 +50,7 @@ export default function VerificationWritePage({
     if (onClose) {
       onClose();
     } else {
-      router.push('/');
+      router.push("/");
     }
   };
 
@@ -83,14 +83,14 @@ export default function VerificationWritePage({
 
   const handleSubmit = async () => {
     if (!imageUrl || detoxTime <= 0) {
-      alert('휴대폰 이용시간 캡쳐와 디톡스 시간을 모두 입력해야 합니다.');
+      alert("휴대폰 이용시간 캡쳐와 디톡스 시간을 모두 입력해야 합니다.");
       return;
     }
 
     const userId = user?.id || 1;
     const verificationPost: VerificationPost = {
       userId,
-      title: '도파민 디톡스 인증',
+      title: "도파민 디톡스 인증",
       content: detoxTime.toString(), // 기존 동작 유지를 위해 문자열로 변환
       imageUrl,
       detoxTime,
@@ -100,15 +100,15 @@ export default function VerificationWritePage({
       const postResponse = await fetch(
         `http://localhost:8090/api/v1/posts/category/${category}`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(verificationPost),
-          credentials: 'include',
+          credentials: "include",
         }
       );
 
       if (!postResponse.ok) {
-        throw new Error('게시글 등록에 실패했습니다');
+        throw new Error("게시글 등록에 실패했습니다");
       }
 
       // 게시글 등록 응답에서 postId를 추출
@@ -120,39 +120,39 @@ export default function VerificationWritePage({
         postId: postId,
         userId: userId,
         detoxTime: detoxTime,
-        status: 'PENDING' // 기본 상태
+        status: "PENDING", // 기본 상태
       };
 
       const verificationResponse = await fetch(
-        'http://localhost:8090/api/v1/verifications',
+        "http://localhost:8090/api/v1/verifications",
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(verificationRequest),
-          credentials: 'include',
+          credentials: "include",
         }
       );
 
       if (!verificationResponse.ok) {
-        console.error('인증 등록 실패:', await verificationResponse.text());
+        console.error("인증 등록 실패:", await verificationResponse.text());
         // 인증 등록은 실패해도 게시글은 등록
-        alert('게시글은 등록되었으나 인증 정보 등록에 실패했습니다');
+        alert("게시글은 등록되었으나 인증 정보 등록에 실패했습니다");
       } else {
-        alert('인증 게시글 등록 완료!');
+        alert("인증 게시글 등록 완료!");
       }
 
       if (onSuccess) {
         onSuccess();
       }
-      
+
       if (onClose) {
         onClose();
       } else {
-        router.push('/');
+        router.push("/");
       }
     } catch (error) {
-      console.error('인증 게시글 등록 중 오류:', error);
-      alert('등록 실패: ' + (error as Error).message);
+      console.error("인증 게시글 등록 중 오류:", error);
+      alert("등록 실패: " + (error as Error).message);
     }
   };
 
@@ -220,7 +220,7 @@ export default function VerificationWritePage({
           <div className="space-y-3">
             <div>
               <p className="font-bold text-gray-900">
-                {user?.nickname || 'username'}
+                {user?.nickname || "username"}
               </p>
             </div>
             <div className="flex items-center">
@@ -270,7 +270,7 @@ export default function VerificationWritePage({
                   className="w-full rounded-lg"
                 />
                 <button
-                  onClick={() => setImageUrl('')}
+                  onClick={() => setImageUrl("")}
                   className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1"
                 >
                   <svg

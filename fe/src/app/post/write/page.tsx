@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@/contexts/UserContext';
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/contexts/UserContext";
 
 interface WritePostPageProps {
   onClose?: () => void;
@@ -15,22 +15,22 @@ export default function WritePostPage({
   onClose,
   onSuccess,
   onCategoryChange,
-  initialCategory = '2',
+  initialCategory = "2",
 }: WritePostPageProps) {
   const router = useRouter();
   const { user } = useUser();
-  const isAdmin = user?.role === 'ROLE_ADMIN';
+  const isAdmin = user?.role === "ROLE_ADMIN";
   const [category, setCategory] = useState(initialCategory);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const autoResizeTextarea = (textarea: HTMLTextAreaElement) => {
     if (!textarea) return;
-    textarea.style.height = '24px';
+    textarea.style.height = "24px";
     textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
@@ -52,12 +52,45 @@ export default function WritePostPage({
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // TODO: Implement actual file upload logic
-      // For now, just create a temporary URL
-      const tempUrl = URL.createObjectURL(file);
-      setImageUrl(tempUrl);
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+
+      // 파일 크기 제한 (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("파일 크기는 10MB를 초과할 수 없습니다.");
+        return;
+      }
+
+      // 이미지 파일 타입 체크
+      if (!file.type.startsWith("image/")) {
+        alert("이미지 파일만 업로드 가능합니다.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // S3 업로드 엔드포인트 사용
+      fetch("http://localhost:8090/api/v1/s3/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      })
+        .then((response) => {
+          if (response.ok) {
+            return response.text(); // 백엔드에서 문자열로 URL만 반환
+          }
+          throw new Error("이미지 업로드에 실패했습니다.");
+        })
+        .then((imageUrl) => {
+          console.log("Uploaded image URL:", imageUrl);
+          setImageUrl(imageUrl);
+        })
+        .catch((error) => {
+          console.error("Error uploading image:", error);
+          alert("이미지 업로드에 실패했습니다.");
+        });
     }
   };
 
@@ -72,42 +105,64 @@ export default function WritePostPage({
   const handleSubmit = async () => {
     // Validation
     if (!title || !content) {
-      alert('제목과 내용을 모두 입력해주세요.');
+      alert("제목과 내용을 모두 입력해주세요.");
       return;
     }
 
-    const userId = user?.id || 1; // Use actual user ID if available
-    const res = await fetch(
-      `http://localhost:8090/api/v1/posts/category/${category}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          title,
-          content,
-          imageUrl,
-        }),
-        credentials: 'include',
-      }
-    );
+    try {
+      // FormData 객체 생성
+      const formData = new FormData();
 
-    if (res.ok) {
-      alert('게시글 등록 완료!');
-      if (onSuccess) {
-        onSuccess();
+      // PostRequestDto 객체를 JSON 문자열로 변환 후 Blob으로 변환하여 추가
+      const postRequestDto = {
+        title,
+        content,
+        imageUrl,
+      };
+
+      // RequestPart로 전송하기 위해 JSON 문자열을 Blob으로 변환 후 첨부
+      const postRequestDtoBlob = new Blob([JSON.stringify(postRequestDto)], {
+        type: "application/json",
+      });
+      formData.append("postRequestDto", postRequestDtoBlob);
+
+      // 이미지가 있을 경우 파일 입력에서 직접 파일을 가져와 추가
+      if (
+        fileInputRef.current?.files &&
+        fileInputRef.current.files.length > 0
+      ) {
+        formData.append("postImage", fileInputRef.current.files[0]);
       }
-      if (onClose) {
-        onClose();
+
+      const res = await fetch(
+        `http://localhost:8090/api/v1/posts/category/${category}`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
+
+      if (res.ok) {
+        alert("게시글 등록 완료!");
+        if (onSuccess) {
+          onSuccess();
+        }
+        if (onClose) {
+          onClose();
+        } else {
+          router.push("/");
+        }
       } else {
-        router.push('/');
+        const errorText = await res.text();
+        console.error("게시글 등록 실패:", errorText);
+        alert(`등록 실패: ${res.status}`);
       }
-    } else {
-      alert('등록 실패');
+    } catch (error) {
+      console.error("게시글 등록 중 오류 발생:", error);
+      alert("게시글 등록 중 오류가 발생했습니다");
     }
   };
-
-
 
   return (
     <div className="w-full max-w-2xl bg-white rounded-md shadow-md min-h-[600px] max-h-[90vh] overflow-y-auto">
@@ -174,7 +229,7 @@ export default function WritePostPage({
           <div className="space-y-3">
             <div>
               <p className="font-bold text-gray-900">
-                {user?.nickname || 'username'}
+                {user?.nickname || "username"}
               </p>
             </div>
             <textarea
@@ -183,7 +238,7 @@ export default function WritePostPage({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="제목을 입력하세요"
               className={`w-full border-0 resize-none focus:outline-none placeholder:text-gray-500 py-1 text-black [caret-color:#F742CD] ${
-                title ? 'font-semibold' : 'font-normal'
+                title ? "font-semibold" : "font-normal"
               }`}
             />
             <div className="space-y-1">
@@ -192,9 +247,9 @@ export default function WritePostPage({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder={
-                  category === '2'
-                    ? '도파민 디톡스와 관련된 유용한 정보를 공유해주세요.'
-                    : '자유롭게 작성해주세요.'
+                  category === "2"
+                    ? "도파민 디톡스와 관련된 유용한 정보를 공유해주세요."
+                    : "자유롭게 작성해주세요."
                 }
                 className="w-full border-0 resize-none focus:outline-none placeholder:text-gray-500 py-1 text-black [caret-color:#F742CD]"
               />
@@ -233,7 +288,7 @@ export default function WritePostPage({
                   className="w-full rounded-lg"
                 />
                 <button
-                  onClick={() => setImageUrl('')}
+                  onClick={() => setImageUrl("")}
                   className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1"
                 >
                   <svg
