@@ -3,6 +3,7 @@ export interface PointItem {
   name: string;
   description: string;
   price: number;
+  code: string; // 이모지 코드 (예: ":zeus:")
   imageUrl: string;
 }
 
@@ -21,6 +22,7 @@ export interface PointItemPurchase {
   name: string;
   description: string;
   price: number;
+  code: string;
   imageUrl: string;
   purchasedAt: string;
 }

@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useUser } from "@/contexts/UserContext";
-import Link from "next/link";
-import Image from "next/image";
-import WritePostPage from "./post/write/page";
-import VerificationWritePage from "./verification/write/page";
-import Post from "@/components/Post";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useUser } from '@/contexts/UserContext';
+import Link from 'next/link';
+import WritePostPage from './post/write/page';
+import VerificationWritePage from './verification/write/page';
+import Post from '@/components/Post';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import Image from 'next/image';
+import { toast } from 'react-hot-toast';
 
 export interface Post {
   postId: number;
@@ -39,28 +39,24 @@ interface PostsResponse {
 
 export default function Home() {
   const { user, loading } = useUser();
-  const [selectedBoard, setSelectedBoard] = useState("0");
+  const [selectedBoard, setSelectedBoard] = useState('0');
   const [showWriteModal, setShowWriteModal] = useState(false);
-  const [writeCategory, setWriteCategory] = useState("2");
-  const [searchType, setSearchType] = useState("title");
-  const [searchKeyword, setSearchKeyword] = useState("");
-  const [sortType, setSortType] = useState<"latest" | "popular">("latest");
+  const [writeCategory, setWriteCategory] = useState('2');
+  const [searchType, setSearchType] = useState('title');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [sortType, setSortType] = useState<'latest' | 'popular'>('latest');
   const [followStats, setFollowStats] = useState({
     followers: 0,
     following: 0,
   });
   const [streakDays, setStreakDays] = useState(0);
-  const [userLevel, setUserLevel] = useState("디톡스새싹");
-  const [nextLevel, setNextLevel] = useState("절제수련생");
+  const [userLevel, setUserLevel] = useState('디톡스새싹');
+  const [nextLevel, setNextLevel] = useState('절제수련생');
   const [nextLevelPoints, setNextLevelPoints] = useState(100);
   const [maxProgressPoints, setMaxProgressPoints] = useState(100);
   const [topPosts, setTopPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
-  const [currentModalImageIndex, setCurrentModalImageIndex] = useState(0);
-  const [parsedModalImageUrls, setParsedModalImageUrls] = useState<string[]>(
-    []
-  );
   const [weeklyVerifications, setWeeklyVerifications] = useState<string[]>([]);
 
   // QueryClient 인스턴스 -> 캐시 조작용
@@ -70,18 +66,17 @@ export default function Home() {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   const boardOptions = [
-    { value: "0", label: "전체게시판" },
-    { value: "1", label: "인증게시판" },
-    { value: "2", label: "정보공유게시판" },
-    { value: "3", label: "자유게시판" },
-    { value: "4", label: "공지사항" },
+    { value: '0', label: '전체게시판' },
+    { value: '1', label: '인증게시판' },
+    { value: '2', label: '정보공유게시판' },
+    { value: '3', label: '자유게시판' },
   ];
 
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
     const categoryParam =
-      selectedBoard === "0" ? "" : `&categoryId=${selectedBoard}`;
+      selectedBoard === '0' ? '' : `&categoryId=${selectedBoard}`;
     const sortParam =
-      sortType === "popular" ? "&sort=likeCount,desc" : "&sort=createdAt,desc";
+      sortType === 'popular' ? '&sort=likeCount,desc' : '&sort=createdAt,desc';
 
     let url = `http://localhost:8090/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
 
@@ -92,9 +87,11 @@ export default function Home() {
       )}&page=${pageParam}&size=10${sortParam}`;
     }
 
-    console.log("요청 URL:", url);
+    console.log('요청 URL:', url);
 
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      credentials: 'include',
+    });
 
     if (!response.ok) {
       throw new Error(`게시글 로드 실패: ${response.status}`);
@@ -102,26 +99,26 @@ export default function Home() {
 
     // 게시글 데이터 받기
     const data = await response.json();
-    console.log("=== 게시글 API 응답 데이터 ===");
-    console.log("전체 데이터:", data);
+    console.log('=== 게시글 API 응답 데이터 ===');
+    console.log('전체 데이터:', data);
 
-    // 게시글 처리를 위한 배열 추출
-    let postsToProcess = [];
-    if (Array.isArray(data)) {
-      postsToProcess = data;
-    } else if (data.content && Array.isArray(data.content)) {
-      postsToProcess = data.content;
-    }
-
-    // 사용자가 로그인한 경우에만 좋아요 상태와 사용자 프로필 이미지 가져오기
+    // 각 게시글의 좋아요 상태 가져오기 (로그인한 경우에만)
     if (user?.id) {
       try {
+        let postsToProcess = [];
+
+        if (Array.isArray(data)) {
+          postsToProcess = data;
+        } else if (data.content && Array.isArray(data.content)) {
+          postsToProcess = data.content;
+        }
+
         // 게시글별 좋아요 상태 확인을 위한 API 호출
         const likeStatusPromises = postsToProcess.map((post: Post) =>
           fetch(
             `http://localhost:8090/api/v1/posts/${post.postId}/like/check`,
             {
-              credentials: "include",
+              credentials: 'include',
             }
           )
             .then((res) => {
@@ -131,55 +128,30 @@ export default function Home() {
             .catch(() => ({ liked: false }))
         );
 
-        // 작성자 프로필 이미지 가져오기 위한 API 호출
-        const userProfilePromises = postsToProcess.map((post: Post) =>
-          fetch(`http://localhost:8090/api/v1/users/${post.userId}`, {
-            credentials: "include",
-          })
-            .then((res) => {
-              if (res.ok) return res.json();
-              return null;
-            })
-            .catch(() => null)
-        );
+        // 모든 좋아요 상태 요청 완료 대기
+        const likeStatuses = await Promise.all(likeStatusPromises);
 
-        // 모든 API 요청 완료 대기
-        const [likeStatuses, userProfiles] = await Promise.all([
-          Promise.all(likeStatusPromises),
-          Promise.all(userProfilePromises),
-        ]);
-
-        // 좋아요 상태와 프로필 이미지 정보 병합
+        // 좋아요 상태 정보 병합
         for (let i = 0; i < postsToProcess.length; i++) {
-          postsToProcess[i].likedByCurrentUser =
-            likeStatuses[i]?.liked || false;
-          if (userProfiles[i]) {
-            postsToProcess[i].userProfileImage =
-              userProfiles[i].profileImageUrl || null;
-          }
+          postsToProcess[i].likedByCurrentUser = likeStatuses[i].liked;
         }
 
-        console.log("업데이트된 게시글 데이터:", postsToProcess);
+        console.log('좋아요 상태 업데이트 후 게시글:', postsToProcess);
       } catch (error) {
-        console.error("게시글 정보 가져오기 실패:", error);
+        console.error('좋아요 상태 가져오기 실패:', error);
       }
     }
 
     if (Array.isArray(data)) {
       // 검색 결과가 배열인 경우 페이지네이션 객체 형태로 변환
       return {
-        content: postsToProcess,
+        content: data,
         pageable: {
           pageNumber: pageParam,
         },
         last: true, // 검색 결과는 한 번에 다 가져오므로 마지막 페이지로 설정
         number: pageParam,
       };
-    }
-
-    // 페이지네이션 데이터인 경우 content 필드만 업데이트
-    if (data.content) {
-      data.content = postsToProcess;
     }
 
     return data;
@@ -194,7 +166,7 @@ export default function Home() {
     isFetching,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["posts", selectedBoard, sortType, searchType, searchKeyword],
+    queryKey: ['posts', selectedBoard, sortType, searchType, searchKeyword],
     queryFn: fetchPosts,
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
@@ -208,7 +180,7 @@ export default function Home() {
       return;
     }
 
-    console.log("검색 요청:", {
+    console.log('검색 요청:', {
       type: searchType,
       keyword: searchKeyword,
     });
@@ -219,7 +191,7 @@ export default function Home() {
 
   // Enter 키 입력 시 검색 실행
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       e.preventDefault();
       handleSearch();
     }
@@ -227,8 +199,8 @@ export default function Home() {
 
   // 검색창 초기화
   const handleSearchReset = () => {
-    setSearchType("title");
-    setSearchKeyword("");
+    setSearchType('title');
+    setSearchKeyword('');
     refetch();
   };
 
@@ -243,7 +215,7 @@ export default function Home() {
 
       observerRef.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && hasNextPage) {
-          console.log("마지막 게시글 감지, 다음 페이지 로드");
+          console.log('마지막 게시글 감지, 다음 페이지 로드');
           fetchNextPage();
         }
       });
@@ -273,13 +245,13 @@ export default function Home() {
             fetch(
               `http://localhost:8090/api/v1/follows/${user.id}/followers/number`,
               {
-                credentials: "include",
+                credentials: 'include',
               }
             ),
             fetch(
               `http://localhost:8090/api/v1/follows/${user.id}/followings/number`,
               {
-                credentials: "include",
+                credentials: 'include',
               }
             ),
           ]);
@@ -290,7 +262,7 @@ export default function Home() {
             setFollowStats({ followers, following });
           }
         } catch (error) {
-          console.error("Error fetching follow stats:", error);
+          console.error('Error fetching follow stats:', error);
         }
       };
 
@@ -301,9 +273,9 @@ export default function Home() {
         try {
           // 주간 인증 현황 조회
           const weeklyResponse = await fetch(
-            "http://localhost:8090/api/v1/verifications/weekly",
+            'http://localhost:8090/api/v1/verifications/weekly',
             {
-              credentials: "include",
+              credentials: 'include',
             }
           );
 
@@ -314,9 +286,9 @@ export default function Home() {
 
           // 연속 인증 일수 조회
           const streakResponse = await fetch(
-            "http://localhost:8090/api/v1/verifications/streak",
+            'http://localhost:8090/api/v1/verifications/streak',
             {
-              credentials: "include",
+              credentials: 'include',
             }
           );
 
@@ -324,9 +296,9 @@ export default function Home() {
             const streakData = await streakResponse.json();
             setStreakDays(streakData);
           }
-          console.log("주간/연속 인증 현황 조회 완료");
+          console.log('주간/연속 인증 현황 조회 완료');
         } catch (error) {
-          console.error("인증 현황 조회 중 오류:", error);
+          console.error('인증 현황 조회 중 오류:', error);
         }
       };
 
@@ -335,33 +307,33 @@ export default function Home() {
         const totalPoint = user.totalPoint || 0;
 
         if (totalPoint >= 7500) {
-          setUserLevel("브레인클리너");
-          setNextLevel("최고 등급");
+          setUserLevel('브레인클리너');
+          setNextLevel('최고 등급');
           setNextLevelPoints(0);
           setMaxProgressPoints(7500);
         } else if (totalPoint >= 4500) {
-          setUserLevel("도파민파괴자");
-          setNextLevel("브레인클리너");
+          setUserLevel('도파민파괴자');
+          setNextLevel('브레인클리너');
           setNextLevelPoints(7500 - totalPoint);
           setMaxProgressPoints(3000); // 7500 - 4500
         } else if (totalPoint >= 2000) {
-          setUserLevel("선명한의식");
-          setNextLevel("도파민파괴자");
+          setUserLevel('선명한의식');
+          setNextLevel('도파민파괴자');
           setNextLevelPoints(4500 - totalPoint);
           setMaxProgressPoints(2500); // 4500 - 2000
         } else if (totalPoint >= 600) {
-          setUserLevel("집중탐험가");
-          setNextLevel("선명한의식");
+          setUserLevel('집중탐험가');
+          setNextLevel('선명한의식');
           setNextLevelPoints(2000 - totalPoint);
           setMaxProgressPoints(1400); // 2000 - 600
         } else if (totalPoint >= 100) {
-          setUserLevel("절제수련생");
-          setNextLevel("집중탐험가");
+          setUserLevel('절제수련생');
+          setNextLevel('집중탐험가');
           setNextLevelPoints(600 - totalPoint);
           setMaxProgressPoints(500); // 600 - 100
         } else {
-          setUserLevel("디톡스새싹");
-          setNextLevel("절제수련생");
+          setUserLevel('디톡스새싹');
+          setNextLevel('절제수련생');
           setNextLevelPoints(100 - totalPoint);
           setMaxProgressPoints(100);
         }
@@ -379,15 +351,15 @@ export default function Home() {
       try {
         // 더 많은 게시글을 가져와서 정렬하기 위해 size 증가
         const response = await fetch(
-          "http://localhost:8090/api/v1/posts/pageable?page=0&size=50&sort=likeCount,desc",
+          'http://localhost:8090/api/v1/posts/pageable?page=0&size=50&sort=likeCount,desc',
           {
-            credentials: "include",
+            credentials: 'include',
           }
         );
 
         if (response.ok) {
           const data = await response.json();
-          console.log("인기 게시글 원본 데이터:", data);
+          console.log('인기 게시글 원본 데이터:', data);
 
           // 좋아요 수가 많은 상위 5개 게시글 선택
           if (data.content && Array.isArray(data.content)) {
@@ -403,7 +375,7 @@ export default function Home() {
 
             // 정렬된 상위 5개 게시글 선택
             const top5Posts = sortedPosts.slice(0, 5);
-            console.log("정렬 후 상위 5개 게시글:", top5Posts);
+            console.log('정렬 후 상위 5개 게시글:', top5Posts);
 
             // 인기 게시글의 좋아요 상태 확인 (로그인한 경우에만)
             if (user?.id) {
@@ -413,7 +385,7 @@ export default function Home() {
                   fetch(
                     `http://localhost:8090/api/v1/posts/${post.postId}/like/check`,
                     {
-                      credentials: "include",
+                      credentials: 'include',
                     }
                   )
                     .then((res) => {
@@ -431,9 +403,9 @@ export default function Home() {
                   top5Posts[i].likedByCurrentUser = likeStatuses[i].liked;
                 }
 
-                console.log("좋아요 상태 업데이트 후 인기 게시글:", top5Posts);
+                console.log('좋아요 상태 업데이트 후 인기 게시글:', top5Posts);
               } catch (error) {
-                console.error("인기 게시글 좋아요 상태 가져오기 실패:", error);
+                console.error('인기 게시글 좋아요 상태 가져오기 실패:', error);
               }
             }
 
@@ -441,12 +413,12 @@ export default function Home() {
           }
         } else {
           console.error(
-            "인기 게시글을 가져오는데 실패했습니다:",
+            '인기 게시글을 가져오는데 실패했습니다:',
             response.status
           );
         }
       } catch (error) {
-        console.error("인기 게시글 조회 중 오류:", error);
+        console.error('인기 게시글 조회 중 오류:', error);
       }
     };
 
@@ -459,7 +431,7 @@ export default function Home() {
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}`,
         {
-          credentials: "include",
+          credentials: 'include',
         }
       );
 
@@ -472,7 +444,7 @@ export default function Home() {
             const likeStatusResponse = await fetch(
               `http://localhost:8090/api/v1/posts/${postId}/like/check`,
               {
-                credentials: "include",
+                credentials: 'include',
               }
             );
 
@@ -481,87 +453,29 @@ export default function Home() {
               data.likedByCurrentUser = likeStatus.liked;
             }
           } catch (error) {
-            console.error("좋아요 상태 확인 중 오류:", error);
+            console.error('좋아요 상태 확인 중 오류:', error);
           }
         }
 
         setSelectedPost(data);
         setShowPostModal(true);
-
-        // 이미지 URL 파싱
-        parseImageUrls(data.imageUrl);
       } else {
-        toast.error("게시글을 불러오는데 실패했습니다.");
+        toast.error('게시글을 불러오는데 실패했습니다.');
       }
     } catch (error) {
-      console.error("게시글 조회 중 오류:", error);
-      toast.error("서버 연결에 실패했습니다.");
+      console.error('게시글 조회 중 오류:', error);
+      toast.error('서버 연결에 실패했습니다.');
     }
   };
-
-  // 이미지 URL 파싱 함수
-  const parseImageUrls = (imageUrl: string) => {
-    if (!imageUrl) {
-      setParsedModalImageUrls([]);
-      return;
-    }
-
-    try {
-      // JSON 형식으로 된 문자열인지 확인
-      if (imageUrl.startsWith("[") && imageUrl.endsWith("]")) {
-        const parsed = JSON.parse(imageUrl);
-        if (Array.isArray(parsed)) {
-          setParsedModalImageUrls(parsed);
-          setCurrentModalImageIndex(0);
-          return;
-        }
-      }
-      // 단일 URL 문자열인 경우
-      setParsedModalImageUrls([imageUrl]);
-      setCurrentModalImageIndex(0);
-    } catch (e) {
-      console.error("이미지 URL 파싱 오류:", e);
-      setParsedModalImageUrls([imageUrl]); // 파싱 실패 시 원본 URL을 사용
-      setCurrentModalImageIndex(0);
-    }
-  };
-
-  // 모달에서 이전 이미지로 이동
-  const handlePrevModalImage = (e: React.MouseEvent) => {
-    e.stopPropagation(); // 이벤트 버블링 방지
-    setCurrentModalImageIndex((prev) =>
-      prev === 0 ? parsedModalImageUrls.length - 1 : prev - 1
-    );
-  };
-
-  // 모달에서 다음 이미지로 이동
-  const handleNextModalImage = (e: React.MouseEvent) => {
-    e.stopPropagation(); // 이벤트 버블링 방지
-    setCurrentModalImageIndex((prev) =>
-      prev === parsedModalImageUrls.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  // 특정 이미지로 직접 이동
-  const goToModalImage = (index: number) => {
-    setCurrentModalImageIndex(index);
-  };
-
-  // 모달이 열릴 때마다 이미지 URL 파싱
-  useEffect(() => {
-    if (showPostModal && selectedPost) {
-      parseImageUrls(selectedPost.imageUrl);
-    }
-  }, [showPostModal, selectedPost]);
 
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    console.log("선택된 카테고리:", e.target.value); // 카테고리 변경 확인용 로그
+    console.log('선택된 카테고리:', e.target.value); // 카테고리 변경 확인용 로그
     setSelectedBoard(e.target.value);
   };
 
   const openWriteModal = () => {
     setShowWriteModal(true);
-    setWriteCategory("2"); // 기본값으로 정보공유게시판 설정
+    setWriteCategory('2'); // 기본값으로 정보공유게시판 설정
   };
 
   const closeWriteModal = () => {
@@ -578,18 +492,18 @@ export default function Home() {
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}/like`,
         {
-          method: "POST",
-          credentials: "include",
+          method: 'POST',
+          credentials: 'include',
         }
       );
 
       if (response.ok) {
         const data = await response.json();
-        console.log("좋아요 응답:", data);
+        console.log('좋아요 응답:', data);
 
         // React Query 캐시 직접 업데이트
         queryClient.setQueryData<{ pages: PostsResponse[] }>(
-          ["posts", selectedBoard, sortType, searchType, searchKeyword],
+          ['posts', selectedBoard, sortType, searchType, searchKeyword],
           (oldData) => {
             if (!oldData) return oldData;
 
@@ -614,7 +528,7 @@ export default function Home() {
         );
       }
     } catch (error) {
-      console.error("좋아요 처리 중 오류:", error);
+      console.error('좋아요 처리 중 오류:', error);
     }
   };
 
@@ -623,8 +537,8 @@ export default function Home() {
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}/like`,
         {
-          method: "DELETE",
-          credentials: "include",
+          method: 'DELETE',
+          credentials: 'include',
         }
       );
 
@@ -633,7 +547,7 @@ export default function Home() {
 
         // React Query 캐시 직접 업데이트
         queryClient.setQueryData<{ pages: PostsResponse[] }>(
-          ["posts", selectedBoard, sortType, searchType, searchKeyword],
+          ['posts', selectedBoard, sortType, searchType, searchKeyword],
           (oldData) => {
             if (!oldData) return oldData;
 
@@ -643,7 +557,7 @@ export default function Home() {
                 ...page,
                 content: page.content.map((post) => {
                   if (post.postId === postId) {
-                    console.log("좋아요 취소:", {
+                    console.log('좋아요 취소:', {
                       이전: {
                         likeCount: post.likeCount,
                         likedByCurrentUser: post.likedByCurrentUser,
@@ -667,12 +581,12 @@ export default function Home() {
           }
         );
       } else {
-        console.error("좋아요 취소 실패:", response.status);
+        console.error('좋아요 취소 실패:', response.status);
         const errorText = await response.text();
-        console.error("에러 내용:", errorText);
+        console.error('에러 내용:', errorText);
       }
     } catch (error) {
-      console.error("좋아요 취소 중 오류:", error);
+      console.error('좋아요 취소 중 오류:', error);
     }
   };
 
@@ -682,15 +596,15 @@ export default function Home() {
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}`,
         {
-          method: "DELETE",
-          credentials: "include",
+          method: 'DELETE',
+          credentials: 'include',
         }
       );
 
       if (response.ok) {
         // React Query 캐시 업데이트
         queryClient.setQueryData<{ pages: PostsResponse[] }>(
-          ["posts", selectedBoard, sortType, searchType, searchKeyword],
+          ['posts', selectedBoard, sortType, searchType, searchKeyword],
           (oldData) => {
             if (!oldData) return oldData;
 
@@ -704,12 +618,12 @@ export default function Home() {
           }
         );
       } else {
-        console.error("게시글 삭제 실패:", response.status);
-        alert("게시글 삭제에 실패했습니다.");
+        console.error('게시글 삭제 실패:', response.status);
+        alert('게시글 삭제에 실패했습니다.');
       }
     } catch (error) {
-      console.error("게시글 삭제 중 오류:", error);
-      alert("게시글 삭제 중 오류가 발생했습니다.");
+      console.error('게시글 삭제 중 오류:', error);
+      alert('게시글 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -722,43 +636,48 @@ export default function Home() {
     </Link>
   );
 
-  // 댓글 수 업데이트 핸들러
-  const handleCommentUpdate = async (postId: number, count: number) => {
-    // React Query 캐시 업데이트
-    queryClient.setQueryData<{ pages: PostsResponse[] }>(
-      ["posts", selectedBoard, sortType, searchType, searchKeyword],
-      (oldData) => {
-        if (!oldData) return oldData;
-
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page) => ({
-            ...page,
-            content: page.content.map((post) => {
-              if (post.postId === postId) {
-                return {
-                  ...post,
-                  commentCount: count, // 실제 댓글 수 사용
-                };
-              }
-              return post;
-            }),
-          })),
-        };
-      }
-    );
-  };
-
-  // 좋아요/좋아요 취소 핸들러를 useCallback으로 메모이제이션
-  const memoizedHandleLike = useCallback((postId: number) => {
-    handleLike(postId);
-  }, []);
-
-  const memoizedHandleUnlike = useCallback((postId: number) => {
-    handleUnlike(postId);
-  }, []);
-
   const posts = data?.pages.flatMap((page) => page.content) || [];
+
+  const memoizedHandleLike = useCallback(
+    (postId: number) => {
+      if (postId) handleLike(postId);
+    },
+    [handleLike]
+  );
+
+  const memoizedHandleUnlike = useCallback(
+    (postId: number) => {
+      if (postId) handleUnlike(postId);
+    },
+    [handleUnlike]
+  );
+
+  const handleCommentUpdate = useCallback(
+    (postId: number, count: number) => {
+      if (postId && count >= 0) {
+        // 댓글 수 업데이트를 위해 캐시된 데이터 업데이트
+        queryClient.setQueryData(
+          ['posts', selectedBoard, sortType, searchType, searchKeyword],
+          (oldData: any) => {
+            if (!oldData?.pages) return oldData;
+
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                content: page.content.map((post: Post) =>
+                  post.postId === postId
+                    ? { ...post, commentCount: count }
+                    : post
+                ),
+              })),
+            };
+          }
+        );
+      }
+    },
+    [queryClient, selectedBoard, sortType, searchType, searchKeyword]
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -773,7 +692,7 @@ export default function Home() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg">
-              {writeCategory === "1" ? (
+              {writeCategory === '1' ? (
                 <VerificationWritePage
                   onClose={closeWriteModal}
                   onSuccess={() => refetch()}
@@ -805,30 +724,19 @@ export default function Home() {
               ) : user ? (
                 <div className="flex flex-col items-center">
                   <Link href={`/profile/${user.id}`}>
-                    <div className="rounded-full bg-pink-100 border-4 border-pink-200 p-4 mb-3 cursor-pointer overflow-hidden w-20 h-20 flex items-center justify-center">
-                      {user.profileImage ? (
-                        <Image
-                          src={user.profileImage}
-                          alt="Profile"
-                          width={80}
-                          height={80}
-                          className="rounded-full object-cover"
-                          unoptimized={true}
+                    <div className="rounded-full bg-pink-100 border-4 border-pink-200 p-4 mb-3 cursor-pointer">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-10 w-10 text-gray-700"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                          clipRule="evenodd"
                         />
-                      ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-10 w-10 text-gray-700"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
+                      </svg>
                     </div>
                   </Link>
                   <Link
@@ -859,7 +767,7 @@ export default function Home() {
                   </div>
 
                   {user && // 로그인된 상태인지 먼저 확인
-                    (user.role === "ROLE_ADMIN" ? (
+                    (user.role === 'ROLE_ADMIN' ? (
                       renderAdminButton()
                     ) : (
                       <button
@@ -875,7 +783,7 @@ export default function Home() {
                       이번 주 인증 현황
                     </p>
                     <div className="flex justify-between mb-4">
-                      {["월", "화", "수", "목", "금", "토", "일"].map(
+                      {['월', '화', '수', '목', '금', '토', '일'].map(
                         (day, index) => {
                           // 요일에 해당하는 날짜 계산
                           const today = new Date();
@@ -890,7 +798,7 @@ export default function Home() {
                           // 날짜 문자열로 변환 (YYYY-MM-DD)
                           const dateString = currentDate
                             .toISOString()
-                            .split("T")[0];
+                            .split('T')[0];
 
                           // 이 날짜에 인증했는지 확인
                           const isVerified =
@@ -901,8 +809,8 @@ export default function Home() {
                               key={day}
                               className={`w-8 h-8 rounded-full ${
                                 isVerified
-                                  ? "bg-pink-500 text-white"
-                                  : "bg-gray-200 text-gray-500"
+                                  ? 'bg-pink-500 text-white'
+                                  : 'bg-gray-200 text-gray-500'
                               } flex items-center justify-center font-medium`}
                             >
                               {day}
@@ -945,8 +853,8 @@ export default function Home() {
                         ></div>
                       </div>
                       <p className="text-xs text-gray-500 text-left">
-                        {nextLevel === "최고 등급"
-                          ? "최고 등급에 도달했습니다!"
+                        {nextLevel === '최고 등급'
+                          ? '최고 등급에 도달했습니다!'
                           : `${nextLevel}까지 ${nextLevelPoints} 포인트`}
                       </p>
                     </div>
@@ -996,7 +904,7 @@ export default function Home() {
 
           {/* 중앙 콘텐츠 - 게시판 */}
           <div className="md:col-span-2">
-            <div className="bg-white rounded-lg shadow mb-6">
+            <div className="bg-white rounded-lg shadow mb-6 flex flex-col h-[calc(100vh-2rem)]">
               {/* 게시판 헤더 */}
               <div className="bg-white sticky top-0 z-10">
                 {/* 전체 게시판 헤더 */}
@@ -1043,16 +951,16 @@ export default function Home() {
                     <button
                       onClick={() =>
                         setSortType(
-                          sortType === "latest" ? "popular" : "latest"
+                          sortType === 'latest' ? 'popular' : 'latest'
                         )
                       }
                       className="px-4 py-1.5 text-sm text-gray-600 rounded-full hover:bg-gray-100/50 transition-all duration-200 whitespace-nowrap flex items-center"
                     >
                       <span className="text-base leading-none">
-                        {sortType === "latest" ? "✨" : "💖"}
+                        {sortType === 'latest' ? '✨' : '💖'}
                       </span>
                       <span className="leading-none">
-                        {sortType === "latest" ? "최신순" : "인기순"}
+                        {sortType === 'latest' ? '최신순' : '인기순'}
                       </span>
                     </button>
                     {/* 통합 검색창 */}
@@ -1061,16 +969,16 @@ export default function Home() {
                         <button
                           onClick={() =>
                             setSearchType(
-                              searchType === "title" ? "writer" : "title"
+                              searchType === 'title' ? 'writer' : 'title'
                             )
                           }
                           className="px-3 py-1.5 text-sm text-gray-600 rounded-full hover:bg-gray-100/50 transition-all duration-200 whitespace-nowrap flex items-center min-w-[72px]"
                         >
                           <span className="text-base leading-none">
-                            {searchType === "title" ? "🧠" : "👦🏻"}
+                            {searchType === 'title' ? '🧠' : '👦🏻'}
                           </span>
                           <span className="leading-none">
-                            {searchType === "title" ? "제목" : "작성자"}
+                            {searchType === 'title' ? '제목' : '작성자'}
                           </span>
                         </button>
                       </div>
@@ -1080,7 +988,7 @@ export default function Home() {
                         onChange={(e) => setSearchKeyword(e.target.value)}
                         onKeyPress={handleKeyPress}
                         placeholder={`${
-                          searchType === "title" ? "제목" : "작성자"
+                          searchType === 'title' ? '제목' : '작성자'
                         } 검색`}
                         className="w-full py-1.5 pl-[100px] pr-20 text-sm text-gray-900 bg-transparent hover:bg-gray-100/50 focus:bg-gray-100/50 transition-all duration-200 outline-none focus:outline-none focus:ring-0 border-none focus:border-none rounded-full placeholder-gray-400 caret-pink-500 appearance-none select-none"
                       />
@@ -1131,7 +1039,7 @@ export default function Home() {
               </div>
 
               {/* 게시글 목록 */}
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 overflow-y-auto flex-1">
                 {/* 초기 로딩 중 */}
                 {isFetching && !isFetchingNextPage && posts.length === 0 && (
                   <div className="p-8 flex justify-center">
@@ -1160,16 +1068,16 @@ export default function Home() {
                         postId={post.postId}
                         userId={post.userId}
                         userNickname={post.userNickname}
-                        title={post.title || ""}
-                        content={post.content || ""}
-                        imageUrl={post.imageUrl || ""}
+                        title={post.title || ''}
+                        content={post.content || ''}
+                        imageUrl={post.imageUrl || ''}
                         viewCount={post.viewCount || 0}
                         likeCount={post.likeCount || 0}
                         commentCount={post.commentCount}
-                        verificationImageUrl={post.verificationImageUrl || ""}
+                        verificationImageUrl={post.verificationImageUrl || ''}
                         detoxTime={post.detoxTime || 0}
-                        createdAt={post.createdAt || ""}
-                        updatedAt={post.updatedAt || ""}
+                        createdAt={post.createdAt || ''}
+                        updatedAt={post.updatedAt || ''}
                         onUpdate={() => refetch()}
                         onLike={memoizedHandleLike}
                         onUnlike={memoizedHandleUnlike}
@@ -1178,7 +1086,6 @@ export default function Home() {
                         onCommentUpdate={(count) =>
                           handleCommentUpdate(post.postId, count)
                         }
-                        userProfileImage={post.userProfileImage}
                       />
                     </div>
                   );
@@ -1245,10 +1152,7 @@ export default function Home() {
               onClick={() => setShowPostModal(false)}
             ></div>
 
-            <div
-              className="relative bg-white rounded-lg max-w-xl w-full mx-auto shadow-xl z-10"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="relative bg-white rounded-lg max-w-xl w-full mx-auto shadow-xl z-10">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-semibold">
@@ -1304,83 +1208,15 @@ export default function Home() {
                   <p className="text-gray-700">{selectedPost.content}</p>
                 </div>
 
-                {parsedModalImageUrls.length > 0 && (
-                  <div className="mb-4 rounded-lg overflow-hidden">
-                    <div className="relative">
-                      <Image
-                        src={parsedModalImageUrls[currentModalImageIndex]}
-                        alt="게시글 이미지"
-                        width={500}
-                        height={300}
-                        className="rounded-lg w-full h-auto"
-                      />
-
-                      {/* 이미지 내부 좌/우 화살표 - 여러 이미지일 때만 표시 */}
-                      {parsedModalImageUrls.length > 1 && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePrevModalImage(e);
-                            }}
-                            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleNextModalImage(e);
-                            }}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </button>
-                        </>
-                      )}
-                    </div>
-
-                    {/* 이미지 인디케이터 (이미지가 여러 장일 때만 표시) */}
-                    {parsedModalImageUrls.length > 1 && (
-                      <div className="flex justify-center mt-2 space-x-1">
-                        {parsedModalImageUrls.map((_, index) => (
-                          <button
-                            key={index}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              goToModalImage(index);
-                            }}
-                            className={`w-2 h-2 rounded-full ${
-                              index === currentModalImageIndex
-                                ? "bg-pink-500"
-                                : "bg-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
+                {selectedPost.imageUrl && (
+                  <div className="mb-4">
+                    <Image
+                      src={selectedPost.imageUrl}
+                      alt="게시글 이미지"
+                      width={500}
+                      height={300}
+                      className="rounded-lg w-full h-auto"
+                    />
                   </div>
                 )}
 
