@@ -43,12 +43,15 @@ public class ApiV1PostController {
                     @ApiResponse(responseCode = "404", description = "해당 카테고리 없음")
             }
     )
-    @PostMapping("/category/{categoryId}")
+    @PostMapping
     public ResponseEntity<PostResponseDto> createPost(
-            @Parameter(description = "카테고리 ID", required = true) @PathVariable("categoryId") Long categoryId,
             @Valid @RequestBody PostRequestDto postRequestDto,
             @AuthenticationPrincipal SecurityUser user){
-        PostResponseDto responseDto = postService.createPost(categoryId, user.getId(),postRequestDto);
+        PostResponseDto responseDto = postService.createPost(
+                postRequestDto.getCategoryId(),
+                user.getId(),
+                postRequestDto
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 
