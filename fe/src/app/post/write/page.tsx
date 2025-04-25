@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
 import Image from "next/image";
+import EmojiPicker from "@/components/EmojiPicker";
+import { fetchPurchasedEmojis, Emoji } from "@/utils/emojiUtils";
 
 interface WritePostPageProps {
   onClose?: () => void;
@@ -26,6 +28,9 @@ export default function WritePostPage({
   const [content, setContent] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [purchasedEmojis, setPurchasedEmojis] = useState<Emoji[]>([]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -34,6 +39,30 @@ export default function WritePostPage({
     if (!textarea) return;
     textarea.style.height = "24px";
     textarea.style.height = `${textarea.scrollHeight}px`;
+  };
+
+  // 이모티콘 로딩
+  useEffect(() => {
+    const loadEmojis = async () => {
+      try {
+        const emojis = await fetchPurchasedEmojis();
+        setPurchasedEmojis(emojis);
+      } catch (error) {
+        console.error("이모티콘 로드 중 오류:", error);
+      }
+    };
+
+    loadEmojis();
+  }, []);
+
+  const handleEmojiSelect = (emojiCode: string) => {
+    setContent((prev) => prev + emojiCode);
+    setShowEmojiPicker(false);
+
+    // 텍스트 영역 높이 자동 조정
+    if (contentTextareaRef.current) {
+      autoResizeTextarea(contentTextareaRef.current);
+    }
   };
 
   useEffect(() => {
@@ -121,6 +150,7 @@ export default function WritePostPage({
         title,
         content,
         imageUrl: imageUrls.length > 0 ? JSON.stringify(imageUrls) : "",
+        categoryId: parseInt(category),
       };
 
       // RequestPart로 전송하기 위해 JSON 문자열을 Blob으로 변환 후 첨부
@@ -137,14 +167,11 @@ export default function WritePostPage({
         formData.append("postImage", fileInputRef.current.files[0]);
       }
 
-      const res = await fetch(
-        `http://localhost:8090/api/v1/posts/category/${category}`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        }
-      );
+      const res = await fetch(`http://localhost:8090/api/v1/posts`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
 
       if (res.ok) {
         alert("게시글 등록 완료!");
@@ -289,33 +316,70 @@ export default function WritePostPage({
                 }
                 className="w-full border-0 resize-none focus:outline-none placeholder:text-gray-500 py-1 text-black [caret-color:#F742CD]"
               />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                  type="button"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                  />
-                </svg>
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept="image/*"
-                className="hidden"
-                multiple
-              />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </button>
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                    />
+                  </svg>
+                </button>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  className="hidden"
+                  multiple
+                />
+              </div>
+
+              {/* 이모티콘 선택기 - 위치 조정 */}
+              {showEmojiPicker && (
+                <div className="relative">
+                  <div className="absolute top-0 left-0 z-20">
+                    <EmojiPicker
+                      isOpen={showEmojiPicker}
+                      onClose={() => setShowEmojiPicker(false)}
+                      onEmojiSelect={handleEmojiSelect}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             {imageUrls.length > 0 && (
               <div className="relative mt-4">

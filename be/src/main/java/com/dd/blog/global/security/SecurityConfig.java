@@ -5,6 +5,7 @@ import com.dd.blog.global.rq.Rq;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -53,7 +54,8 @@ public class SecurityConfig {
                                 .requestMatchers("/h2-console/**").permitAll()
                                 .requestMatchers("/api/v1/users/check-email", "/api/v1/users/check-nickname").permitAll()
                                 .requestMatchers("/api/v1/users/signup", "/api/v1/users/login", "/api/v1/users/refresh").permitAll()
-                                .requestMatchers("/api/v1/posts", "/api/v1/posts/pageable", "/api/v1/posts/search").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/posts/**").permitAll()
+                                .requestMatchers("/api/v1/pointstore/items").permitAll()
                                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll() // OAuth2 엔드포인트
                                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**").permitAll()
                                 .requestMatchers("/error").permitAll()
