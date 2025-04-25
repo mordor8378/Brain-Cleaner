@@ -75,6 +75,7 @@ public class PointStoreController {
                         .description(item.getDescription())
                         .price(item.getPrice())
                         .imageUrl(item.getImageUrl())
+                        .code(item.getCode())
                         .build())
                 .collect(Collectors.toList());
 

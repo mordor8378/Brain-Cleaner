@@ -16,5 +16,6 @@ public class PointItemPurchaseListDto {
     private String description;  // 아이템 설명
     private int price;  // 구매가격(포인트 단위)
     private String imageUrl; // 아이템 썸네일 이미지 URL
+    private String code; // 이모지 코드 추가
     private LocalDateTime purchasedAt;  // 구매시각
 }
