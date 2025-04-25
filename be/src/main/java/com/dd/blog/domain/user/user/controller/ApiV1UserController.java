@@ -13,9 +13,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -128,9 +132,9 @@ public class ApiV1UserController {
     @Operation(summary = "프로필 수정", description = "사용자의 프로필 정보를 수정합니다.")
     public ResponseEntity<UserResponseDto> updateProfile(
             @PathVariable Long userId,
-            @Valid @RequestBody UpdateProfileRequestDto request) {
-        UserResponseDto updatedUser = userService.updateProfile(userId, request);
-        return ResponseEntity.ok(updatedUser);
+            @Valid @RequestPart(value = "profileData") UpdateProfileRequestDto profileData,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) throws IOException {
+        return ResponseEntity.ok(userService.updateProfile(userId, profileData, profileImage));
     }
 
     @PutMapping("/{userId}/password")
@@ -141,19 +145,19 @@ public class ApiV1UserController {
         String newPassword = request.get("newPassword");
         if (newPassword == null || newPassword.trim().isEmpty()) {
             return ResponseEntity.badRequest()
-                .body(Map.of("message", "새 비밀번호를 입력해주세요."));
+                    .body(Map.of("message", "새 비밀번호를 입력해주세요."));
         }
         if (newPassword.length() < 6) {
             return ResponseEntity.badRequest()
-                .body(Map.of("message", "비밀번호는 6자 이상이어야 합니다."));
+                    .body(Map.of("message", "비밀번호는 6자 이상이어야 합니다."));
         }
         try {
             userService.updatePassword(userId, newPassword);
             return ResponseEntity.ok()
-                .body(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
+                    .body(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                .body(Map.of("message", "비밀번호 변경에 실패했습니다: " + e.getMessage()));
+                    .body(Map.of("message", "비밀번호 변경에 실패했습니다: " + e.getMessage()));
         }
     }
 
@@ -163,4 +167,5 @@ public class ApiV1UserController {
         TokenResponseDto response = userService.refreshToken(refreshToken);
         return ResponseEntity.ok(response);
     }
+
 }
