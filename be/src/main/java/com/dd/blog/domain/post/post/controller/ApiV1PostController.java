@@ -45,17 +45,21 @@ public class ApiV1PostController {
                     @ApiResponse(responseCode = "404", description = "해당 카테고리 없음")
             }
     )
-    @PostMapping
+    @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<PostResponseDto> createPost(
-            @Valid @RequestBody PostRequestDto postRequestDto,
-            @AuthenticationPrincipal SecurityUser user){
+            @RequestPart("postRequestDto") @Valid PostRequestDto postRequestDto,
+            @RequestPart(value = "postImage", required = false) MultipartFile postImage,
+            @AuthenticationPrincipal SecurityUser user
+    ) throws IOException {
         PostResponseDto responseDto = postService.createPost(
                 postRequestDto.getCategoryId(),
                 user.getId(),
-                postRequestDto
+                postRequestDto,
+                postImage
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
+
 
 
     // READ
