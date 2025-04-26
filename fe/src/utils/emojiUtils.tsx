@@ -85,9 +85,25 @@ export const convertEmojiCodesToImages = (
   emojis: Emoji[]
 ): React.ReactNode[] => {
   if (!text) return [<span key="empty"></span>];
-  if (!emojis || emojis.length === 0)
-    return [<span key="content">{text}</span>];
 
+  // emojis가 없는 경우 전체 이모티콘 목록 조회
+  if (!emojis || emojis.length === 0) {
+    // 이미 불러온 이모티콘 캐시가 있으면 사용
+    if (emojisCache.length > 0) {
+      return convertWithEmojis(text, emojisCache);
+    }
+
+    // 비동기 처리를 위한 임시 반환 => 텍스트 그대로 표시
+    return [<span key="content">{text}</span>];
+  }
+
+  return convertWithEmojis(text, emojis);
+};
+
+const convertWithEmojis = (
+  text: string,
+  emojis: Emoji[]
+): React.ReactNode[] => {
   // 이모티콘 코드 정규식 (:code: 형식)
   const emojiCodeRegex = /:([\w-]+):/g;
 
@@ -141,11 +157,39 @@ export const convertEmojiCodesToImages = (
   return parts;
 };
 
-// 구매한 이모티콘 목록 로드 및 텍스트 변환
-export const useEmojiConverter = (text: string) => {
-  const [convertedContent, setConvertedContent] = useState<React.ReactNode[]>(
-    []
-  );
+// 전체 이모티콘 로딩 (게시글 렌더링용)
+export const useGlobalEmojis = () => {
+  const [globalEmojis, setGlobalEmojis] = useState<Emoji[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadEmojis = async () => {
+      if (emojisCache.length > 0) {
+        setGlobalEmojis(emojisCache);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const allEmojis = await fetchEmojis();
+        setGlobalEmojis(allEmojis);
+        // 전역 캐시에도 저장
+        emojisCache = allEmojis;
+      } catch (error) {
+        console.error("전체 이모티콘 로드 중 오류:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadEmojis();
+  }, []);
+
+  return { globalEmojis, isLoading };
+};
+
+// 구매한 이모티콘 목록 조회
+export const usePurchasedEmojis = () => {
   const [purchasedEmojis, setPurchasedEmojis] = useState<Emoji[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -155,7 +199,33 @@ export const useEmojiConverter = (text: string) => {
       try {
         const emojis = await fetchPurchasedEmojis();
         setPurchasedEmojis(emojis);
-        setConvertedContent(convertEmojiCodesToImages(text, emojis));
+      } catch (error) {
+        console.error("구매한 이모티콘 로드 중 오류:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadEmojis();
+  }, []);
+
+  return { purchasedEmojis, isLoading };
+};
+
+// 이모티콘 코드를 이미지로 변환
+export const useEmojiConverter = (text: string) => {
+  const [convertedContent, setConvertedContent] = useState<React.ReactNode[]>(
+    []
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const { globalEmojis, isLoading: isGlobalEmojisLoading } = useGlobalEmojis();
+
+  useEffect(() => {
+    const convertEmojis = () => {
+      setIsLoading(true);
+      try {
+        // 항상 전체 이모티콘 목록을 사용하여 변환
+        setConvertedContent(convertEmojiCodesToImages(text, globalEmojis));
       } catch (error) {
         console.error("이모티콘 변환 중 오류:", error);
         setConvertedContent([<span key="fallback">{text}</span>]);
@@ -164,8 +234,10 @@ export const useEmojiConverter = (text: string) => {
       }
     };
 
-    loadEmojis();
-  }, [text]);
+    if (!isGlobalEmojisLoading) {
+      convertEmojis();
+    }
+  }, [text, globalEmojis, isGlobalEmojisLoading]);
 
-  return { convertedContent, purchasedEmojis, isLoading };
+  return { convertedContent, isLoading };
 };

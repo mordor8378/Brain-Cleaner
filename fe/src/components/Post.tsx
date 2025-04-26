@@ -6,6 +6,7 @@ import CommentModal from "./CommentModal";
 import {
   convertEmojiCodesToImages,
   fetchPurchasedEmojis,
+  useGlobalEmojis,
   Emoji,
 } from "@/utils/emojiUtils";
 
@@ -62,8 +63,8 @@ export default function Post({
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
-  const [purchasedEmojis, setPurchasedEmojis] = useState<Emoji[]>([]);
   const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
+  const { globalEmojis, isLoading: isGlobalEmojisLoading } = useGlobalEmojis();
   const postRef = useRef<HTMLDivElement>(null);
 
   // 이미지 캐러셀을 위한 상태
@@ -72,21 +73,10 @@ export default function Post({
 
   // 이모티콘 로딩
   useEffect(() => {
-    const loadEmojis = async () => {
-      if (user?.id) {
-        try {
-          const emojis = await fetchPurchasedEmojis();
-          setPurchasedEmojis(emojis);
-          setIsEmojiLoaded(true);
-        } catch (error) {
-          console.error("이모티콘 로드 중 오류:", error);
-          setIsEmojiLoaded(true); // 오류가 있어도 로딩은 완료됨
-        }
-      }
-    };
-
-    loadEmojis();
-  }, []);
+    if (!isGlobalEmojisLoading) {
+      setIsEmojiLoaded(true);
+    }
+  }, [isGlobalEmojisLoading]);
 
   // 문자열 또는 JSON 문자열로 전달된 imageUrl을 파싱
   useEffect(() => {
@@ -500,7 +490,7 @@ export default function Post({
                     }
 
                     // 이모티콘 변환 함수
-                    return convertEmojiCodesToImages(content, purchasedEmojis);
+                    return convertEmojiCodesToImages(content, globalEmojis);
                   })()}
                 </>
               ) : (
