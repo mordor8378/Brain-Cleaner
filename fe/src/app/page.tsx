@@ -723,20 +723,31 @@ export default function Home() {
                 </div>
               ) : user ? (
                 <div className="flex flex-col items-center">
-                  <Link href={`/profile/${user.id}`}>
+                  <Link href={`/profile/me`}>
                     <div className="rounded-full bg-pink-100 border-4 border-pink-200 p-4 mb-3 cursor-pointer">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-10 w-10 text-gray-700"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                          clipRule="evenodd"
+                      {user.profileImage ? (
+                        <Image
+                          src={user.profileImage}
+                          alt={`${user.nickname}의 프로필`}
+                          width={40}
+                          height={40}
+                          className="rounded-full w-10 h-10 object-cover"
+                          unoptimized={true}
                         />
-                      </svg>
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-10 w-10 text-gray-700"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
                     </div>
                   </Link>
                   <Link

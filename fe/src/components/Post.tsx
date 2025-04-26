@@ -9,6 +9,7 @@ import {
   useGlobalEmojis,
   Emoji,
 } from "@/utils/emojiUtils";
+import { getProfilePath } from "@/utils/profileHelpers";
 
 export interface PostProps {
   postId: number;
@@ -323,7 +324,7 @@ export default function Post({
   return (
     <div className="p-5" ref={postRef}>
       <div className="flex items-start mb-3">
-        <Link href={`/profile/${userId}`}>
+        <Link href={getProfilePath(user, userId)}>
           <div className="mr-3 cursor-pointer relative w-8 h-8">
             {profileImage ? (
               <Image
@@ -355,7 +356,7 @@ export default function Post({
         <div className="flex-1">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-1.5">
-              <Link href={`/profile/${userId}`}>
+              <Link href={getProfilePath(user, userId)}>
                 <span className="font-bold text-[14px] text-gray-900 cursor-pointer hover:text-pink-500">
                   {userNickname}
                 </span>
