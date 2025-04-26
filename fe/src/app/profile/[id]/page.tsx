@@ -63,6 +63,13 @@ export default function OtherUserProfile() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // CommentModal 관련 상태
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  // 새로 추가한 상태
+  const [userComments, setUserComments] = useState<any[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+
   // 팔로워/팔로잉 모달 상태
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
@@ -73,10 +80,6 @@ export default function OtherUserProfile() {
     { id: number; nickname: string }[]
   >([]);
   const [isLoadingFollows, setIsLoadingFollows] = useState(false);
-
-  // CommentModal 관련 상태
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [showCommentModal, setShowCommentModal] = useState(false);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -103,6 +106,7 @@ export default function OtherUserProfile() {
           fetchFollowStats(data.id);
           fetchUserPosts(data.id);
           fetchVerificationStats(data.id);
+          fetchUserComments(data.id);
 
           // 팔로우 상태 확인 (나를 기준으로 해당 사용자를 팔로우하고 있는지)
           checkFollowStatus(data.id);
@@ -250,6 +254,83 @@ export default function OtherUserProfile() {
     }
   };
 
+  const fetchUserComments = async (userId: number) => {
+    try {
+      setCommentsLoading(true);
+      // 올바른 API 엔드포인트로 사용자 댓글 가져오기
+      const response = await fetch(
+        `http://localhost:8090/api/v1/comments/user/${userId}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const comments = await response.json();
+        console.log("사용자 댓글 데이터:", comments);
+
+        if (!Array.isArray(comments)) {
+          console.error("댓글 데이터가 배열이 아닙니다:", comments);
+          setUserComments([]);
+          return;
+        }
+
+        // 댓글 데이터 정제 (snake_case -> camelCase)
+        const processedComments = comments.map((comment: any) => ({
+          ...comment,
+          userId: comment.userId || comment.user_id,
+          postId: comment.postId || comment.post_id,
+          parentId: comment.parentId || comment.parent_id,
+          createdAt: comment.createdAt || comment.created_at,
+          updatedAt: comment.updatedAt || comment.updated_at,
+        }));
+
+        // 필요한 게시글 정보 가져오기
+        const commentsWithPostInfo = await Promise.all(
+          processedComments.map(async (comment: any) => {
+            if (!comment.postId) {
+              return comment;
+            }
+
+            try {
+              const postResponse = await fetch(
+                `http://localhost:8090/api/v1/posts/${comment.postId}`,
+                {
+                  credentials: "include",
+                }
+              );
+
+              if (postResponse.ok) {
+                const post = await postResponse.json();
+                return { ...comment, post };
+              }
+              return comment;
+            } catch (error) {
+              console.error(
+                `댓글 ID ${comment.id}의 게시글 정보 로드 중 오류:`,
+                error
+              );
+              return comment;
+            }
+          })
+        );
+
+        setUserComments(commentsWithPostInfo);
+        console.log(
+          "댓글 설정 완료:",
+          commentsWithPostInfo.length,
+          "개의 댓글"
+        );
+      } else {
+        console.error("댓글 조회 API 오류:", response.status);
+      }
+    } catch (error) {
+      console.error("사용자 댓글 로드 중 오류:", error);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
   // 시간 경과 표시 함수
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -364,7 +445,13 @@ export default function OtherUserProfile() {
       )
     );
   };
-
+  // 댓글 클릭시 해당 게시글 모달 표시 함수
+  const handleCommentClick = (comment: any) => {
+    if (comment.post) {
+      setSelectedPost(comment.post);
+      setShowCommentModal(true);
+    }
+  };
   // 인증 관련 정보를 가져오는 함수 추가
   const fetchVerificationStats = async (userId: number) => {
     try {
@@ -381,23 +468,28 @@ export default function OtherUserProfile() {
         streakDays = await streakResponse.json();
       }
 
-      // 2. 인증 게시글만 필터링하여 가져오기 (categoryId가 3인 게시글만)
-      const verificationPostsResponse = await fetch(
-        `http://localhost:8090/api/v1/posts/user/${userId}?categoryId=3`,
+      // 2. 인증 카테고리(categoryId=1)의 모든 게시물 가져오기
+      const categoryPostsResponse = await fetch(
+        `http://localhost:8090/api/v1/posts/category/1`,
         {
           credentials: "include",
         }
       );
 
-      if (verificationPostsResponse.ok) {
-        const verificationPosts = await verificationPostsResponse.json();
+      if (categoryPostsResponse.ok) {
+        const allCategoryPosts = await categoryPostsResponse.json();
 
-        // 총 인증일수 = 인증 게시글 수
-        const totalVerificationDays = verificationPosts.length;
+        // 3. 현재 사용자가 작성한 인증 게시물만 필터링
+        const userVerificationPosts = allCategoryPosts.filter(
+          (post: Post) => post.userId === userId
+        );
 
-        // 디톡스 시간 계산 - 모든 인증 게시글의 detoxTime 합산
+        // 총 인증일수 = 해당 사용자의 인증 게시글 수
+        const totalVerificationDays = userVerificationPosts.length;
+
+        // 디톡스 시간 계산 - 해당 사용자의 인증 게시글의 detoxTime 합산
         let totalDetoxTime = 0;
-        verificationPosts.forEach((post: Post) => {
+        userVerificationPosts.forEach((post: Post) => {
           if (post.detoxTime) {
             totalDetoxTime += post.detoxTime;
           }
@@ -662,9 +754,70 @@ export default function OtherUserProfile() {
 
           {selectedTab === "comments" && (
             <div className="space-y-4">
-              <p className="text-gray-500 text-center py-8">
-                아직 작성한 댓글이 없습니다.
-              </p>
+              {commentsLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
+                </div>
+              ) : userComments.length > 0 ? (
+                userComments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className="border-b pb-4 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition"
+                    onClick={() => handleCommentClick(comment)}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                          {userInfo.profileImage ? (
+                            <Image
+                              src={userInfo.profileImage}
+                              alt="프로필 이미지"
+                              width={32}
+                              height={32}
+                              className="w-full h-full object-cover"
+                              unoptimized={true}
+                            />
+                          ) : (
+                            <svg
+                              className="w-4 h-4 text-gray-500"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm">
+                              @{userInfo.nickname}
+                            </p>
+                            <span className="text-xs text-gray-400">
+                              {getTimeAgo(comment.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-gray-800 mt-1">{comment.content}</p>
+                        {comment.post && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            <span>게시글: {comment.post.title}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-8">
+                  아직 작성한 댓글이 없습니다.
+                </p>
+              )}
             </div>
           )}
 

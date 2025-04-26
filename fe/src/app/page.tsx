@@ -724,14 +724,17 @@ export default function Home() {
               ) : user ? (
                 <div className="flex flex-col items-center">
                   <Link href={`/profile/me`}>
-                    <div className="rounded-full bg-pink-100 border-4 border-pink-200 p-4 mb-3 cursor-pointer">
+                    <div
+                      className="rounded-full bg-pink-100 border-4 border-pink-200 p-0 mb-3 cursor-pointer flex items-center justify-center overflow-hidden"
+                      style={{ width: "72px", height: "72px" }}
+                    >
                       {user.profileImage ? (
                         <Image
                           src={user.profileImage}
                           alt={`${user.nickname}의 프로필`}
-                          width={40}
-                          height={40}
-                          className="rounded-full w-10 h-10 object-cover"
+                          width={72}
+                          height={72}
+                          className="w-full h-full object-cover rounded-full"
                           unoptimized={true}
                         />
                       ) : (

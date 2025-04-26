@@ -104,4 +104,20 @@ public class CommentService {
         }
         commentRepository.delete(comment);
     };
+
+    // 특정 사용자의 모든 댓글 조회
+    @Transactional(readOnly = true)
+    public List<CommentResponseDto> getCommentsByUserId(Long userId) {
+        // 사용자 존재 여부 확인
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+
+        // 댓글 리포지토리에서 userId로 댓글 조회
+        List<Comment> comments = commentRepository.findByUserId(userId);
+
+        // DTO로 변환하여 반환
+        return comments.stream()
+                .map(CommentResponseDto::fromEntity)
+                .collect(Collectors.toList());
+    }
 }
