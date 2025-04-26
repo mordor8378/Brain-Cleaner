@@ -132,6 +132,7 @@ export default function VerificationWritePage({
         content: detoxTime.toString(),
         imageUrl: imageUrl,
         detoxTime: detoxTime,
+        categoryId: parseInt(category),
       };
 
       // Blob으로 변환하여 추가
@@ -148,14 +149,11 @@ export default function VerificationWritePage({
         formData.append("postImage", fileInputRef.current.files[0]);
       }
 
-      const postResponse = await fetch(
-        `http://localhost:8090/api/v1/posts/category/${category}`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        }
-      );
+      const postResponse = await fetch(`http://localhost:8090/api/v1/posts`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
 
       if (!postResponse.ok) {
         const errorText = await postResponse.text();
@@ -164,34 +162,34 @@ export default function VerificationWritePage({
       }
 
       // 게시글 등록 응답에서 postId를 추출
-      const postData = await postResponse.json();
-      const postId = postData.postId;
+      // const postData = await postResponse.json();
+      // const postId = postData.postId;
 
-      // 인증 정보를 등록
-      const verificationRequest: VerificationRequest = {
-        postId: postId,
-        userId: userId,
-        detoxTime: detoxTime,
-        status: "PENDING", // 기본 상태
-      };
+      // // 인증 정보를 등록
+      // const verificationRequest: VerificationRequest = {
+      //   postId: postId,
+      //   userId: userId,
+      //   detoxTime: detoxTime,
+      //   status: "PENDING", // 기본 상태
+      // };
 
-      const verificationResponse = await fetch(
-        "http://localhost:8090/api/v1/verifications",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(verificationRequest),
-          credentials: "include",
-        }
-      );
+      // const verificationResponse = await fetch(
+      //   "http://localhost:8090/api/v1/verifications",
+      //   {
+      //     method: "POST",
+      //     headers: { "Content-Type": "application/json" },
+      //     body: JSON.stringify(verificationRequest),
+      //     credentials: "include",
+      //   }
+      // );
 
-      if (!verificationResponse.ok) {
-        console.error("인증 등록 실패:", await verificationResponse.text());
-        // 인증 등록은 실패해도 게시글은 등록
-        alert("게시글은 등록되었으나 인증 정보 등록에 실패했습니다");
-      } else {
-        alert("인증 게시글 등록 완료!");
-      }
+      // if (!verificationResponse.ok) {
+      //   console.error("인증 등록 실패:", await verificationResponse.text());
+      //   // 인증 등록은 실패해도 게시글은 등록
+      //   alert("게시글은 등록되었으나 인증 정보 등록에 실패했습니다");
+      // } else {
+      //   alert("인증 게시글 등록 완료!");
+      // }
 
       if (onSuccess) {
         onSuccess();
