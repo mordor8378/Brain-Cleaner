@@ -28,4 +28,9 @@ public class PointItem {
 
     // 아이템 미리보기용
     private String imageUrl;
+
+
+    // 이모지 치환용 코드 (예: ":zeus:")
+    // 이모티콘 코드
+    private String code;
 }
