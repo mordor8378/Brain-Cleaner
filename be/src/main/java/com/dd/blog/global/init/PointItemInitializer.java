@@ -94,6 +94,7 @@ public class PointItemInitializer implements CommandLineRunner {
                     .description(desc)
                     .price(price)
                     .imageUrl(imageUrl)
+                    .code(code)
                     .build());
         }
     }
