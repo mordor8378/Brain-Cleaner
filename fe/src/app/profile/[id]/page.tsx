@@ -457,7 +457,7 @@ export default function OtherUserProfile() {
     try {
       // 1. 연속 인증일수 가져오기
       const streakResponse = await fetch(
-        `http://localhost:8090/api/v1/verifications/streak/${userId}`,
+        `http://localhost:8090/api/v1/verifications/streak`,
         {
           credentials: "include",
         }
@@ -828,12 +828,6 @@ export default function OtherUserProfile() {
                   <span className="text-gray-600">총 인증일수</span>
                   <span className="font-medium" style={{ color: CUSTOM_PINK }}>
                     {stats.detoxDays}일
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">연속 인증일수</span>
-                  <span className="font-medium" style={{ color: CUSTOM_PINK }}>
-                    {stats.streakDays}일
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">

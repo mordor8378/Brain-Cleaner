@@ -169,7 +169,7 @@ export default function MyProfile() {
     try {
       // 1. 연속 인증일수 가져오기
       const streakResponse = await fetch(
-        `http://localhost:8090/api/v1/verifications/streak/${userId}`,
+        `http://localhost:8090/api/v1/verifications/streak`,
         {
           credentials: "include",
         }
