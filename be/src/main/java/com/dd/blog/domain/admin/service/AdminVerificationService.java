@@ -1,5 +1,6 @@
 package com.dd.blog.domain.admin.service;
-import com.dd.blog.domain.point.service.PointService;
+import com.dd.blog.domain.point.point.service.PointService;
+import com.dd.blog.domain.post.verification.dto.VerificationResponseDto;
 import com.dd.blog.domain.post.verification.entity.Verification;
 import com.dd.blog.domain.post.verification.entity.VerificationStatus;
 import com.dd.blog.domain.post.verification.repository.VerificationRepository;
@@ -52,8 +53,12 @@ public class AdminVerificationService {
 
     // PENDING 상태 인증 요청 목록 조회 메서드 구현
     @Transactional(readOnly = true)
-    public Page<Verification> getPendingVerification(Pageable pageable) {
-        return verificationRepository.findByStatusOrderByIdAsc(VerificationStatus.PENDING, pageable);
+    public Page<VerificationResponseDto> getPendingVerification(Pageable pageable) {
+
+        Page<Verification> verificationPage = verificationRepository.findByStatusOrderByIdAsc(VerificationStatus.PENDING, pageable);
+        Page<VerificationResponseDto> dtoPage = verificationPage.map(VerificationResponseDto::fromEntity);
+
+        return dtoPage;
     }
 
 

@@ -1,13 +1,11 @@
 package com.dd.blog.domain.user.user.service;
 
-import com.dd.blog.domain.user.user.dto.LoginRequestDto;
-import com.dd.blog.domain.user.user.dto.SignUpRequestDto;
-import com.dd.blog.domain.user.user.dto.TokenResponseDto;
-import com.dd.blog.domain.user.user.dto.UserResponseDto;
+import com.dd.blog.domain.user.user.dto.*;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.entity.UserRole;
 import com.dd.blog.domain.user.user.entity.UserStatus;
 import com.dd.blog.domain.user.user.repository.UserRepository;
+import com.dd.blog.global.aws.AwsS3Uploader;
 import com.dd.blog.global.exception.ApiException;
 import com.dd.blog.global.exception.ErrorCode;
 import jakarta.persistence.EntityNotFoundException;
@@ -16,7 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +28,23 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenService authTokenService;
+    private final AwsS3Uploader awsS3Uploader;
+
+    /**
+     * 이메일 중복 체크
+     */
+    @Transactional(readOnly = true)
+    public boolean isEmailDuplicate(String email) {
+        return userRepository.findByEmail(email).isPresent();
+    }
+
+    /**
+     * 닉네임 중복 체크
+     */
+    @Transactional(readOnly = true)
+    public boolean isNicknameDuplicate(String nickname) {
+        return userRepository.findByNickname(nickname).isPresent();
+    }
 
     /**
      * 회원가입
@@ -50,7 +67,7 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
                 .role(UserRole.ROLE_USER_SPROUT)
-                .userStatus(UserStatus.ACTIVE)
+                .status(UserStatus.ACTIVE)
                 .remainingPoint(0)
                 .totalPoint(0)
                 .refreshToken(null)
@@ -92,7 +109,7 @@ public class UserService {
                     .ssoProvider(providerTypeCode)
                     .socialId(oauthId)
                     .role(UserRole.ROLE_USER_SPROUT)
-                    .userStatus(UserStatus.ACTIVE)
+                    .status(UserStatus.ACTIVE)
                     .remainingPoint(0)
                     .totalPoint(0)
                     .refreshToken(authTokenService.genRefreshTokenByEmail(email))
@@ -176,7 +193,12 @@ public class UserService {
     }
 
     //비밀번호 변경
-
+    @Transactional
+    public void updatePassword(Long userId, String newPassword) {
+        User user = getUserById(userId);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 
     //잔여 포인트 확인
     @Transactional(readOnly = true)
@@ -188,8 +210,43 @@ public class UserService {
         return dto.getRemainingPoint();
     }
 
-    //프로필정보 수정 - 프로필 상세조회 탭에 들어가면 수정가능-수정완료 버튼을 누르면 새롭게 들어온 UserResponseDTO를 가지고 update
-    //
+    //프로필정보 수정
+    @Transactional
+    public UserResponseDto updateProfile(Long userId, UpdateProfileRequestDto request, MultipartFile profileImage) throws IOException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        String imageUrl = request.getProfileImageUrl(); //새로 바꾼 사진이 없다면 기존 사진 유지
+
+        // 이미지 파일이 있는 경우 확장자 및 크기 검증
+        if (profileImage != null && !profileImage.isEmpty()) {
+            // 파일 확장자 검증
+            String originalFilename = profileImage.getOriginalFilename();
+            if (originalFilename != null) {
+                String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                if (!extension.equals("jpg") && !extension.equals("jpeg") && !extension.equals("png")) {
+                    throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+                }
+            }
+
+            // 파일 크기 검증 (예: 5MB 이하)
+            if (profileImage.getSize() > 5 * 1024 * 1024) {
+                throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+            }
+            // 3. S3 업로드
+            imageUrl = awsS3Uploader.upload(profileImage, "images/profile");
+        }
+
+        user.updateProfile(
+                request.getNickname(),
+                request.getEmail(),
+                request.getStatusMessage(),
+                request.getDetoxGoal(),
+                request.getBirthDate(),
+                imageUrl
+        );
+        return UserResponseDto.fromEntity(user);
+    }
 
     /**
      * 토큰 갱신
@@ -208,7 +265,7 @@ public class UserService {
 
 
         // ACTIVE 상태인 경우만 토큰 갱신
-        if (user.getUserStatus() != UserStatus.ACTIVE) {
+        if (user.getStatus() != UserStatus.ACTIVE) {
             throw new ApiException(ErrorCode.ACCESS_DENIED);
         }
 

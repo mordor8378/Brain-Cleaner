@@ -48,13 +48,13 @@ public class FollowService {
 
 
     @Transactional
-    public void unfollow(Long followerId, Long followingId){
-        User follower = userRepository.findById(followerId)
+    public void unfollow(Long userId, Long followingId){
+        User follower = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
         User following = userRepository.findById(followingId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
 
-        // follower가 팔로우한 사람들 리스트 가져오기
+        // 내가 팔로우한 사람들 리스트 가져오기
         List<Follow> followList = followRepository.findByFollower(follower);
 
         // 이미 팔로우 중인지 확인
@@ -89,7 +89,7 @@ public class FollowService {
         User follower = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
 
-        List<Follow> followerList = followRepository.findByFollower(follower);
+        List<Follow> followerList = followRepository.findByFollowing(follower);
 
         return followerList.stream()
                 .map(FollowResponseDto::fromEntity)
@@ -103,7 +103,7 @@ public class FollowService {
         User following = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
 
-        List<Follow> followingList = followRepository.findByFollowing(following);
+        List<Follow> followingList = followRepository.findByFollower(following);
 
         return followingList.stream()
                 .map(FollowResponseDto::fromEntity)

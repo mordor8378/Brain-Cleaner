@@ -2,6 +2,7 @@ package com.dd.blog.domain.user.follow.controller;
 
 import com.dd.blog.domain.user.follow.dto.FollowRequestDto;
 import com.dd.blog.domain.user.follow.dto.FollowResponseDto;
+import com.dd.blog.domain.user.follow.dto.FollowUserDto;
 import com.dd.blog.domain.user.follow.entity.Follow;
 import com.dd.blog.domain.user.follow.service.FollowService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@RestController
 @RequestMapping("/api/v1/follows")
 @RequiredArgsConstructor
 @Tag(name = "Follow", description = "팔로우 관련 API")
@@ -30,12 +32,12 @@ public class ApiV1FollowerController {
         return ResponseEntity.status(HttpStatus.CREATED).body(follow);
     }
 
-    @DeleteMapping("/{followId}")
+    @DeleteMapping("/{followerId}/{followingId}")
     @Operation(summary = "팔로우 취소", description = "팔로우를 취소합니다.")
     public ResponseEntity<Void> unfollow(
-            @RequestParam Long userId,
-            @PathVariable Long followId) {
-        followService.unfollow(userId, followId);
+            @PathVariable Long followerId,
+            @PathVariable Long followingId) {
+        followService.unfollow(followerId, followingId);
         return ResponseEntity.ok().build();
     }
 
@@ -48,20 +50,20 @@ public class ApiV1FollowerController {
         return ResponseEntity.ok(isFollowing);
     }
 
-    @GetMapping("/{userId}/followers/nicknames")
+    @GetMapping("/{userId}/followers")
     @Operation(summary = "팔로워 조회", description = "나를 팔로우 하는 사람들을 조회합니다.")
-    public ResponseEntity<List<String>> getFollowers(@PathVariable Long userId){
-        List<String> followers = followService.getFollowers(userId).stream()
-                .map(FollowResponseDto::getFollowerNickname)
+    public ResponseEntity<List<FollowUserDto>> getFollowers(@PathVariable Long userId){
+        List<FollowUserDto> followers = followService.getFollowers(userId).stream()
+                .map(dto -> new FollowUserDto(dto.getFollowerId(), dto.getFollowerNickname()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(followers);
     }
 
-    @GetMapping("/{userId}/followings/nicknames")
+    @GetMapping("/{userId}/followings")
     @Operation(summary = "팔로잉 조회", description = "내가 팔로우 하는 사람들을 조회합니다.")
-    public ResponseEntity<List<String>> getFollowings(@PathVariable Long userId){
-        List<String> followings = followService.getFollowings(userId).stream()
-                .map(FollowResponseDto::getFollowingNickname)
+    public ResponseEntity<List<FollowUserDto>> getFollowings(@PathVariable Long userId){
+        List<FollowUserDto> followings = followService.getFollowings(userId).stream()
+                .map(dto -> new FollowUserDto(dto.getFollowingId(), dto.getFollowingNickname()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(followings);
     }
@@ -79,7 +81,4 @@ public class ApiV1FollowerController {
         int followingNum = followService.getFollowings(userId).size();
         return ResponseEntity.ok(followingNum);
     }
-
-    // TODO: 팔로워/팔로잉 목록 조회
-
 }

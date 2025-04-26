@@ -4,6 +4,7 @@ import com.dd.blog.domain.post.post.dto.PostPatchRequestDto;
 import com.dd.blog.domain.post.post.dto.PostRequestDto;
 import com.dd.blog.domain.post.post.dto.PostResponseDto;
 import com.dd.blog.domain.post.post.service.PostService;
+import com.dd.blog.global.security.SecurityUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -11,11 +12,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -40,13 +45,21 @@ public class ApiV1PostController {
                     @ApiResponse(responseCode = "404", description = "해당 카테고리 없음")
             }
     )
-    @PostMapping("/category/{categoryId}")
+    @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<PostResponseDto> createPost(
-            @Parameter(description = "카테고리 ID", required = true) @PathVariable Long categoryId,
-            @Valid @RequestBody PostRequestDto postRequestDto){
-        PostResponseDto responseDto = postService.createPost(categoryId, postRequestDto);
+            @RequestPart("postRequestDto") @Valid PostRequestDto postRequestDto,
+            @RequestPart(value = "postImage", required = false) MultipartFile postImage,
+            @AuthenticationPrincipal SecurityUser user
+    ) throws IOException {
+        PostResponseDto responseDto = postService.createPost(
+                postRequestDto.getCategoryId(),
+                user.getId(),
+                postRequestDto,
+                postImage
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
+
 
 
     // READ
@@ -73,15 +86,14 @@ public class ApiV1PostController {
                     @ApiResponse(responseCode = "404", description = "해당 카테고리 없음")
             }
     )
-    @GetMapping(params = "categoryId")
+    @GetMapping("/category/{categoryId}")
     public ResponseEntity<List<PostResponseDto>> getPostsByCategory(
-            @Parameter(description = "카테고리 ID", required = true) @RequestParam Long categoryId){
+            @Parameter(description = "카테고리 ID", required = true) @PathVariable Long categoryId){
         List<PostResponseDto> posts = postService.getPostsByCategory(categoryId);
         return ResponseEntity.ok(posts);
     }
 
     // 팔로잉 대상 게시판 READ
-    @GetMapping("/following/{userId}")
     @Operation(
             summary = "팔로잉 게시판 조회",
             description = "현재 로그인한 사용자가 팔로우한 유저들의 게시글 목록을 조회합니다.",
@@ -90,9 +102,47 @@ public class ApiV1PostController {
                     @ApiResponse(responseCode = "404", description = "팔로우한 사용자가 없거나 게시글 없음")
             }
     )
+    @GetMapping("/following/{userId}")
     public ResponseEntity<List<PostResponseDto>> getPostsByFollowing(
             @Parameter(description = "유저 ID", required = true) @PathVariable Long userId) {
         List<PostResponseDto> posts = postService.getPostsByFollowing(userId);
+        return ResponseEntity.ok(posts);
+    }
+
+    // 게시글 페이지 조회
+    @GetMapping("/pageable")
+    @Operation(
+            summary = "게시글 페이지 조회",
+            description = "페이지를 적용하여 게시글을 조회합니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공")
+            }
+    )
+    public ResponseEntity<Page<PostResponseDto>> getPostsByPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Long categoryId) {
+        Page<PostResponseDto> posts;
+        if (categoryId != null) {
+            posts = postService.getPostsByCategoryPageable(categoryId, page, size);
+        } else {
+            posts = postService.getAllPostsPageable(page, size);
+        }
+        return ResponseEntity.ok(posts);
+    }
+
+    @GetMapping("/user/{userId}")
+    @Operation(
+            summary = "사용자 게시글 목록 조회",
+            description = "특정 사용자가 작성한 게시글 목록을 조회합니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공"),
+                    @ApiResponse(responseCode = "404", description = "사용자가 없거나 게시글이 없음")
+            }
+    )
+    public ResponseEntity<List<PostResponseDto>> getPostsByUser(
+            @Parameter(description = "유저 ID", required = true) @PathVariable Long userId) {
+        List<PostResponseDto> posts = postService.getPostsByUser(userId);
         return ResponseEntity.ok(posts);
     }
 
@@ -127,8 +177,9 @@ public class ApiV1PostController {
     @PatchMapping("/{postId}")  // 인라인 수정방식(부분 수정 위해)
     public ResponseEntity<PostResponseDto> updatePost(
             @Parameter(description = "게시글 ID", required = true) @PathVariable Long postId,
-            @Valid @RequestBody PostPatchRequestDto postPatchRequestDto){
-        PostResponseDto responseDto = postService.updatePost(postId, postPatchRequestDto);
+            @Valid @RequestPart PostPatchRequestDto postPatchRequestDto,
+            @RequestPart(value = "postImage", required = false) MultipartFile postImage) throws IOException {
+        PostResponseDto responseDto = postService.updatePost(postId, postPatchRequestDto, postImage);
         return ResponseEntity.ok(responseDto);
     }
 
@@ -151,11 +202,22 @@ public class ApiV1PostController {
     }
 
 
+    // SEARCH
+    // 게시글 SEARCH
+    @Operation(
+            summary = "게시글 검색", // Swagger 문서 요약
+            description = "제목 또는 작성자 기준으로 게시글을 검색합니다. type=title 또는 type=writer" // Swagger 설명
+    )
+    @GetMapping("/search")
+    public ResponseEntity<List<PostResponseDto>> searchPosts(
+            @RequestParam String type,      // 검색 타입 (title 또는 writer)
+            @RequestParam String keyword    // 검색할 문자열
+    ) {
+        // Service 호출하여 결과 받아오기
+        List<PostResponseDto> posts = postService.searchPosts(type, keyword);
 
-
-
-    //게시글 검색_부가기능
-
-
+        // HTTP 응답으로 검색 결과 반환 (200 OK)
+        return ResponseEntity.ok(posts);
+    }
 
 }

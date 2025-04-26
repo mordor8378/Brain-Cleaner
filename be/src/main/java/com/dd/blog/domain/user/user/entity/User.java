@@ -4,7 +4,7 @@ package com.dd.blog.domain.user.user.entity;
 //import com.dd.blog.domain.post.comment.entity.Comment;
 //import com.dd.blog.domain.post.post.entity.Post;
 //import com.dd.blog.domain.post.postlike.entity.PostLike;
-import com.dd.blog.domain.point.entity.PointHistory;
+import com.dd.blog.domain.point.point.entity.PointHistory;
 import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.global.jpa.BaseEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -13,7 +13,9 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -26,7 +28,7 @@ import java.util.List;
 @SuperBuilder
 @ToString(exclude = "password")
 @Table(name = "users")
-public class User extends BaseEntity {
+public class User extends BaseEntity implements UserDetails {
     @Column(name = "email", nullable = false, length = 100)
     private String email;
 
@@ -50,7 +52,7 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @Builder.Default
-    private UserStatus userStatus = UserStatus.ACTIVE;
+    private UserStatus status = UserStatus.ACTIVE;
 
     @Column(name = "refresh_token", unique = true)
     private String refreshToken;
@@ -60,6 +62,27 @@ public class User extends BaseEntity {
 
     @Column(name = "social_id")
     private String socialId;
+
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
+    @Column(name = "status_message", length = 200)
+    private String statusMessage;
+
+    @Column(name = "detox_goal", length = 500)
+    private String detoxGoal;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    // 연속 인증 일수
+    @Column(name = "streak_days")
+    @Builder.Default
+    private Integer streakDays = 0;
+
+    // 마지막 인증 날짜
+    @Column(name = "last_verification_date")
+    private LocalDate lastVerificationDate;
 
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -105,5 +128,40 @@ public class User extends BaseEntity {
     public void updateSocialInfo(String ssoProvider, String socialId) {
         this.ssoProvider = ssoProvider;
         this.socialId = socialId;
+    }
+
+    public void updateProfile(String nickname, String email, String statusMessage, String detoxGoal, LocalDate birthDate, String profileImageUrl) {
+        this.nickname = nickname;
+        this.email = email;
+        this.statusMessage = statusMessage;
+        this.detoxGoal = detoxGoal;
+        this.birthDate = birthDate;
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
+
+    @Override //
+    public boolean isEnabled() {
+        // User의 status가 ACTIVE일 때만 true 반환
+        return this.status == UserStatus.ACTIVE;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true; // 계정 만료 안 됨
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true; // 계정 안 잠김
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true; // 비밀번호 만료 안 됨
     }
 }

@@ -2,19 +2,34 @@ package com.dd.blog.domain.post.post.service;
 
 import com.dd.blog.domain.post.category.entity.Category;
 import com.dd.blog.domain.post.category.repository.CategoryRepository;
+import com.dd.blog.domain.post.event.PostCreatedEvent;
 import com.dd.blog.domain.post.post.dto.PostPatchRequestDto;
 import com.dd.blog.domain.post.post.dto.PostRequestDto;
 import com.dd.blog.domain.post.post.dto.PostResponseDto;
 import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.domain.post.post.repository.PostRepository;
+import com.dd.blog.domain.post.verification.dto.VerificationRequestDto;
+import com.dd.blog.domain.post.verification.repository.VerificationRepository;
+import com.dd.blog.domain.post.verification.service.VerificationService;
 import com.dd.blog.domain.user.follow.entity.Follow;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.domain.user.follow.repository.FollowRepository;
+import com.dd.blog.global.aws.AwsS3Uploader;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,27 +41,72 @@ public class PostService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final VerificationService verificationService;
+    private final VerificationRepository verificationRepository;
+    private final AwsS3Uploader awsS3Uploader;
+
+    private void checkAdminAuthority() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("로그인이 필요합니다.");
+        }
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN")); // 실제 사용하는 Role 이름 확인! (보통 "ROLE_ADMIN")
+
+        if (!isAdmin) {
+            throw new AccessDeniedException("관리자 권한이 없습니다.");
+        }
+    }
+
 
 
     // CREATE
     // 게시글 CREATE
     @Transactional
-    public PostResponseDto createPost(Long categoryId, PostRequestDto postRequestDto){
+    public PostResponseDto createPost(Long categoryId, Long userId, PostRequestDto postRequestDto, MultipartFile postImage) throws IOException {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("카테고리가 존재하지 않습니다."));
 
-        User user = userRepository.findById(postRequestDto.getUserId())
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+
+        if(category.getId() == 4L)
+            checkAdminAuthority();
+
+
+        String uploadedImageUrl = null;
+        if (postImage != null && !postImage.isEmpty()) {
+            uploadedImageUrl = awsS3Uploader.upload(postImage, "post");
+        }
 
         Post post = Post.builder()
                 .title(postRequestDto.getTitle())
                 .content(postRequestDto.getContent())
-                .imageUrl(postRequestDto.getImageUrl())
+                .imageUrl(uploadedImageUrl != null ? uploadedImageUrl : postRequestDto.getImageUrl())
                 .category(category)
                 .user(user)
+                .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
+                .verificationImageUrl(postRequestDto.getVerificationImageUrl()) // String: 인증 이미지 URL
+                .viewCount(0) // 핫게시물 TOP5 위해 재추가
                 .build();
 
-        return PostResponseDto.fromEntity(postRepository.save(post));
+        Post savedPost = postRepository.save(post);
+
+        if (categoryId == 1L) {
+            VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
+                    .userId(userId)
+                    .postId(savedPost.getId())
+                    .detoxTime(savedPost.getDetoxTime())
+                    .build();
+
+            verificationService.createVerification(verificationRequest);
+        }
+
+        this.eventPublisher.publishEvent(new PostCreatedEvent(this, savedPost));
+
+        return PostResponseDto.fromEntity(savedPost);
     }
 
 
@@ -64,7 +124,7 @@ public class PostService {
     public List<PostResponseDto> getPostsByCategory(Long categoryId){
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
-        return postRepository.findByCategoryId(category).stream()
+        return postRepository.findByCategoryId(categoryId).stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -91,11 +151,44 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
+    // 게시글 페이지 조회
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getAllPostsPageable(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> postPage = postRepository.findAll(pageable);
+        return postPage.map(PostResponseDto::fromEntity);
+    }
+
+    // 게시글 페이지 조회 (카테고리 ID)
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getPostsByCategoryPageable(Long categoryId, int page, int size) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> postPage = postRepository.findByCategoryIdOrderByCreatedAtDesc(categoryId, pageable);
+        return postPage.map(PostResponseDto::fromEntity);
+    }
+
+    // 특정 사용자의 게시물 목록 조회
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getPostsByUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+
+        List<Post> posts = postRepository.findByUserOrderByCreatedAtDesc(user);
+        return posts.stream()
+                .map(PostResponseDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
     // 게시글 1개 READ(상세보기)
     @Transactional(readOnly = true)
     public PostResponseDto getPostById(Long postId){
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
+        // 조회수 증가
+        post.increaseViewCount();
         return PostResponseDto.fromEntity(post);
     }
 
@@ -103,14 +196,24 @@ public class PostService {
     // UPDATE
     // 게시글 UPDATE(수정)
     @Transactional
-    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto){
+    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto, MultipartFile postImage) throws IOException{
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
 
-        post.update(postPatchRequestDto.getTitle(), postPatchRequestDto.getContent(), postPatchRequestDto.getImageUrl());
+        if(post.getCategory().getId() == 4L)
+            checkAdminAuthority();
+
+        String uploadedImageUrl = null;
+        if (postImage != null && !postImage.isEmpty()) {
+            uploadedImageUrl = awsS3Uploader.upload(postImage, "post");
+        }
+
+        post.update(postPatchRequestDto.getTitle(),
+                postPatchRequestDto.getContent(),
+                uploadedImageUrl != null ? uploadedImageUrl : postPatchRequestDto.getImageUrl());
+
         return PostResponseDto.fromEntity(post);
     }
-
 
     // DELETE
     // 게시글 DELETE
@@ -118,6 +221,25 @@ public class PostService {
     public void deletePost(Long postId){
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+
+        if(post.getCategory().getId() == 4L)
+            checkAdminAuthority();
+
+        verificationRepository.deleteByPost(post);
         postRepository.delete(post);
+    }
+
+
+    // SEARCH
+    // 게시글 SEARCH
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> searchPosts(String type, String keyword) {
+        // PostRepository에서 검색 조건에 맞는 게시글 목록 조회
+        List<Post> posts = postRepository.searchByTypeAndKeyword(type, keyword);
+
+        // Entity → DTO 변환 후 결과 리스트 반환
+        return posts.stream()
+                .map(PostResponseDto::fromEntity)
+                .collect(Collectors.toList());
     }
 }
