@@ -1045,6 +1045,7 @@ export default function Home() {
                         postId={post.postId}
                         userId={post.userId}
                         userNickname={post.userNickname}
+                        authorRole={post.userRole}
                         title={post.title || ''}
                         content={post.content || ''}
                         imageUrl={post.imageUrl || ''}

@@ -92,8 +92,8 @@ export default function AdminDashboardPage() {
           <Link href="/admin/verifications" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
             인증 승인 관리
           </Link>
-          <Link href="/admin/posts" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
-            게시글 관리
+          <Link href="/admin/reports" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
+            신고 게시글 관리
           </Link>
         </div>
       </div>
@@ -131,15 +131,15 @@ export default function AdminDashboardPage() {
         {/* 게시글 관리 카드 */}
         <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">게시글 관리</h3>
+            <h3 className="text-xl font-semibold text-gray-800">신고 게시글 관리</h3>
             <div className="w-10 h-10 flex items-center justify-center text-primary">
               <i className="ri-file-list-line text-2xl" /> {/* 크기 조정 */}
             </div>
           </div>
           <p className="text-gray-600 mb-4">전체 게시글 : {isLoading ? '-' : (statsData?.totalPosts ?? 0).toLocaleString()} 개</p>
           <p className="text-gray-600 mb-6">오늘 등록 : {isLoading ? '-' : (statsData?.postsCreatedToday ?? 0)} 개</p>
-          <Link href="/admin/posts" className="block w-full bg-primary text-white text-center py-3 !rounded-button hover:bg-opacity-90 transition-colors">
-            게시글 관리
+          <Link href="/admin/reports" className="block w-full bg-primary text-white text-center py-3 !rounded-button hover:bg-opacity-90 transition-colors">
+            신고 게시글 관리
           </Link>
         </div>
       </div>
