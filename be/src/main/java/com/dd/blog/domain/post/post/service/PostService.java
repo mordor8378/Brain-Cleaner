@@ -11,6 +11,7 @@ import com.dd.blog.domain.post.post.repository.PostRepository;
 import com.dd.blog.domain.post.verification.dto.VerificationRequestDto;
 import com.dd.blog.domain.post.verification.repository.VerificationRepository;
 import com.dd.blog.domain.post.verification.service.VerificationService;
+import com.dd.blog.domain.report.repository.ReportRepository;
 import com.dd.blog.domain.user.follow.entity.Follow;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
@@ -44,6 +45,7 @@ public class PostService {
     private final ApplicationEventPublisher eventPublisher;
     private final VerificationService verificationService;
     private final VerificationRepository verificationRepository;
+    private final ReportRepository reportRepository;
     private final AwsS3Uploader awsS3Uploader;
 
     private void checkAdminAuthority() {
@@ -88,7 +90,7 @@ public class PostService {
                 .category(category)
                 .user(user)
                 .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
-                .verificationImageUrl(postRequestDto.getVerificationImageUrl()) // String: 인증 이미지 URL
+                .verificationImageUrl(uploadedImageUrl != null ? uploadedImageUrl : postRequestDto.getVerificationImageUrl()) // String: 인증 이미지 URL
                 .viewCount(0) // 핫게시물 TOP5 위해 재추가
                 .build();
 
@@ -224,6 +226,8 @@ public class PostService {
 
         if(post.getCategory().getId() == 4L)
             checkAdminAuthority();
+
+        reportRepository.unlinkReportsFromPost(postId);
 
         verificationRepository.deleteByPost(post);
         postRepository.delete(post);
