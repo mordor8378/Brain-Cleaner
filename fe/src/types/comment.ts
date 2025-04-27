@@ -13,6 +13,7 @@ export interface Comment {
 export interface CommentRequestDto {
   content: string;
   parentId?: number | null;
+  postId: number;
 }
 
 export interface CommentResponseDto {

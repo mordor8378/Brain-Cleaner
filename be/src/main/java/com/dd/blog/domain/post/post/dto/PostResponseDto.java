@@ -1,6 +1,7 @@
 package com.dd.blog.domain.post.post.dto;
 
 import com.dd.blog.domain.post.post.entity.Post;
+import com.dd.blog.domain.user.user.entity.UserRole;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ public class PostResponseDto {
     private Long postId;
     private Long userId;
     private String userNickname;
+    private UserRole userRole;
     private Long categoryId;
 
     private String title;
@@ -34,6 +36,7 @@ public class PostResponseDto {
                 .postId(post.getId())
                 .userId(post.getUser().getId())
                 .userNickname(post.getUser().getNickname())
+                .userRole(post.getUser().getRole())
                 .categoryId(post.getCategory().getId())
                 .title(post.getTitle())
                 .content(post.getContent())

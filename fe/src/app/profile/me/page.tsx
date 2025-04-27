@@ -4,6 +4,9 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UserInfo } from "@/types/user";
+import Link from "next/link";
+import { FaStore, FaCog } from "react-icons/fa";
+import CommentModal from "@/components/CommentModal";
 
 interface Post {
   postId: number;
@@ -19,7 +22,19 @@ interface Post {
   detoxTime: number | null;
   createdAt: string;
   updatedAt: string;
+  commentCount?: number;
 }
+
+const CUSTOM_PINK = "#F742CD";
+
+const BADGES = [
+  { name: "디톡스새싹", requiredPoints: 0, emoji: "🌱" },
+  { name: "절제수련생", requiredPoints: 100, emoji: "🧘" },
+  { name: "집중탐험가", requiredPoints: 600, emoji: "🔍" },
+  { name: "선명한의식", requiredPoints: 2000, emoji: "✨" },
+  { name: "도파민파괴자", requiredPoints: 4500, emoji: "💥" },
+  { name: "브레인클리너", requiredPoints: 7500, emoji: "🧠" },
+];
 
 export default function MyProfile() {
   const router = useRouter();
@@ -35,11 +50,11 @@ export default function MyProfile() {
     followers: 0,
     following: 0,
   });
-  const [stats] = useState({
-    detoxDays: 45,
-    streakDays: 12,
-    detoxTime: 32,
-    completionRate: 85,
+  const [stats, setStats] = useState({
+    detoxDays: 0,
+    streakDays: 0,
+    detoxTime: 0,
+    completionRate: 0,
     badges: 12,
   });
 
@@ -58,6 +73,10 @@ export default function MyProfile() {
   >([]);
   const [isLoadingFollows, setIsLoadingFollows] = useState(false);
 
+  // CommentModal 관련 상태
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -70,17 +89,24 @@ export default function MyProfile() {
 
         if (response.ok) {
           const data = await response.json();
-          setUserInfo(data);
-          // 사용자 정보를 가져온 후 팔로워/팔로잉 수와 게시글을 가져옴
-          fetchFollowStats(data.id);
-          fetchUserPosts(data.id);
+          console.log("프로필 데이터 로드:", data);
+          const userData = {
+            ...data,
+            profileImage: data.profileImageUrl,
+          };
+          setUserInfo(userData);
+
+          if (data.id) {
+            fetchFollowStats(data.id);
+            fetchUserPosts(data.id);
+            fetchVerificationStats(data.id);
+          }
         } else {
-          console.error("Failed to fetch user info");
+          console.error("프로필 정보를 불러오는데 실패했습니다.");
           router.push("/login");
         }
       } catch (error) {
         console.error("Error fetching user info:", error);
-        router.push("/login");
       } finally {
         setIsLoading(false);
       }
@@ -134,13 +160,55 @@ export default function MyProfile() {
     }
   };
 
-  // 날짜 포맷 함수
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return `${date.getFullYear()}년 ${
-      date.getMonth() + 1
-    }월 ${date.getDate()}일`;
+  const fetchVerificationStats = async (userId: number) => {
+    try {
+      // 1. 연속 인증일수 가져오기
+      const streakResponse = await fetch(
+        `http://localhost:8090/api/v1/verifications/streak/${userId}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      let streakDays = 0;
+      if (streakResponse.ok) {
+        streakDays = await streakResponse.json();
+      }
+
+      // 2. 인증 게시글만 필터링하여 가져오기 (categoryId가 1인 게시글만)
+      const verificationPostsResponse = await fetch(
+        `http://localhost:8090/api/v1/posts/user/${userId}?categoryId=3`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (verificationPostsResponse.ok) {
+        const verificationPosts = await verificationPostsResponse.json();
+
+        // 총 인증일수 = 인증 게시글 수
+        const totalVerificationDays = verificationPosts.length;
+
+        // 디톡스 시간 계산 - 모든 인증 게시글의 detoxTime 합산
+        let totalDetoxTime = 0;
+        verificationPosts.forEach((post: Post) => {
+          if (post.detoxTime) {
+            totalDetoxTime += post.detoxTime;
+          }
+        });
+
+        // stats 상태 업데이트
+        setStats({
+          detoxDays: totalVerificationDays,
+          streakDays: streakDays,
+          detoxTime: totalDetoxTime,
+          completionRate: 85,
+          badges: 12,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching verification stats:", error);
+    }
   };
 
   // 시간 경과 표시 함수
@@ -228,255 +296,222 @@ export default function MyProfile() {
     router.push(`/profile/${userId.toString()}`);
   };
 
+  // CommentModal 관련 함수
+  const handlePostClick = (post: Post) => {
+    setSelectedPost(post);
+    setShowCommentModal(true);
+  };
+
+  const handleCloseCommentModal = () => {
+    setShowCommentModal(false);
+    setSelectedPost(null);
+  };
+
+  const handleCommentUpdate = (count: number) => {
+    if (!selectedPost) return;
+
+    // selectedPost의 댓글 수 업데이트
+    setSelectedPost({
+      ...selectedPost,
+      commentCount: count,
+    });
+
+    // posts 배열 내의 해당 게시글 댓글 수도 업데이트
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.postId === selectedPost.postId
+          ? { ...post, commentCount: count }
+          : post
+      )
+    );
+  };
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-white">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 bg-white min-h-screen">
-      {/* Profile Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <div className="relative w-20 h-20">
-            <Image
-              src="/placeholder-avatar.png"
-              alt="Profile"
-              width={80}
-              height={80}
-              className="rounded-full"
-            />
-            <div className="absolute bottom-0 right-0 w-4 h-4 bg-pink-500 rounded-full border-2 border-white"></div>
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold">@{userInfo.nickname}</h1>
-            <div className="flex gap-4 my-2 text-sm">
-              <div
-                className="flex items-center gap-1 cursor-pointer hover:text-pink-500"
-                onClick={handleShowFollowers}
-              >
-                <span className="font-semibold">{followStats.followers}</span>
-                <span className="text-gray-600 hover:text-pink-500">
-                  팔로워
-                </span>
-              </div>
-              <div
-                className="flex items-center gap-1 cursor-pointer hover:text-pink-500"
-                onClick={handleShowFollowing}
-              >
-                <span className="font-semibold">{followStats.following}</span>
-                <span className="text-gray-600 hover:text-pink-500">
-                  팔로잉
-                </span>
-              </div>
-            </div>
-            <p className="text-gray-600 text-sm">{userInfo.statusMessage}</p>
-            <p className="text-gray-400 text-xs mt-1">
-              가입일: {formatDate(userInfo.createdAt || "")}
-            </p>
+    <div className="min-h-screen bg-white">
+      <div className="max-w-2xl mx-auto p-4">
+        {/* Header with username and icons */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">{userInfo.nickname}</h1>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/point-store"
+              className="text-xl hover:opacity-70 transition-colors"
+              style={{ color: CUSTOM_PINK }}
+            >
+              <FaStore />
+            </Link>
+            <button
+              onClick={() => router.push("/profile/me/edit")}
+              className="text-xl hover:opacity-70 transition-colors"
+              style={{ color: CUSTOM_PINK }}
+            >
+              <FaCog />
+            </button>
           </div>
         </div>
-        <button
-          onClick={() => router.push("/profile/me/edit")}
-          className="bg-pink-500 text-white px-4 py-2 rounded-full text-sm hover:bg-pink-600 transition-colors"
-        >
-          프로필 설정
-        </button>
-      </div>
 
-      {/* 팔로워 모달 */}
-      {showFollowersModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 w-72 max-w-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">팔로워</h3>
-              <button
-                onClick={() => setShowFollowersModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="overflow-y-auto max-h-60">
-              {isLoadingFollows ? (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500"></div>
+        {/* Profile Info */}
+        <div className="flex items-start gap-12 mb-8">
+          <div className="flex flex-col items-center gap-4">
+            {/* Profile Image */}
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full overflow-hidden">
+                <div className="w-full h-full relative">
+                  <Image
+                    src={userInfo.profileImage || "/placeholder-avatar.png"}
+                    alt="Profile"
+                    fill
+                    style={{ objectFit: "cover" }}
+                    unoptimized={true}
+                  />
                 </div>
-              ) : followers.length > 0 ? (
-                <ul className="space-y-2">
-                  {followers.map((follower, index) => (
-                    <li
-                      key={index}
-                      className="py-2 px-3 hover:bg-gray-100 rounded cursor-pointer"
-                      onClick={() => navigateToUserProfile(follower.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-                        <span>@{follower.nickname}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-center text-gray-500 py-4">
-                  팔로워가 없습니다.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 팔로잉 모달 */}
-      {showFollowingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 w-72 max-w-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">팔로잉</h3>
-              <button
-                onClick={() => setShowFollowingModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="overflow-y-auto max-h-60">
-              {isLoadingFollows ? (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500"></div>
-                </div>
-              ) : followings.length > 0 ? (
-                <ul className="space-y-2">
-                  {followings.map((following, index) => (
-                    <li
-                      key={index}
-                      className="py-2 px-3 hover:bg-gray-100 rounded cursor-pointer"
-                      onClick={() => navigateToUserProfile(following.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-                        <span>@{following.nickname}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-center text-gray-500 py-4">
-                  팔로잉하는 사용자가 없습니다.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="text-center">
-          <p className="text-gray-600">총 인증일수</p>
-          <p className="text-2xl font-bold text-pink-500">
-            {stats.detoxDays}일
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="text-gray-600">연속인증일수</p>
-          <p className="text-2xl font-bold text-pink-500">
-            {stats.streakDays}일
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="text-gray-600">현재 포인트</p>
-          <p className="text-2xl font-bold text-pink-500">
-            {userInfo.remainingPoint} P
-          </p>
-        </div>
-      </div>
-
-      {/* Progress Bars */}
-      <div className="space-y-6 mb-8">
-        <div>
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium">디지털 디톡스 시간</span>
-            <span className="text-sm text-pink-500">{stats.detoxTime}시간</span>
-          </div>
-          <div className="h-2 bg-gray-200 rounded-full">
-            <div
-              className="h-full bg-pink-500 rounded-full"
-              style={{ width: `${(stats.detoxTime / 48) * 100}%` }}
-            ></div>
-          </div>
-        </div>
-        <div>
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium">목표 달성률</span>
-            <span className="text-sm text-pink-500">
-              {stats.completionRate}%
-            </span>
-          </div>
-          <div className="h-2 bg-gray-200 rounded-full">
-            <div
-              className="h-full bg-pink-500 rounded-full"
-              style={{ width: `${stats.completionRate}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Badges */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">획득한 뱃지</h2>
-        <div className="grid grid-cols-4 gap-4">
-          {Array(stats.badges)
-            .fill(0)
-            .map((_, i) => (
-              <div
-                key={i}
-                className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center"
-              >
-                <span className="text-3xl">🏆</span>
               </div>
-            ))}
-        </div>
-      </div>
+              <div
+                className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
+                style={{ backgroundColor: CUSTOM_PINK }}
+              ></div>
+            </div>
+            {/* Status Message */}
+            <div className="w-[16rem]">
+              <textarea
+                value={userInfo.statusMessage || ""}
+                onChange={(e) => {
+                  setUserInfo({
+                    ...userInfo,
+                    statusMessage: e.target.value,
+                  });
+                }}
+                className="w-full text-sm text-gray-600 bg-transparent border-none resize-none focus:outline-none placeholder:text-transparent hover:placeholder:text-gray-400 transition-all overflow-hidden caret-[#F742CD]"
+                rows={1}
+                placeholder="상태 메시지를 입력하세요..."
+                style={{ height: "auto" }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "auto";
+                  target.style.height = target.scrollHeight + "px";
+                }}
+              />
+            </div>
+          </div>
 
-      {/* Feed Section */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4">내가 쓴 글</h2>
-        <div className="border-b border-gray-200 mb-4">
-          <nav className="flex gap-4">
+          {/* Stats */}
+          <div className="w-[16rem]">
+            <div className="grid grid-cols-3 text-center">
+              <div>
+                <div className="font-semibold text-lg">{posts.length}</div>
+                <div className="text-sm text-gray-500">게시물</div>
+              </div>
+              <div className="cursor-pointer" onClick={handleShowFollowers}>
+                <div className="font-semibold text-lg">
+                  {followStats.followers}
+                </div>
+                <div className="text-sm text-gray-500">팔로워</div>
+              </div>
+              <div className="cursor-pointer" onClick={handleShowFollowing}>
+                <div className="font-semibold text-lg">
+                  {followStats.following}
+                </div>
+                <div className="text-sm text-gray-500">팔로잉</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Badges */}
+        <div className="mb-8">
+          <div className="flex flex-wrap justify-center gap-8">
+            {BADGES.map((badge, index) => {
+              const isEarned =
+                (userInfo.totalPoint || 0) >= badge.requiredPoints;
+              return (
+                <div
+                  key={index}
+                  className="flex flex-col items-center"
+                  title={`${badge.name} (${badge.requiredPoints}P)`}
+                >
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      isEarned ? "bg-gray-100" : "bg-gray-50 opacity-30"
+                    }`}
+                  >
+                    <span className="text-lg">{badge.emoji}</span>
+                  </div>
+                  <span
+                    className="text-xs mt-1 text-center"
+                    style={{
+                      color: isEarned ? CUSTOM_PINK : "rgb(107 114 128)",
+                    }}
+                  >
+                    {badge.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="border-b border-gray-200 mb-8">
+          <nav className="flex justify-center">
             <button
               onClick={() => setSelectedTab("feed")}
-              className={`pb-4 px-2 ${
+              className={`pb-4 px-8 w-40 text-center ${
                 selectedTab === "feed"
-                  ? "border-b-2 border-pink-500 text-pink-500"
+                  ? `border-b-2 border-[${CUSTOM_PINK}]`
                   : "text-gray-500"
               }`}
+              style={{
+                color: selectedTab === "feed" ? CUSTOM_PINK : undefined,
+              }}
             >
               피드
             </button>
             <button
               onClick={() => setSelectedTab("comments")}
-              className={`pb-4 px-2 ${
+              className={`pb-4 px-8 w-40 text-center ${
                 selectedTab === "comments"
-                  ? "border-b-2 border-pink-500 text-pink-500"
+                  ? `border-b-2 border-[${CUSTOM_PINK}]`
                   : "text-gray-500"
               }`}
+              style={{
+                color: selectedTab === "comments" ? CUSTOM_PINK : undefined,
+              }}
             >
               댓글
+            </button>
+            <button
+              onClick={() => setSelectedTab("stats")}
+              className={`pb-4 px-8 w-40 text-center ${
+                selectedTab === "stats"
+                  ? `border-b-2 border-[${CUSTOM_PINK}]`
+                  : "text-gray-500"
+              }`}
+              style={{
+                color: selectedTab === "stats" ? CUSTOM_PINK : undefined,
+              }}
+            >
+              디톡스정보
             </button>
           </nav>
         </div>
 
+        {/* Tab Contents */}
         {selectedTab === "feed" && (
           <div className="grid grid-cols-2 gap-4">
             {posts.length > 0 ? (
               posts.map((post) => (
                 <div
                   key={post.postId}
-                  className="bg-white rounded-lg shadow p-4"
+                  className="border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => handlePostClick(post)}
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
@@ -489,8 +524,27 @@ export default function MyProfile() {
                       </p>
                     </div>
                   </div>
-                  <div className="aspect-video bg-gray-100 rounded-lg mb-3"></div>
-                  <p className="text-sm text-gray-600">{post.content}</p>
+                  {post.imageUrl && (
+                    <div className="aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
+                      <Image
+                        src={post.imageUrl}
+                        alt="Post image"
+                        width={300}
+                        height={200}
+                        className="w-full h-full object-cover"
+                        unoptimized={true}
+                      />
+                    </div>
+                  )}
+                  <h3 className="font-medium mb-1">{post.title}</h3>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {post.content}
+                  </p>
+                  <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                    <span>조회 {post.viewCount || 0}</span>
+                    <span>좋아요 {post.likeCount || 0}</span>
+                    <span>댓글 {post.commentCount || 0}</span>
+                  </div>
                 </div>
               ))
             ) : (
@@ -507,6 +561,167 @@ export default function MyProfile() {
               아직 작성한 댓글이 없습니다.
             </p>
           </div>
+        )}
+
+        {selectedTab === "stats" && (
+          <div className="max-w-[16rem] mx-auto mb-8 mt-12">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">총 인증일수</span>
+                <span className="font-medium" style={{ color: CUSTOM_PINK }}>
+                  {stats.detoxDays}일
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">연속 인증일수</span>
+                <span className="font-medium" style={{ color: CUSTOM_PINK }}>
+                  {stats.streakDays}일
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">현재 포인트</span>
+                <span className="font-medium" style={{ color: CUSTOM_PINK }}>
+                  {userInfo.remainingPoint}P
+                </span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">디지털 디톡스 시간</span>
+                  <span className="font-medium" style={{ color: CUSTOM_PINK }}>
+                    {stats.detoxTime}시간
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${(stats.detoxTime / 48) * 100}%`,
+                      backgroundColor: CUSTOM_PINK,
+                    }}
+                  ></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">목표 달성률</span>
+                  <span className="font-medium" style={{ color: CUSTOM_PINK }}>
+                    {stats.completionRate}%
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${stats.completionRate}%`,
+                      backgroundColor: CUSTOM_PINK,
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 팔로워 모달 */}
+        {showFollowersModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-4 w-72 max-w-sm">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">팔로워</h3>
+                <button
+                  onClick={() => setShowFollowersModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="overflow-y-auto max-h-60">
+                {isLoadingFollows ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500"></div>
+                  </div>
+                ) : followers.length > 0 ? (
+                  <ul className="space-y-2">
+                    {followers.map((follower, index) => (
+                      <li
+                        key={index}
+                        className="py-2 px-3 hover:bg-gray-100 rounded cursor-pointer"
+                        onClick={() => navigateToUserProfile(follower.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                          <span>@{follower.nickname}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-center text-gray-500 py-4">
+                    팔로워가 없습니다.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 팔로잉 모달 */}
+        {showFollowingModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-4 w-72 max-w-sm">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">팔로잉</h3>
+                <button
+                  onClick={() => setShowFollowingModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="overflow-y-auto max-h-60">
+                {isLoadingFollows ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500"></div>
+                  </div>
+                ) : followings.length > 0 ? (
+                  <ul className="space-y-2">
+                    {followings.map((following, index) => (
+                      <li
+                        key={index}
+                        className="py-2 px-3 hover:bg-gray-100 rounded cursor-pointer"
+                        onClick={() => navigateToUserProfile(following.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                          <span>@{following.nickname}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-center text-gray-500 py-4">
+                    팔로잉하는 사용자가 없습니다.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CommentModal */}
+        {showCommentModal && selectedPost && (
+          <CommentModal
+            postId={selectedPost.postId}
+            onClose={handleCloseCommentModal}
+            postImage={selectedPost.imageUrl}
+            postContent={selectedPost.content}
+            userNickname={selectedPost.userNickname}
+            createdAt={selectedPost.createdAt}
+            isOwnPost={userInfo.id === selectedPost.userId}
+            onUpdate={handleCommentUpdate}
+            detoxTime={selectedPost.detoxTime ?? undefined}
+            userId={selectedPost.userId}
+          />
         )}
       </div>
     </div>

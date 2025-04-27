@@ -12,13 +12,17 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @SuperBuilder
-@ToString(exclude = {"reportedPost", "reporter"})
+@ToString(exclude = {"reportedPost", "reporter", "reportedPostAuthor"})
 @Table(name = "report")
 public class Report extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
+    @JoinColumn(name = "post_id", nullable = true)
     private Post reportedPost;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reported_post_author_id")
+    private User reportedPostAuthor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -32,9 +36,10 @@ public class Report extends BaseEntity {
     @Column(name = "status", nullable = false)
     private ReportStatus status;
 
-    public static Report createReport(Post post, User reporter, String reason) {
+    public static Report createReport(Post post, User reportedPostAuthor, User reporter, String reason) {
         return Report.builder()
                 .reportedPost(post)
+                .reportedPostAuthor(reportedPostAuthor)
                 .reporter(reporter)
                 .reason(reason)
                 .status(ReportStatus.PENDING)

@@ -17,11 +17,11 @@ const AdminReportPage: React.FC = () => {
 
 
   // 인증 요청 처리 함수 (내용은 나중에 채움)
-  const handleApprove = (verificationId: number) => {
-      approveMutation.mutate(verificationId);
+  const handleApprove = (reportId: number) => {
+      approveMutation.mutate(reportId);
       };
-  const handleReject = (verificationId: number) => {
-      rejectMutation.mutate(verificationId);
+  const handleReject = (reportId: number) => {
+      rejectMutation.mutate(reportId);
    };
 
 
@@ -119,61 +119,73 @@ interface ReportPage {
     });
 
     const approveMutation = useMutation({
-          mutationFn: async (verificationId: number) => {
-            const response = await fetch(`${ADMIN_VERIFICATIONS_API_URL}/${verificationId}`, {
+          mutationFn: async (reportId: number) => {
+            const apiUrl = `http://localhost:8090/api/admin/reports/${reportId}/status`;
+
+            console.log("Requesting Approve API:", apiUrl);
+
+            const response = await fetch(apiUrl, {
               method: 'PATCH',
               headers: {
                 'Content-Type': 'application/json',
               },
               credentials: 'include', // 필요시 사용
-              body: JSON.stringify({ status: 'APPROVED' } as VerificationStatusUpdateData), // 요청 본문
+              body: JSON.stringify({ reportStatus: 'APPROVED' }), // 요청 본문
             });
 
             if (!response.ok) {
               // 에러 처리 강화 (실제 에러 메시지 활용 등)
-              const errorData = await response.text();
-              console.error('승인 실패:', response.status, errorData);
-              throw new Error(`승인 처리 실패: ${response.status}`);
+              const errorData = await response.text().catch(() => 'No error body');
+              console.error('신고 처리 실패:', response.status, errorData);
+              throw new Error(`신고 처리 실패: ${response.status}`);
             }
             // 성공 시 별도 데이터 반환 안 함 (백엔드 API가 void 반환)
           },
-          onSuccess: () => {
-            // 성공 시 캐시된 'adminVerifications' 쿼리를 무효화시켜서 목록을 새로고침
-            console.log('승인 성공, 목록 새로고침');
-            queryClient.invalidateQueries({ queryKey: ['adminVerifications'] });
-          },
-          onError: (error) => {
-            // 에러 발생 시 사용자에게 알림 등 추가 처리 가능
-            console.error('승인 처리 중 에러:', error);
-            alert(`승인 처리 중 오류가 발생했습니다: ${error.message}`);
-          }
+          onSuccess: (data, reportId) => {
+              console.log(`신고 처리(승인) 성공 (Report ID: ${reportId}), 목록 새로고침`);
+              queryClient.invalidateQueries({ queryKey: ['adminReports'] });
+            },
+            onError: (error, reportId) => {
+              console.error(`신고 처리(승인) 중 에러 (Report ID: ${reportId}):`, error);
+              alert(`신고 처리(승인) 중 오류가 발생했습니다: ${error.message}`);
+            }
         });
 
 
     const rejectMutation = useMutation({
-          mutationFn: async (verificationId: number) => {
-            const response = await fetch(`${ADMIN_VERIFICATIONS_API_URL}/${verificationId}`, {
-              method: 'PATCH', // 백엔드 AdminVerificationV1Controller의 @PatchMapping 사용
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ status: 'REJECTED' } as VerificationStatusUpdateData), // 상태를 REJECTED로 보냄
-            });
-            if (!response.ok) {
-              const errorData = await response.text();
-              console.error('거절 실패:', response.status, errorData);
-              throw new Error(`거절 처리 실패: ${response.status}`);
-            }
+      // mutationFn: 신고 반려 API 호출 로직으로 변경
+      mutationFn: async (reportId: number) => { // 파라미터 이름 reportId로 명확화
+        // API 주소 확인! (프록시 사용 시 상대 경로, 아니면 전체 주소)
+        const apiUrl = `http://localhost:8090/api/admin/reports/${reportId}/status`;
+
+
+        console.log("Requesting Reject API:", apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'PATCH', // <-- 메소드 변경!
+          headers: {
+            'Content-Type': 'application/json',
           },
-          onSuccess: () => {
-            console.log('거절 성공, 목록 새로고침');
-            // 성공 시 똑같이 목록 새로고침
-            queryClient.invalidateQueries({ queryKey: ['adminVerifications'] });
-          },
-          onError: (error) => {
-            console.error('거절 처리 중 에러:', error);
-            alert(`거절 처리 중 오류가 발생했습니다: ${error.message}`);
-          }
+          credentials: 'include',
+          body: JSON.stringify({ reportStatus: 'REJECTED' }), // <-- 요청 본문 변경!
         });
+
+        if (!response.ok) {
+          const errorData = await response.text().catch(() => 'No error body');
+          console.error('신고 반려 실패:', response.status, errorData);
+          throw new Error(`신고 반려 실패: ${response.status}`);
+        }
+      },
+      onSuccess: (data, reportId) => { // 파라미터 이름 reportId로 명확화
+        console.log(`신고 반려 성공 (Report ID: ${reportId}), 목록 새로고침`);
+        // 성공 시 'adminReports' 쿼리 무효화 -> 목록 자동 새로고침!
+        queryClient.invalidateQueries({ queryKey: ['adminReports'] }); // <--- queryKey 수정!
+      },
+      onError: (error, reportId) => { // 파라미터 이름 reportId로 명확화
+        console.error(`신고 반려 중 에러 (Report ID: ${reportId}):`, error);
+        alert(`신고 반려 중 오류가 발생했습니다: ${error.message}`);
+      }
+    });
 
 
     // 실제 데이터 배열로 변환

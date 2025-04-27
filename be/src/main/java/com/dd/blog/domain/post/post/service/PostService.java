@@ -15,6 +15,7 @@ import com.dd.blog.domain.user.follow.entity.Follow;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.domain.user.follow.repository.FollowRepository;
+import com.dd.blog.global.aws.AwsS3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -26,9 +27,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,6 +44,7 @@ public class PostService {
     private final ApplicationEventPublisher eventPublisher;
     private final VerificationService verificationService;
     private final VerificationRepository verificationRepository;
+    private final AwsS3Uploader awsS3Uploader;
 
     private void checkAdminAuthority() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -63,7 +65,7 @@ public class PostService {
     // CREATE
     // 게시글 CREATE
     @Transactional
-    public PostResponseDto createPost(Long categoryId, Long userId, PostRequestDto postRequestDto){
+    public PostResponseDto createPost(Long categoryId, Long userId, PostRequestDto postRequestDto, MultipartFile postImage) throws IOException {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("카테고리가 존재하지 않습니다."));
 
@@ -74,10 +76,15 @@ public class PostService {
             checkAdminAuthority();
 
 
+        String uploadedImageUrl = null;
+        if (postImage != null && !postImage.isEmpty()) {
+            uploadedImageUrl = awsS3Uploader.upload(postImage, "post");
+        }
+
         Post post = Post.builder()
                 .title(postRequestDto.getTitle())
                 .content(postRequestDto.getContent())
-                .imageUrl(postRequestDto.getImageUrl())
+                .imageUrl(uploadedImageUrl != null ? uploadedImageUrl : postRequestDto.getImageUrl())
                 .category(category)
                 .user(user)
                 .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
@@ -96,9 +103,6 @@ public class PostService {
 
             verificationService.createVerification(verificationRequest);
         }
-
-
-
 
         this.eventPublisher.publishEvent(new PostCreatedEvent(this, savedPost));
 
@@ -192,17 +196,24 @@ public class PostService {
     // UPDATE
     // 게시글 UPDATE(수정)
     @Transactional
-    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto){
+    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto, MultipartFile postImage) throws IOException{
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
 
         if(post.getCategory().getId() == 4L)
             checkAdminAuthority();
 
-        post.update(postPatchRequestDto.getTitle(), postPatchRequestDto.getContent(), postPatchRequestDto.getImageUrl());
+        String uploadedImageUrl = null;
+        if (postImage != null && !postImage.isEmpty()) {
+            uploadedImageUrl = awsS3Uploader.upload(postImage, "post");
+        }
+
+        post.update(postPatchRequestDto.getTitle(),
+                postPatchRequestDto.getContent(),
+                uploadedImageUrl != null ? uploadedImageUrl : postPatchRequestDto.getImageUrl());
+
         return PostResponseDto.fromEntity(post);
     }
-
 
     // DELETE
     // 게시글 DELETE

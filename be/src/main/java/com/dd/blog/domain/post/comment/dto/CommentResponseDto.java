@@ -18,6 +18,7 @@ public class CommentResponseDto {
     private Long userId;
     @JsonProperty("parent_id")
     private Long parentId;
+    private String userNickname;
     private String content;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -27,6 +28,7 @@ public class CommentResponseDto {
                 .id(comment.getId())
                 .postId(comment.getPost().getId())
                 .userId(comment.getUser().getId())
+                .userNickname(comment.getUser().getNickname())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
