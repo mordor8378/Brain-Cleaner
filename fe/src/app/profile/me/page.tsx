@@ -88,16 +88,27 @@ export default function MyProfile() {
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
+            // 캐시 방지
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
           },
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log("프로필 데이터 로드:", data);
+          console.log("프로필 데이터 로드 (원본):", data);
+          console.log(
+            "detoxGoal 타입:",
+            typeof data.detoxGoal,
+            "값:",
+            data.detoxGoal
+          );
+
           const userData = {
             ...data,
             profileImage: data.profileImageUrl,
           };
+          console.log("변환 후 userData:", userData);
           setUserInfo(userData);
 
           if (data.id) {
@@ -167,6 +178,8 @@ export default function MyProfile() {
 
   const fetchVerificationStats = async (userId: number) => {
     try {
+      console.log("fetchVerificationStats 시작, 현재 userInfo:", userInfo);
+
       // 1. 연속 인증일수 가져오기
       const streakResponse = await fetch(
         `http://localhost:8090/api/v1/verifications/streak`,
@@ -207,12 +220,42 @@ export default function MyProfile() {
           }
         });
 
+        // 최신 userInfo 가져오기
+        const latestUserInfo = await fetch(
+          "http://localhost:8090/api/v1/users/me",
+          {
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+            },
+          }
+        ).then((res) => res.json());
+
+        console.log("최신 사용자 정보:", latestUserInfo);
+        console.log("최신 detoxGoal:", latestUserInfo.detoxGoal);
+
+        // 목표 달성률 계산 - detoxGoal이 설정되어 있고 0보다 큰 경우에만 계산
+        let completionRate = 0;
+        let detoxGoal = latestUserInfo.detoxGoal;
+
+        if (detoxGoal && detoxGoal > 0) {
+          completionRate = Math.min(
+            100,
+            Math.round((totalDetoxTime / detoxGoal) * 100)
+          );
+        }
+
+        console.log("사용 중인 detoxGoal:", detoxGoal);
+        console.log("totalDetoxTime:", totalDetoxTime);
+        console.log("계산된 completionRate:", completionRate);
+
         // stats 상태 업데이트
         setStats({
           detoxDays: totalVerificationDays,
           streakDays: streakDays,
           detoxTime: totalDetoxTime,
-          completionRate: 0,
+          completionRate: completionRate,
           badges: 12,
         });
       }
@@ -746,7 +789,13 @@ export default function MyProfile() {
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{
-                      width: `${(stats.detoxTime / 48) * 100}%`,
+                      width:
+                        userInfo.detoxGoal && userInfo.detoxGoal > 0
+                          ? `${Math.min(
+                              100,
+                              (stats.detoxTime / userInfo.detoxGoal) * 100
+                            )}%`
+                          : "0%",
                       backgroundColor: CUSTOM_PINK,
                     }}
                   ></div>

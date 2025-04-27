@@ -6,7 +6,7 @@ export interface UserInfo {
   totalPoint?: number;
   createdAt?: string | null;
   statusMessage?: string;
-  detoxGoal?: string;
+  detoxGoal?: number;
   birthDate?: Date | null;
   profileImage?: string | null;
-} 
+}

@@ -101,11 +101,18 @@ export default function OtherUserProfile() {
           const userData = {
             ...data,
             profileImage: data.profileImageUrl,
+            detoxGoal:
+              data.detoxGoal !== undefined && data.detoxGoal !== null
+                ? parseInt(data.detoxGoal.toString())
+                : 0,
           };
+          console.log("변환된 userData:", userData);
           setUserInfo(userData);
           fetchFollowStats(data.id);
           fetchUserPosts(data.id);
-          fetchVerificationStats(data.id);
+          setTimeout(() => {
+            fetchVerificationStats(data.id);
+          }, 100);
           fetchUserComments(data.id);
 
           // 팔로우 상태 확인 (나를 기준으로 해당 사용자를 팔로우하고 있는지)
@@ -495,12 +502,21 @@ export default function OtherUserProfile() {
           }
         });
 
+        // 목표 달성률 계산 - detoxGoal이 설정되어 있고 0보다 큰 경우에만 계산
+        let completionRate = 0;
+        if (userInfo.detoxGoal && userInfo.detoxGoal > 0) {
+          completionRate = Math.min(
+            100,
+            Math.round((totalDetoxTime / userInfo.detoxGoal) * 100)
+          );
+        }
+
         // stats 상태 업데이트
         setStats({
           detoxDays: totalVerificationDays,
           streakDays: streakDays,
           detoxTime: totalDetoxTime,
-          completionRate: 0,
+          completionRate: completionRate,
         });
       }
     } catch (error) {
@@ -850,7 +866,13 @@ export default function OtherUserProfile() {
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
-                        width: `${(stats.detoxTime / 48) * 100}%`,
+                        width:
+                          userInfo.detoxGoal && userInfo.detoxGoal > 0
+                            ? `${Math.min(
+                                100,
+                                (stats.detoxTime / userInfo.detoxGoal) * 100
+                              )}%`
+                            : "0%",
                         backgroundColor: CUSTOM_PINK,
                       }}
                     ></div>
