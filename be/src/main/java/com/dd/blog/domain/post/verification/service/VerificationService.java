@@ -124,12 +124,29 @@ public class VerificationService {
 
     // DTO 변환 로직(공통)
     private VerificationResponseDto toDto(Verification verification) {
+        if(verification == null) return null;
+
+        User user = verification.getUser();
+        Post post = verification.getPost();
+
+        Long userId = (user != null) ? user.getId() : null;
+        String userNickname = (user != null) ? user.getNickname() : null;
+
+        Long postId = (post != null) ? post.getId() : null;
+        String verificationImageUrl =
+                (post != null && post.getVerificationImageUrl() != null)
+                        ? post.getVerificationImageUrl()
+                        : post != null ? post.getImageUrl() : null;
+
         return VerificationResponseDto.builder()
                 .verificationId(verification.getId())
-                .userId(verification.getUser().getId())
-                .postId(verification.getPost().getId())
+                .userId(userId)
+                .postId(postId)
                 .status(verification.getStatus())
                 .detoxTime(verification.getDetoxTime())
+                .userNickname(userNickname)
+                .verificationImageUrl(verificationImageUrl)
+                .createdAt(verification.getCreatedAt())
                 .build();
     }
 

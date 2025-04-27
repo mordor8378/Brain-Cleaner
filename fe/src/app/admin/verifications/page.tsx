@@ -299,6 +299,13 @@ const deleteMutation = useMutation({
 
                 // 마지막 요소에 ref 연결
                 const isLastElement = index === requests.length - 1;
+
+                if (request.verificationImageUrl) {
+                   console.log('>> 인증 이미지 URL:', request.verificationImageUrl);
+                 } else {
+                   // URL이 없을 때도 로그를 남겨서 확인!
+                   console.log('>> 인증 이미지 URL for request ID ' + request.verificationId + ' is NULL or EMPTY');
+                 }
                 return (
                   <div
                     key={request.verificationId}
@@ -323,12 +330,12 @@ const deleteMutation = useMutation({
                       </span>
                     </div>
                     <div className="p-6">
-                      <div className="w-full h-[400px] rounded-lg overflow-hidden mb-4">
+                      <div className="w-full max-w-sm h-auto rounded overflow-hidden border border-gray-200">
                         <img
                           // post 객체가 중첩되어 있다면 request.post?.verificationImageUrl
                           src={request.verificationImageUrl || '/placeholder.png'} // 이미지가 없을 경우 대비
                           alt="인증 이미지"
-                          className="w-full h-full object-cover object-top"
+                          className="w-full h-full object-contain"
                         />
                       </div>
                       <div className="flex justify-end space-x-3">

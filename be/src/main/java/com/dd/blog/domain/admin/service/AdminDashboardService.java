@@ -4,6 +4,8 @@ import com.dd.blog.domain.admin.dto.AdminDashboardStatsDto;
 import com.dd.blog.domain.post.post.repository.PostRepository;
 import com.dd.blog.domain.post.verification.entity.VerificationStatus;
 import com.dd.blog.domain.post.verification.repository.VerificationRepository;
+import com.dd.blog.domain.report.entity.ReportStatus;
+import com.dd.blog.domain.report.repository.ReportRepository;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class AdminDashboardService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final VerificationRepository verificationRepository;
+    private final ReportRepository reportRepository;
 
     @Transactional(readOnly = true)
     public AdminDashboardStatsDto getDashboardStats() {
@@ -30,24 +33,30 @@ public class AdminDashboardService {
 
         // 각 통계 계산
         long totalUsers = userRepository.count();
-        long pendingVerifications = verificationRepository.countByStatus(VerificationStatus.PENDING); // 리포지토리 메소드 필요!
+        long pendingVerifications = verificationRepository.countByStatus(VerificationStatus.PENDING);
         long verificationsProcessedToday = verificationRepository.countByStatusInAndUpdatedAtBetween(
                 List.of(VerificationStatus.APPROVED, VerificationStatus.REJECTED), // 처리된 상태 목록
                 startOfDay,
                 endOfDay
         );
 
-        long usersJoinedToday = userRepository.countByCreatedAtBetween(startOfDay, endOfDay); // 리포지토리 메소드 필요!
-        long postsCreatedToday = postRepository.countByCreatedAtBetween(startOfDay, endOfDay); // 리포지토리 메소드 필요!
-        long totalPosts = postRepository.count();
+        long usersJoinedToday = userRepository.countByCreatedAtBetween(startOfDay, endOfDay);
+
+
+        long pendingReports = reportRepository.countByStatus(ReportStatus.PENDING);
+        long reportsProcessedToday = reportRepository.countByStatusInAndUpdatedAtBetween(
+                List.of(ReportStatus.APPROVED, ReportStatus.REJECTED), // 처리된 상태: APPROVED, REJECTED
+                startOfDay,
+                endOfDay
+        );
 
         return AdminDashboardStatsDto.builder()
                 .totalUsers(totalUsers)
                 .pendingVerifications(pendingVerifications)
                 .verificationsProcessedToday(verificationsProcessedToday)
                 .usersJoinedToday(usersJoinedToday)
-                .postsCreatedToday(postsCreatedToday)
-                .totalPosts(totalPosts)
+                .pendingReports(pendingReports)
+                .reportsProcessedToday(reportsProcessedToday)
                 .build();
 
     }

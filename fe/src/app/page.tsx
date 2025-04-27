@@ -70,6 +70,7 @@ export default function Home() {
     { value: "1", label: "인증게시판" },
     { value: "2", label: "정보공유게시판" },
     { value: "3", label: "자유게시판" },
+    { value: '4', label: '공지사항' },
   ];
 
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
@@ -1079,6 +1080,7 @@ export default function Home() {
                         postId={post.postId}
                         userId={post.userId}
                         userNickname={post.userNickname}
+                        authorRole={post.userRole}
                         title={post.title || ""}
                         content={post.content || ""}
                         imageUrl={post.imageUrl || ""}

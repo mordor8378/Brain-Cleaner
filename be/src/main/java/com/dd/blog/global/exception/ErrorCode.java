@@ -11,6 +11,7 @@ public enum ErrorCode {
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
     CANNOT_CHANGE_ADMIN_STATUS(HttpStatus.BAD_REQUEST, "관리자 계정의 상태는 변경 불가능합니다."),
     CANNOT_ChANGE_ADMIN_ROLE(HttpStatus.BAD_REQUEST, "관리자 계정의 등급은 변경 불가능합니다."),
+    CANNOT_REPORT_OWN_POST(HttpStatus.BAD_REQUEST, "본인의 게시글은 신고 불가능합니다."),
 
 
     // 401 UNAUTHORIZED
@@ -26,6 +27,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 게시글입니다."),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스가 존재하지 않습니다."),
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 신고입니다."),
 
     // 409 CONFLICT
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 등록된 이메일입니다."),
