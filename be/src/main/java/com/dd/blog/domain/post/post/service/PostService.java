@@ -31,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -67,7 +69,7 @@ public class PostService {
     // CREATE
     // 게시글 CREATE
     @Transactional
-    public PostResponseDto createPost(Long categoryId, Long userId, PostRequestDto postRequestDto, MultipartFile postImage) throws IOException {
+    public PostResponseDto createPost(Long categoryId, Long userId, PostRequestDto postRequestDto, MultipartFile[] postImages) throws IOException {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("카테고리가 존재하지 않습니다."));
 
@@ -77,20 +79,43 @@ public class PostService {
         if(category.getId() == 4L)
             checkAdminAuthority();
 
-
-        String uploadedImageUrl = null;
-        if (postImage != null && !postImage.isEmpty()) {
-            uploadedImageUrl = awsS3Uploader.upload(postImage, "post");
+        // 기존 이미지 URL 배열 (null이면 빈 배열로 초기화)
+        String[] existingImageUrls = postRequestDto.getImageUrl() != null ? postRequestDto.getImageUrl() : new String[0];
+        System.out.println("기존 이미지 URL 배열 길이: " + existingImageUrls.length);
+        
+        // 새로 업로드된 이미지 처리
+        List<String> newImageUrlList = new ArrayList<>();
+        if (postImages != null && postImages.length > 0) {
+            System.out.println("새로 업로드된 이미지 파일 수: " + postImages.length);
+            for (MultipartFile postImage : postImages) {
+                String uploadedUrl = awsS3Uploader.upload(postImage, "post"); // 각 이미지를 S3에 업로드
+                newImageUrlList.add(uploadedUrl); // URL 리스트에 추가
+                System.out.println("업로드된 이미지 URL: " + uploadedUrl);
+            }
+        }
+        
+        // 기존 이미지 URL과 새 이미지 URL 결합
+        String[] allImageUrls;
+        if (existingImageUrls.length > 0 || !newImageUrlList.isEmpty()) {
+            // 두 배열 결합
+            List<String> combinedList = new ArrayList<>(Arrays.asList(existingImageUrls));
+            combinedList.addAll(newImageUrlList);
+            allImageUrls = combinedList.toArray(new String[0]);
+            System.out.println("최종 이미지 URL 배열 길이: " + allImageUrls.length);
+        } else {
+            allImageUrls = null;
+            System.out.println("이미지 URL이 없습니다.");
         }
 
         Post post = Post.builder()
                 .title(postRequestDto.getTitle())
                 .content(postRequestDto.getContent())
-                .imageUrl(uploadedImageUrl != null ? uploadedImageUrl : postRequestDto.getImageUrl())
+                .imageUrl(allImageUrls)
                 .category(category)
                 .user(user)
                 .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
-                .verificationImageUrl(uploadedImageUrl != null ? uploadedImageUrl : postRequestDto.getVerificationImageUrl()) // String: 인증 이미지 URL
+                .verificationImageUrl(category.getId() == 1L && allImageUrls != null && allImageUrls.length > 0
+                        ? allImageUrls[0] : null) // 인증 게시판일 때만 인증 이미지 설정
                 .viewCount(0) // 핫게시물 TOP5 위해 재추가
                 .build();
 
@@ -194,25 +219,57 @@ public class PostService {
         return PostResponseDto.fromEntity(post);
     }
 
-
     // UPDATE
     // 게시글 UPDATE(수정)
     @Transactional
-    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto, MultipartFile postImage) throws IOException{
+    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto, MultipartFile[] postImages) throws IOException{
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
 
         if(post.getCategory().getId() == 4L)
             checkAdminAuthority();
 
-        String uploadedImageUrl = null;
-        if (postImage != null && !postImage.isEmpty()) {
-            uploadedImageUrl = awsS3Uploader.upload(postImage, "post");
+        // 기존 이미지 URL 처리 - DTO에서 가져오거나 기존 게시글에서 가져옴
+        String[] existingImageUrls;
+        if (postPatchRequestDto.getImageUrl() != null && postPatchRequestDto.getImageUrl().length > 0) {
+            existingImageUrls = postPatchRequestDto.getImageUrl();
+        } else {
+            existingImageUrls = post.getImageUrl(); // 기존 게시글의 이미지 URL
+        }
+        
+        if (existingImageUrls == null) {
+            existingImageUrls = new String[0];
+        }
+        
+        System.out.println("업데이트: 기존 이미지 URL 배열 길이: " + existingImageUrls.length);
+        
+        // 새로 업로드된 이미지 처리
+        List<String> newImageUrlList = new ArrayList<>();
+        if (postImages != null && postImages.length > 0) {
+            System.out.println("업데이트: 새로 업로드된 이미지 파일 수: " + postImages.length);
+            for (MultipartFile postImage : postImages) {
+                String uploadedUrl = awsS3Uploader.upload(postImage, "post");
+                newImageUrlList.add(uploadedUrl);
+                System.out.println("업데이트: 업로드된 이미지 URL: " + uploadedUrl);
+            }
+        }
+        
+        // 기존 이미지 URL과 새 이미지 URL 결합
+        String[] finalImageUrls;
+        if (existingImageUrls.length > 0 || !newImageUrlList.isEmpty()) {
+            // 두 배열 결합
+            List<String> combinedList = new ArrayList<>(Arrays.asList(existingImageUrls));
+            combinedList.addAll(newImageUrlList);
+            finalImageUrls = combinedList.toArray(new String[0]);
+            System.out.println("업데이트: 최종 이미지 URL 배열 길이: " + finalImageUrls.length);
+        } else {
+            finalImageUrls = null;
+            System.out.println("업데이트: 이미지 URL이 없습니다.");
         }
 
         post.update(postPatchRequestDto.getTitle(),
                 postPatchRequestDto.getContent(),
-                uploadedImageUrl != null ? uploadedImageUrl : postPatchRequestDto.getImageUrl());
+                finalImageUrls);
 
         return PostResponseDto.fromEntity(post);
     }

@@ -82,28 +82,42 @@ export default function WritePostPage({
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = event.target.files;
     if (files && files.length > 0) {
+      // 파일 업로드 중임을 사용자에게 알림
+      if (files.length > 1) {
+        alert(
+          `${files.length}개의 이미지를 업로드합니다. 잠시만 기다려주세요.`
+        );
+      }
+
+      // 모든 업로드 작업을 Promise 배열로 관리
+      const uploadPromises = [];
+
       // 다중 파일 업로드 처리
-      Array.from(files).forEach((file) => {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
         // 파일 크기 제한 (10MB)
         if (file.size > 10 * 1024 * 1024) {
           alert("파일 크기는 10MB를 초과할 수 없습니다.");
-          return;
+          continue;
         }
 
         // 이미지 파일 타입 체크
         if (!file.type.startsWith("image/")) {
           alert("이미지 파일만 업로드 가능합니다.");
-          return;
+          continue;
         }
 
         const formData = new FormData();
         formData.append("file", file);
 
-        // S3 업로드 엔드포인트 사용
-        fetch("http://localhost:8090/api/v1/s3/upload", {
+        // S3 업로드 엔드포인트 사용 - Promise를 배열에 추가
+        const uploadPromise = fetch("http://localhost:8090/api/v1/s3/upload", {
           method: "POST",
           body: formData,
           credentials: "include",
@@ -116,13 +130,27 @@ export default function WritePostPage({
           })
           .then((imageUrl) => {
             console.log("Uploaded image URL:", imageUrl);
-            setImageUrls((prev) => [...prev, imageUrl]);
-          })
-          .catch((error) => {
-            console.error("Error uploading image:", error);
-            alert("이미지 업로드에 실패했습니다.");
+            return imageUrl; // Promise의 결과로 이미지 URL 반환
           });
-      });
+
+        uploadPromises.push(uploadPromise);
+      }
+
+      try {
+        // 모든 업로드가 완료될 때까지 대기
+        const uploadedUrls = await Promise.all(uploadPromises);
+
+        // 업로드가 성공한 모든 이미지 URL을 상태에 추가
+        setImageUrls((prev) => [...prev, ...uploadedUrls]);
+
+        console.log(
+          `${uploadedUrls.length}개의 이미지 업로드 완료:`,
+          uploadedUrls
+        );
+      } catch (error) {
+        console.error("이미지 업로드 중 오류 발생:", error);
+        alert("일부 이미지 업로드에 실패했습니다.");
+      }
     }
   };
 
@@ -145,13 +173,24 @@ export default function WritePostPage({
       // FormData 객체 생성
       const formData = new FormData();
 
+      // 백엔드에서는 새롭게 업로드된 이미지만 처리하고, 기존 이미지는 무시합니다.
+      // 새로 업로드된 파일이 있는지 확인
+      const hasNewFiles =
+        fileInputRef.current?.files && fileInputRef.current.files.length > 0;
+
+      // 현재까지 업로드된 이미지 URL 배열을 확인
+      console.log("게시글 등록 시 이미지 URL 배열:", imageUrls);
+
       // PostRequestDto 객체를 JSON 문자열로 변환 후 Blob으로 변환하여 추가
+      // imageUrl은 여기에 추가하여 백엔드로 전송합니다.
       const postRequestDto = {
         title,
         content,
-        imageUrl: imageUrls.length > 0 ? JSON.stringify(imageUrls) : "",
+        imageUrl: imageUrls.length > 0 ? imageUrls : [],
         categoryId: parseInt(category),
       };
+
+      console.log("폼 데이터에 추가될 postRequestDto:", postRequestDto);
 
       // RequestPart로 전송하기 위해 JSON 문자열을 Blob으로 변환 후 첨부
       const postRequestDtoBlob = new Blob([JSON.stringify(postRequestDto)], {
@@ -159,12 +198,25 @@ export default function WritePostPage({
       });
       formData.append("postRequestDto", postRequestDtoBlob);
 
-      // 이미지가 있을 경우 파일 입력에서 직접 파일을 가져와 추가
-      if (
-        fileInputRef.current?.files &&
-        fileInputRef.current.files.length > 0
-      ) {
-        formData.append("postImage", fileInputRef.current.files[0]);
+      // 이미지가 있을 경우, 파일 입력에서 직접 파일만 formData에 추가
+      if (hasNewFiles) {
+        console.log(
+          `${
+            fileInputRef.current!.files!.length
+          }개의 이미지 파일을 FormData에 추가합니다.`
+        );
+
+        // 모든 선택된 파일을 FormData에 추가
+        for (let i = 0; i < fileInputRef.current!.files!.length; i++) {
+          formData.append("postImage", fileInputRef.current!.files![i]);
+        }
+      } else {
+        console.log("새로 업로드할 이미지가 없습니다.");
+      }
+
+      // FormData 내용 디버깅 (FormData는 직접 로깅할 수 없으므로 키만 확인)
+      for (const key of formData.keys()) {
+        console.log(`FormData에 포함된 키: ${key}`);
       }
 
       const res = await fetch(`http://localhost:8090/api/v1/posts`, {
@@ -174,6 +226,9 @@ export default function WritePostPage({
       });
 
       if (res.ok) {
+        const response = await res.json();
+        console.log("게시글 등록 응답:", response);
+
         alert("게시글 등록 완료!");
         if (onSuccess) {
           onSuccess();

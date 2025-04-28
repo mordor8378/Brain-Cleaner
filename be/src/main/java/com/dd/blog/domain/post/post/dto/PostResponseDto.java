@@ -20,7 +20,7 @@ public class PostResponseDto {
 
     private String title;
     private String content;
-    private String imageUrl;
+    private String[] imageUrl;
     private int viewCount;
     private int likeCount;
     private int commentCount;

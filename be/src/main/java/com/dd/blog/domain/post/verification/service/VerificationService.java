@@ -135,9 +135,8 @@ public class VerificationService {
         Long postId = (post != null) ? post.getId() : null;
         String verificationImageUrl =
                 (post != null && post.getVerificationImageUrl() != null)
-                        ? post.getVerificationImageUrl()
-                        : post != null ? post.getImageUrl() : null;
-
+                        ? post.getVerificationImageUrl()  // String 타입 처리
+                        : null;
         return VerificationResponseDto.builder()
                 .verificationId(verification.getId())
                 .userId(userId)
