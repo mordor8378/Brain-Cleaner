@@ -340,13 +340,30 @@ export default function EditProfile() {
           {/* 프로필 이미지 */}
           <div className="flex flex-col items-center mb-6 pb-6 border-b border-gray-100">
             <div className="relative w-20 h-20 mb-2">
-              <Image
-                src={profileImage}
-                alt="Profile"
-                width={80}
-                height={80}
-                className="rounded-full object-cover"
-              />
+              {profileImage && profileImage !== "/placeholder-avatar.png" ? (
+                <Image
+                  src={profileImage}
+                  alt="Profile"
+                  width={80}
+                  height={80}
+                  className="rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-10 w-10 text-gray-700"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              )}
               <label
                 htmlFor="profile-image"
                 className="absolute bottom-0 right-0 w-6 h-6 flex items-center justify-center text-white rounded-full cursor-pointer hover:opacity-80 transition-colors"
