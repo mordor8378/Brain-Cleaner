@@ -139,7 +139,7 @@ public class PostService {
 
         Post savedPost = postRepository.save(post);
 
-        if (categoryId == 3L) {
+        if (categoryId == 1L) {
             VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
                     .userId(userId)
                     .postId(savedPost.getId())
