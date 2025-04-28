@@ -33,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -93,7 +94,7 @@ public class PostService {
                 System.out.println("업로드된 이미지 URL: " + uploadedUrl);
             }
         }
-        
+
         // 기존 이미지 URL과 새 이미지 URL 결합
         String[] allImageUrls;
         if (existingImageUrls.length > 0 || !newImageUrlList.isEmpty()) {
@@ -106,6 +107,15 @@ public class PostService {
             allImageUrls = null;
             System.out.println("이미지 URL이 없습니다.");
         }
+
+        // 기존 이미지 URL과 새 이미지 URL 결합 (중복 제거)
+        List<String> combinedList = new ArrayList<>(Arrays.asList(existingImageUrls));
+        combinedList.addAll(newImageUrlList);
+
+        // 중복 제거
+        List<String> uniqueUrls = new ArrayList<>(new LinkedHashSet<>(combinedList));
+        allImageUrls = uniqueUrls.toArray(new String[0]);
+        System.out.println("중복 제거 후 최종 이미지 URL 배열 길이: " + allImageUrls.length);
 
         Post post = Post.builder()
                 .title(postRequestDto.getTitle())

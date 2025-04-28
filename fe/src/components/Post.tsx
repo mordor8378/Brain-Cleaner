@@ -89,97 +89,71 @@ export default function Post({
   // 문자열 또는 JSON 문자열로 전달된 imageUrl을 파싱
   useEffect(() => {
     if (!imageUrl) {
-      console.log("이미지 없음");
       setParsedImageUrls([]);
       return;
     }
 
     try {
-      console.log("이미지 URL 원본 데이터:", imageUrl, typeof imageUrl);
+      console.log("Post - 원본 이미지 URL 데이터:", imageUrl, typeof imageUrl);
 
-      // 이미 배열인 경우 (백엔드에서 String[]으로 변경된 경우)
+      // 이미 배열인 경우
       if (Array.isArray(imageUrl)) {
-        console.log("배열 형태의 이미지 URL:", imageUrl, imageUrl.length);
+        console.log("Post - 배열 형태의 이미지 URL:", imageUrl);
 
-        // 유효한 URL만 필터링하고 로깅
-        const validUrls = imageUrl.filter(
-          (url) => url && typeof url === "string" && url.includes("http")
+        // 배열 내 중복 URL 제거 (Set 사용)
+        const uniqueUrls = [...new Set(imageUrl)];
+        console.log("Post - 중복 제거 후 URL:", uniqueUrls);
+
+        const validUrls = uniqueUrls.filter(
+          (url) => url && typeof url === "string" && url.trim() !== ""
         );
 
-        console.log(
-          "필터링된 유효한 URL 배열:",
-          validUrls,
-          "개수:",
-          validUrls.length
-        );
-
-        if (validUrls.length > 0) {
-          setParsedImageUrls(validUrls);
-          console.log(
-            "최종 이미지 URL 설정 완료:",
-            validUrls.length,
-            "개의 이미지"
-          );
-        } else {
-          setParsedImageUrls([]);
-          console.log("유효한 이미지 URL이 없습니다.");
-        }
+        console.log("Post - 필터링된 유효한 URL 배열:", validUrls);
+        setParsedImageUrls(validUrls);
         return;
       }
 
-      // JSON 형식으로 된 문자열인지 확인
+      // 문자열인 경우 추가 처리
       if (typeof imageUrl === "string") {
-        console.log("문자열 이미지 URL:", imageUrl);
+        console.log("Post - 문자열 이미지 URL 처리:", imageUrl);
 
-        // JSON 배열 문자열인 경우
-        if (imageUrl.startsWith("[") && imageUrl.endsWith("]")) {
+        // JSON 배열 문자열인지 확인 (예: "[\"url1\", \"url2\"]")
+        if (imageUrl.trim().startsWith("[") && imageUrl.trim().endsWith("]")) {
           try {
             const parsed = JSON.parse(imageUrl);
-            console.log("JSON 파싱 결과:", parsed);
+            console.log("Post - JSON 파싱 결과:", parsed);
 
             if (Array.isArray(parsed)) {
-              const validUrls = parsed.filter(
-                (url) => url && typeof url === "string" && url.includes("http")
-              );
-              console.log(
-                "JSON에서 파싱된 유효한 URL 배열:",
-                validUrls,
-                "개수:",
-                validUrls.length
+              // 배열 내 중복 URL 제거 (Set 사용)
+              const uniqueUrls = [...new Set(parsed)];
+              console.log("Post - JSON 중복 제거 후 URL:", uniqueUrls);
+
+              const validUrls = uniqueUrls.filter(
+                (url) => url && typeof url === "string" && url.trim() !== ""
               );
 
-              if (validUrls.length > 0) {
-                setParsedImageUrls(validUrls);
-                console.log(
-                  "JSON에서 최종 이미지 URL 설정 완료:",
-                  validUrls.length,
-                  "개의 이미지"
-                );
-              } else {
-                setParsedImageUrls([]);
-                console.log("JSON에서 유효한 이미지 URL이 없습니다.");
-              }
+              console.log("Post - JSON에서 파싱된 유효한 URL 배열:", validUrls);
+              setParsedImageUrls(validUrls);
               return;
             }
-          } catch (e) {
-            console.error("JSON 파싱 오류:", e);
+          } catch (error) {
+            console.error("Post - JSON 파싱 오류:", error);
           }
         }
 
-        // 단일 URL 문자열인 경우
-        if (imageUrl.includes("http")) {
-          console.log("단일 URL 문자열:", imageUrl);
+        // 일반 문자열 URL인 경우
+        if (imageUrl.trim() !== "") {
+          console.log("Post - 일반 문자열 URL 추가:", imageUrl);
           setParsedImageUrls([imageUrl]);
-          console.log("단일 이미지 URL 설정 완료");
           return;
         }
       }
 
-      // 위의 모든 검사를 통과하지 못한 경우
-      console.log("파싱 불가능한 이미지 URL, 빈 배열 설정");
+      // 위 조건 모두 충족하지 않으면 빈 배열로 설정
+      console.log("Post - 지원되지 않는 이미지 URL 형식, 빈 배열 설정");
       setParsedImageUrls([]);
-    } catch (e) {
-      console.error("이미지 URL 파싱 오류:", e);
+    } catch (error) {
+      console.error("Post - 이미지 URL 파싱 중 오류:", error);
       setParsedImageUrls([]);
     }
   }, [imageUrl]);
@@ -423,9 +397,14 @@ export default function Post({
 
     // 기존 이미지 URL 배열을 유지하기 위해 imageUrl을 PostPatchRequestDto에 포함
     const currentImageUrls = parsedImageUrls.length > 0 ? parsedImageUrls : [];
+
+    // 중복 이미지 URL 제거
+    const uniqueImageUrls = [...new Set(currentImageUrls)];
+    console.log("이미지 업데이트시 중복 제거된 URL:", uniqueImageUrls);
+
     formData.append(
       "postPatchRequestDto",
-      new Blob([JSON.stringify({ imageUrl: currentImageUrls })], {
+      new Blob([JSON.stringify({ imageUrl: uniqueImageUrls })], {
         type: "application/json",
       })
     );
@@ -433,7 +412,7 @@ export default function Post({
     try {
       console.log(
         "이미지 업데이트 시작 - 기존 이미지:",
-        currentImageUrls.length,
+        uniqueImageUrls.length,
         "개"
       );
 
@@ -954,7 +933,9 @@ export default function Post({
                 // JSON 파싱이 가능한지 확인
                 const parsed = JSON.parse(imageUrl);
                 if (Array.isArray(parsed)) {
-                  const filteredUrls = parsed.filter(
+                  // 배열 내 중복 제거
+                  const uniqueUrls = [...new Set(parsed)];
+                  const filteredUrls = uniqueUrls.filter(
                     (url) => url && url.trim() !== ""
                   );
                   return filteredUrls.length > 0

@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/contexts/UserContext";
 import Image from "next/image";
 import EmojiPicker from "@/components/EmojiPicker";
 import { fetchPurchasedEmojis, Emoji } from "@/utils/emojiUtils";
+import { useUser } from "@/contexts/UserContext";
 
 interface WritePostPageProps {
   onClose?: () => void;
@@ -23,12 +23,12 @@ export default function WritePostPage({
   const router = useRouter();
   const { user } = useUser();
   const isAdmin = user?.role === "ROLE_ADMIN";
-  const [category, setCategory] = useState(initialCategory);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [category, setCategory] = useState<string>(initialCategory);
+  const [title, setTitle] = useState<string>("");
+  const [content, setContent] = useState<string>("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const [purchasedEmojis, setPurchasedEmojis] = useState<Emoji[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -140,12 +140,17 @@ export default function WritePostPage({
         // 모든 업로드가 완료될 때까지 대기
         const uploadedUrls = await Promise.all(uploadPromises);
 
-        // 업로드가 성공한 모든 이미지 URL을 상태에 추가
-        setImageUrls((prev) => [...prev, ...uploadedUrls]);
+        // 중복 URL 체크를 위해 기존 URL들과 새 URL들 합치기
+        const allUrls = [...imageUrls, ...uploadedUrls];
+        // 중복 제거
+        const uniqueUrls = [...new Set(allUrls)];
+
+        // 업로드가 성공한 모든 이미지 URL을 상태에 추가 (중복 제거)
+        setImageUrls(uniqueUrls);
 
         console.log(
-          `${uploadedUrls.length}개의 이미지 업로드 완료:`,
-          uploadedUrls
+          `${uploadedUrls.length}개의 이미지 업로드 완료. 중복 제거 후 총 ${uniqueUrls.length}개 이미지:`,
+          uniqueUrls
         );
       } catch (error) {
         console.error("이미지 업로드 중 오류 발생:", error);
@@ -179,14 +184,21 @@ export default function WritePostPage({
         fileInputRef.current?.files && fileInputRef.current.files.length > 0;
 
       // 현재까지 업로드된 이미지 URL 배열을 확인
-      console.log("게시글 등록 시 이미지 URL 배열:", imageUrls);
+      console.log("게시글 등록 시 원본 이미지 URL 배열:", imageUrls);
+
+      // 중복 URL 제거
+      const uniqueImageUrls = [...new Set(imageUrls)];
+      console.log(
+        "게시글 등록 시 중복 제거된 이미지 URL 배열:",
+        uniqueImageUrls
+      );
 
       // PostRequestDto 객체를 JSON 문자열로 변환 후 Blob으로 변환하여 추가
-      // imageUrl은 여기에 추가하여 백엔드로 전송합니다.
+      // 중복을 제거한, 정제된 이미지 URL 배열을 백엔드로 전송합니다.
       const postRequestDto = {
         title,
         content,
-        imageUrl: imageUrls.length > 0 ? imageUrls : [],
+        imageUrl: uniqueImageUrls.length > 0 ? uniqueImageUrls : [],
         categoryId: parseInt(category),
       };
 
@@ -445,7 +457,6 @@ export default function WritePostPage({
                       alt="첨부 이미지"
                       className="w-full rounded-lg"
                     />
-                    {/* 이미지 내부 좌/우 화살표 */}
                     {imageUrls.length > 1 && (
                       <>
                         <button
@@ -502,7 +513,6 @@ export default function WritePostPage({
                       </svg>
                     </button>
                   </div>
-                  {/* 이미지 인디케이터 */}
                   {imageUrls.length > 1 && (
                     <div className="flex justify-center mt-2 space-x-1">
                       {imageUrls.map((_, index) => (
