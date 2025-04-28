@@ -12,6 +12,7 @@ import {
   Emoji,
 } from "@/utils/emojiUtils";
 import { getProfilePath } from "@/utils/profileHelpers";
+import { toast } from "react-hot-toast";
 
 export interface PostProps {
   postId: number;
@@ -227,7 +228,7 @@ export default function Post({
 
   const handleEditTitle = () => {
     if (user?.id !== userId) {
-      alert("자신의 게시글만 수정할 수 있습니다.");
+      toast.error("자신의 게시글만 수정할 수 있습니다.");
       return;
     }
     setIsEditingTitle(true);
@@ -236,7 +237,7 @@ export default function Post({
 
   const handleEditContent = () => {
     if (user?.id !== userId) {
-      alert("자신의 게시글만 수정할 수 있습니다.");
+      toast.error("자신의 게시글만 수정할 수 있습니다.");
       return;
     }
     setIsEditingContent(true);
@@ -435,10 +436,10 @@ export default function Post({
         onUpdate();
       }
 
-      alert("이미지가 성공적으로 업로드되었습니다.");
+      toast.success("이미지가 성공적으로 업로드되었습니다.");
     } catch (error) {
       console.error("이미지 업데이트 중 오류:", error);
-      alert("이미지 업데이트에 실패했습니다.");
+      toast.error("이미지 업데이트에 실패했습니다.");
     }
   };
 
@@ -896,7 +897,7 @@ export default function Post({
             postId={postId}
             onClose={() => setShowReportModal(false)}
             onSuccess={() => {
-              alert("신고가 접수되었습니다.");
+              toast.success("신고가 접수되었습니다.");
               setShowReportModal(false);
             }}
           />
@@ -1011,7 +1012,7 @@ export default function Post({
               }
             } catch (error) {
               console.error("이미지 업데이트 중 오류:", error);
-              alert("이미지 업데이트에 실패했습니다.");
+              toast.error("이미지 업데이트에 실패했습니다.");
             }
           }}
           userProfileImage={userProfileImage}
