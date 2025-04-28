@@ -51,7 +51,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         if (user.getStatus() == UserStatus.SUSPENDED) {
 
-            throw new ApiException(ErrorCode.ACCOUNT_SUSPENDED, "정지된 계정입니다. 관리자에게 문의하세요.");
+            throw new ApiException(ErrorCode.ACCOUNT_SUSPENDED);
         }
 
         return new SecurityUser(
