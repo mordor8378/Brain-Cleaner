@@ -29,7 +29,7 @@ export interface PostProps {
   onUpdate?: () => void;
   onLike: (postId: number) => void;
   onUnlike: (postId: number) => void;
-  isLiked?: boolean;
+  likedByCurrentUser: boolean;
   onDelete?: (postId: number) => void;
   onCommentUpdate?: (count: number) => void;
   userProfileImage?: string | null;
@@ -53,7 +53,7 @@ export default function Post({
   onUpdate,
   onLike,
   onUnlike,
-  isLiked,
+  likedByCurrentUser,
   onDelete,
   onCommentUpdate,
   userProfileImage,
@@ -633,12 +633,16 @@ export default function Post({
       <div className="mt-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => (isLiked ? onUnlike(postId) : onLike(postId))}
+            onClick={() =>
+              likedByCurrentUser ? onUnlike(postId) : onLike(postId)
+            }
             className={`flex items-center gap-1 group ${
-              isLiked ? "text-pink-500" : "text-gray-400 hover:text-pink-500"
+              likedByCurrentUser
+                ? "text-pink-500"
+                : "text-gray-400 hover:text-pink-500"
             } transition-colors`}
           >
-            {isLiked ? (
+            {likedByCurrentUser ? (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5"
