@@ -1,6 +1,7 @@
 package com.dd.blog.domain.post.post.entity;
 
 import com.dd.blog.domain.post.category.entity.Category;
+import com.dd.blog.domain.post.postlike.entity.PostLike;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.post.comment.entity.Comment;
 import com.dd.blog.global.jpa.BaseEntity;
@@ -55,6 +56,10 @@ public class Post extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostLike> postLikes = new ArrayList<>();
 
     // 게시글 수정 메서드
     public void update(String title, String content, String imageUrl) {
