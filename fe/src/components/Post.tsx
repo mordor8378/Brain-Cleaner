@@ -19,7 +19,7 @@ export interface PostProps {
   userNickname: string;
   title: string;
   content: string;
-  imageUrl: string;
+  imageUrl: string[] | string;
   likeCount: number;
   commentCount: number;
   verificationImageUrl: string;
@@ -77,6 +77,7 @@ export default function Post({
   // 이미지 캐러셀을 위한 상태
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [parsedImageUrls, setParsedImageUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null); // 파일 입력을 위한 ref 추가
 
   // 이모티콘 로딩
   useEffect(() => {
@@ -93,19 +94,67 @@ export default function Post({
     }
 
     try {
-      // JSON 형식으로 된 문자열인지 확인
-      if (imageUrl.startsWith("[") && imageUrl.endsWith("]")) {
-        const parsed = JSON.parse(imageUrl);
-        if (Array.isArray(parsed)) {
-          setParsedImageUrls(parsed);
+      console.log("Post - 원본 이미지 URL 데이터:", imageUrl, typeof imageUrl);
+
+      // 이미 배열인 경우
+      if (Array.isArray(imageUrl)) {
+        console.log("Post - 배열 형태의 이미지 URL:", imageUrl);
+
+        // 배열 내 중복 URL 제거 (Set 사용)
+        const uniqueUrls = [...new Set(imageUrl)];
+        console.log("Post - 중복 제거 후 URL:", uniqueUrls);
+
+        const validUrls = uniqueUrls.filter(
+          (url) => url && typeof url === "string" && url.trim() !== ""
+        );
+
+        console.log("Post - 필터링된 유효한 URL 배열:", validUrls);
+        setParsedImageUrls(validUrls);
+        return;
+      }
+
+      // 문자열인 경우 추가 처리
+      if (typeof imageUrl === "string") {
+        console.log("Post - 문자열 이미지 URL 처리:", imageUrl);
+
+        // JSON 배열 문자열인지 확인 (예: "[\"url1\", \"url2\"]")
+        if (imageUrl.trim().startsWith("[") && imageUrl.trim().endsWith("]")) {
+          try {
+            const parsed = JSON.parse(imageUrl);
+            console.log("Post - JSON 파싱 결과:", parsed);
+
+            if (Array.isArray(parsed)) {
+              // 배열 내 중복 URL 제거 (Set 사용)
+              const uniqueUrls = [...new Set(parsed)];
+              console.log("Post - JSON 중복 제거 후 URL:", uniqueUrls);
+
+              const validUrls = uniqueUrls.filter(
+                (url) => url && typeof url === "string" && url.trim() !== ""
+              );
+
+              console.log("Post - JSON에서 파싱된 유효한 URL 배열:", validUrls);
+              setParsedImageUrls(validUrls);
+              return;
+            }
+          } catch (error) {
+            console.error("Post - JSON 파싱 오류:", error);
+          }
+        }
+
+        // 일반 문자열 URL인 경우
+        if (imageUrl.trim() !== "") {
+          console.log("Post - 일반 문자열 URL 추가:", imageUrl);
+          setParsedImageUrls([imageUrl]);
           return;
         }
       }
-      // 단일 URL 문자열인 경우
-      setParsedImageUrls([imageUrl]);
-    } catch (e) {
-      console.error("이미지 URL 파싱 오류:", e);
-      setParsedImageUrls([imageUrl]); // 파싱 실패 시 원본 URL을 사용
+
+      // 위 조건 모두 충족하지 않으면 빈 배열로 설정
+      console.log("Post - 지원되지 않는 이미지 URL 형식, 빈 배열 설정");
+      setParsedImageUrls([]);
+    } catch (error) {
+      console.error("Post - 이미지 URL 파싱 중 오류:", error);
+      setParsedImageUrls([]);
     }
   }, [imageUrl]);
 
@@ -328,8 +377,69 @@ export default function Post({
     setCurrentImageIndex(index);
   };
 
+  // 이미지 업로드 핸들러 추가
   const handleImageClick = () => {
-    // Implementation of handleImageClick
+    if (user?.id === userId && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const formData = new FormData();
+
+    // 모든 선택된 파일을 FormData에 추가
+    for (let i = 0; i < files.length; i++) {
+      formData.append("postImage", files[i]);
+    }
+
+    // 기존 이미지 URL 배열을 유지하기 위해 imageUrl을 PostPatchRequestDto에 포함
+    const currentImageUrls = parsedImageUrls.length > 0 ? parsedImageUrls : [];
+
+    // 중복 이미지 URL 제거
+    const uniqueImageUrls = [...new Set(currentImageUrls)];
+    console.log("이미지 업데이트시 중복 제거된 URL:", uniqueImageUrls);
+
+    formData.append(
+      "postPatchRequestDto",
+      new Blob([JSON.stringify({ imageUrl: uniqueImageUrls })], {
+        type: "application/json",
+      })
+    );
+
+    try {
+      console.log(
+        "이미지 업데이트 시작 - 기존 이미지:",
+        uniqueImageUrls.length,
+        "개"
+      );
+
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/${postId}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("이미지 업데이트 응답 오류:", errorData);
+        throw new Error(errorData.message || "이미지 업데이트 실패");
+      }
+
+      if (onUpdate) {
+        onUpdate();
+      }
+
+      alert("이미지가 성공적으로 업로드되었습니다.");
+    } catch (error) {
+      console.error("이미지 업데이트 중 오류:", error);
+      alert("이미지 업데이트에 실패했습니다.");
+    }
   };
 
   return (
@@ -546,11 +656,28 @@ export default function Post({
         <div className="rounded-lg overflow-hidden mb-3 mt-3 relative group">
           <div className="relative">
             <Image
-              src={parsedImageUrls[currentImageIndex]}
+              src={parsedImageUrls[currentImageIndex] || ""}
               alt="게시글 이미지"
               width={500}
               height={300}
               className="w-full h-auto object-cover"
+              unoptimized={true}
+              onError={(e) => {
+                console.error(
+                  "이미지 로드 실패:",
+                  parsedImageUrls[currentImageIndex]
+                );
+                console.log("전체 이미지 URL 배열:", parsedImageUrls);
+                // 이미지 로드 실패 시 오류 메시지 표시
+                const container = (e.target as HTMLImageElement).parentElement;
+                if (container) {
+                  const errorMsg = document.createElement("div");
+                  errorMsg.className = "text-red-500 text-sm p-4 text-center";
+                  errorMsg.textContent = "이미지를 불러올 수 없습니다";
+                  container.appendChild(errorMsg);
+                }
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
             />
 
             {/* 이미지 내부 좌/우 화살표 - 여러 이미지일 때만 표시 */}
@@ -558,11 +685,12 @@ export default function Post({
               <>
                 <button
                   onClick={handlePrevImage}
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-60 text-white rounded-full p-2 hover:bg-opacity-80"
+                  aria-label="이전 이미지"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
+                    className="h-6 w-6"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -575,11 +703,12 @@ export default function Post({
                 </button>
                 <button
                   onClick={handleNextImage}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-60 text-white rounded-full p-2 hover:bg-opacity-80"
+                  aria-label="다음 이미지"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
+                    className="h-6 w-6"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -616,18 +745,34 @@ export default function Post({
 
           {/* 이미지 인디케이터 (이미지가 여러 장일 때만 표시) */}
           {parsedImageUrls.length > 1 && (
-            <div className="flex justify-center mt-2 space-x-1">
+            <div className="flex justify-center mt-2 space-x-2 mb-2">
               {parsedImageUrls.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => goToImage(index)}
-                  className={`w-2 h-2 rounded-full ${
+                  className={`w-3 h-3 rounded-full ${
                     index === currentImageIndex ? "bg-pink-500" : "bg-gray-300"
-                  }`}
+                  } transition-colors hover:bg-pink-400`}
+                  aria-label={`이미지 ${index + 1}로 이동`}
                 />
               ))}
             </div>
           )}
+
+          {/* 파일 입력 추가 */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            multiple
+            onChange={handleImageChange}
+          />
+
+          {/* 디버깅용: 이미지 URL 정보 표시 */}
+          <div className="text-xs text-gray-600 mt-1 text-center">
+            이미지 {currentImageIndex + 1}/{parsedImageUrls.length}
+          </div>
         </div>
       )}
       <div className="mt-4 flex items-center justify-between">
@@ -771,17 +916,52 @@ export default function Post({
             );
             if (!imageUrl) return "";
 
-            // 이미 JSON 배열 형태인지 확인
-            if (imageUrl.startsWith("[") && imageUrl.endsWith("]")) {
-              return imageUrl;
+            // 이미 배열인 경우
+            if (Array.isArray(imageUrl)) {
+              // 빈 값 필터링
+              const filteredUrls = imageUrl.filter(
+                (url) => url && url.trim() !== ""
+              );
+              return filteredUrls.length > 0
+                ? JSON.stringify(filteredUrls)
+                : "";
             }
+
+            // 이미 JSON 배열 형태인지 확인
+            if (
+              typeof imageUrl === "string" &&
+              imageUrl.startsWith("[") &&
+              imageUrl.endsWith("]")
+            ) {
+              try {
+                // JSON 파싱이 가능한지 확인
+                const parsed = JSON.parse(imageUrl);
+                if (Array.isArray(parsed)) {
+                  // 배열 내 중복 제거
+                  const uniqueUrls = [...new Set(parsed)];
+                  const filteredUrls = uniqueUrls.filter(
+                    (url) => url && url.trim() !== ""
+                  );
+                  return filteredUrls.length > 0
+                    ? JSON.stringify(filteredUrls)
+                    : "";
+                }
+              } catch (e) {
+                console.error("JSON 파싱 오류:", e);
+              }
+            }
+
             // 단일 URL인 경우 배열로 변환 - 실제 URL만 사용
-            const arrayFormat = JSON.stringify([imageUrl]);
-            console.log(
-              "Post에서 CommentModal로 전달되는 변환된 이미지 배열:",
-              arrayFormat
-            );
-            return arrayFormat;
+            if (typeof imageUrl === "string" && imageUrl.trim() !== "") {
+              const arrayFormat = JSON.stringify([imageUrl]);
+              console.log(
+                "Post에서 CommentModal로 전달되는 변환된 이미지 배열:",
+                arrayFormat
+              );
+              return arrayFormat;
+            }
+
+            return "";
           })()}
           postContent={content}
           userNickname={userNickname}
@@ -789,9 +969,19 @@ export default function Post({
           isOwnPost={user?.id === userId}
           onUpdate={handleCommentCountUpdate}
           detoxTime={detoxTime}
-          onImageUpdate={async (newImage) => {
+          onImageUpdate={async (files) => {
             const formData = new FormData();
-            formData.append("postImage", newImage);
+
+            if (Array.isArray(files)) {
+              // 배열로 전달된 경우 각 파일 추가
+              for (let i = 0; i < files.length; i++) {
+                formData.append("postImage", files[i]);
+              }
+            } else if (files) {
+              // 단일 파일로 전달된 경우
+              formData.append("postImage", files);
+            }
+
             // 빈 객체라도 PostPatchRequestDto 필요
             formData.append(
               "postPatchRequestDto",
@@ -811,7 +1001,9 @@ export default function Post({
               );
 
               if (!response.ok) {
-                throw new Error("이미지 업데이트 실패");
+                const errorData = await response.json().catch(() => ({}));
+                console.error("이미지 업데이트 응답 오류:", errorData);
+                throw new Error(errorData.message || "이미지 업데이트 실패");
               }
 
               if (onUpdate) {

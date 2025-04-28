@@ -5,6 +5,7 @@ import com.dd.blog.domain.post.postlike.entity.PostLike;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.post.comment.entity.Comment;
 import com.dd.blog.global.jpa.BaseEntity;
+import com.dd.blog.global.json.StringArrayConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -36,7 +37,8 @@ public class Post extends BaseEntity {
     private String content;
 
     @Column(name = "image_url", length=500)
-    private String imageUrl;
+    @Convert(converter = StringArrayConverter.class)
+    private String[] imageUrl;
 
     // 인기게시글 TOP5 위해 다시 추가
     @Column(name = "view_count")
@@ -62,7 +64,7 @@ public class Post extends BaseEntity {
     private List<PostLike> postLikes = new ArrayList<>();
 
     // 게시글 수정 메서드
-    public void update(String title, String content, String imageUrl) {
+    public void update(String title, String content, String[] imageUrl) {
         // 일부만 수정하므로 null값은 수정하지 않도록 처리
         if (title != null) this.title = title;
         if (content != null) this.content = content;

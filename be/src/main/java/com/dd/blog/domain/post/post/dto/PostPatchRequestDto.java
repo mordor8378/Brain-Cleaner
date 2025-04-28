@@ -10,5 +10,5 @@ import lombok.*;
 public class PostPatchRequestDto {
     private String title;
     private String content;
-    private String imageUrl;
+    private String[] imageUrl;
 }
