@@ -17,13 +17,11 @@ public class AdminDashboardStatsDto {
     private long reportsProcessedToday;
 
     @Builder
-    public AdminDashboardStatsDto(long totalUsers, long pendingVerifications, long verificationsProcessedToday,
-                                  long usersJoinedToday,
-                                  long pendingReports, long reportsProcessedToday) {
+    public AdminDashboardStatsDto(long totalUsers, long usersJoinedToday, long pendingVerifications, long verificationsProcessedToday, long pendingReports, long reportsProcessedToday) {
         this.totalUsers = totalUsers;
+        this.usersJoinedToday = usersJoinedToday;
         this.pendingVerifications = pendingVerifications;
         this.verificationsProcessedToday = verificationsProcessedToday;
-        this.usersJoinedToday = usersJoinedToday;
         this.pendingReports = pendingReports;
         this.reportsProcessedToday = reportsProcessedToday;
     }
