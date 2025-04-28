@@ -14,9 +14,9 @@ public class CategoryInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        saveIfNotExist("자유게시판");
-        saveIfNotExist("정보공유게시판");
         saveIfNotExist("인증게시판");
+        saveIfNotExist("정보공유게시판");
+        saveIfNotExist("자유게시판");
         saveIfNotExist("공지사항");// 필요하면 추가
     }
 
