@@ -82,40 +82,44 @@ public class PostService {
 
         // 기존 이미지 URL 배열 (null이면 빈 배열로 초기화)
         String[] existingImageUrls = postRequestDto.getImageUrl() != null ? postRequestDto.getImageUrl() : new String[0];
-        System.out.println("기존 이미지 URL 배열 길이: " + existingImageUrls.length);
         
         // 새로 업로드된 이미지 처리
         List<String> newImageUrlList = new ArrayList<>();
         if (postImages != null && postImages.length > 0) {
-            System.out.println("새로 업로드된 이미지 파일 수: " + postImages.length);
             for (MultipartFile postImage : postImages) {
                 String uploadedUrl = awsS3Uploader.upload(postImage, "post"); // 각 이미지를 S3에 업로드
                 newImageUrlList.add(uploadedUrl); // URL 리스트에 추가
-                System.out.println("업로드된 이미지 URL: " + uploadedUrl);
             }
         }
 
         // 기존 이미지 URL과 새 이미지 URL 결합
-        String[] allImageUrls;
-        if (existingImageUrls.length > 0 || !newImageUrlList.isEmpty()) {
-            // 두 배열 결합
-            List<String> combinedList = new ArrayList<>(Arrays.asList(existingImageUrls));
-            combinedList.addAll(newImageUrlList);
-            allImageUrls = combinedList.toArray(new String[0]);
-            System.out.println("최종 이미지 URL 배열 길이: " + allImageUrls.length);
-        } else {
-            allImageUrls = null;
-            System.out.println("이미지 URL이 없습니다.");
+        List<String> combinedList = new ArrayList<>();
+
+        // 기존 URL 추가 (null 체크)
+        if (existingImageUrls != null && existingImageUrls.length > 0) {
+            for (String url : existingImageUrls) {
+                if (url != null && !url.trim().isEmpty()) {
+                    combinedList.add(url);
+                }
+            }
         }
 
-        // 기존 이미지 URL과 새 이미지 URL 결합 (중복 제거)
-        List<String> combinedList = new ArrayList<>(Arrays.asList(existingImageUrls));
-        combinedList.addAll(newImageUrlList);
+        // 새 URL 추가
+        if (newImageUrlList != null && !newImageUrlList.isEmpty()) {
+            for (String url : newImageUrlList) {
+                if (url != null && !url.trim().isEmpty()) {
+                    combinedList.add(url);
+                }
+            }
+        }
 
-        // 중복 제거
-        List<String> uniqueUrls = new ArrayList<>(new LinkedHashSet<>(combinedList));
-        allImageUrls = uniqueUrls.toArray(new String[0]);
-        System.out.println("중복 제거 후 최종 이미지 URL 배열 길이: " + allImageUrls.length);
+        // 결과 배열 생성
+        String[] allImageUrls;
+        if (!combinedList.isEmpty()) {
+            allImageUrls = combinedList.toArray(new String[0]);
+        } else {
+            allImageUrls = null;
+        }
 
         Post post = Post.builder()
                 .title(postRequestDto.getTitle())
@@ -124,14 +128,13 @@ public class PostService {
                 .category(category)
                 .user(user)
                 .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
-                .verificationImageUrl(category.getId() == 1L && allImageUrls != null && allImageUrls.length > 0
-                        ? allImageUrls[0] : null) // 인증 게시판일 때만 인증 이미지 설정
+                .verificationImageUrl(null) // 항상 null로 설정, 이미지는 imageUrl 배열에만 유지
                 .viewCount(0) // 핫게시물 TOP5 위해 재추가
                 .build();
 
         Post savedPost = postRepository.save(post);
 
-        if (categoryId == 1L) {
+        if (categoryId == 3L) {
             VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
                     .userId(userId)
                     .postId(savedPost.getId())
@@ -251,30 +254,42 @@ public class PostService {
             existingImageUrls = new String[0];
         }
         
-        System.out.println("업데이트: 기존 이미지 URL 배열 길이: " + existingImageUrls.length);
-        
         // 새로 업로드된 이미지 처리
         List<String> newImageUrlList = new ArrayList<>();
         if (postImages != null && postImages.length > 0) {
-            System.out.println("업데이트: 새로 업로드된 이미지 파일 수: " + postImages.length);
             for (MultipartFile postImage : postImages) {
                 String uploadedUrl = awsS3Uploader.upload(postImage, "post");
                 newImageUrlList.add(uploadedUrl);
-                System.out.println("업데이트: 업로드된 이미지 URL: " + uploadedUrl);
             }
         }
         
         // 기존 이미지 URL과 새 이미지 URL 결합
+        List<String> combinedList = new ArrayList<>();
+
+        // 기존 URL 추가 (null 체크)
+        if (existingImageUrls != null && existingImageUrls.length > 0) {
+            for (String url : existingImageUrls) {
+                if (url != null && !url.trim().isEmpty()) {
+                    combinedList.add(url);
+                }
+            }
+        }
+
+        // 새 URL 추가
+        if (newImageUrlList != null && !newImageUrlList.isEmpty()) {
+            for (String url : newImageUrlList) {
+                if (url != null && !url.trim().isEmpty()) {
+                    combinedList.add(url);
+                }
+            }
+        }
+
+        // 결과 배열 생성
         String[] finalImageUrls;
-        if (existingImageUrls.length > 0 || !newImageUrlList.isEmpty()) {
-            // 두 배열 결합
-            List<String> combinedList = new ArrayList<>(Arrays.asList(existingImageUrls));
-            combinedList.addAll(newImageUrlList);
+        if (!combinedList.isEmpty()) {
             finalImageUrls = combinedList.toArray(new String[0]);
-            System.out.println("업데이트: 최종 이미지 URL 배열 길이: " + finalImageUrls.length);
         } else {
             finalImageUrls = null;
-            System.out.println("업데이트: 이미지 URL이 없습니다.");
         }
 
         post.update(postPatchRequestDto.getTitle(),

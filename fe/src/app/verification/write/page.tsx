@@ -130,7 +130,7 @@ export default function VerificationWritePage({
         userId,
         title: "도파민 디톡스 인증",
         content: detoxTime.toString(),
-        imageUrl: imageUrl,
+        imageUrl: [imageUrl], // 문자열 배열로 변환
         detoxTime: detoxTime,
         categoryId: parseInt(category),
       };
