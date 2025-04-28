@@ -70,6 +70,7 @@ export default function Home() {
     { value: "1", label: "인증게시판" },
     { value: "2", label: "정보공유게시판" },
     { value: "3", label: "자유게시판" },
+    { value: '4', label: '공지사항' },
   ];
 
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
@@ -723,20 +724,34 @@ export default function Home() {
                 </div>
               ) : user ? (
                 <div className="flex flex-col items-center">
-                  <Link href={`/profile/${user.id}`}>
-                    <div className="rounded-full bg-pink-100 border-4 border-pink-200 p-4 mb-3 cursor-pointer">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-10 w-10 text-gray-700"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                          clipRule="evenodd"
+                  <Link href={`/profile/me`}>
+                    <div
+                      className="rounded-full bg-pink-100 border-4 border-pink-200 p-0 mb-3 cursor-pointer flex items-center justify-center overflow-hidden"
+                      style={{ width: "72px", height: "72px" }}
+                    >
+                      {user.profileImage ? (
+                        <Image
+                          src={user.profileImage}
+                          alt={`${user.nickname}의 프로필`}
+                          width={72}
+                          height={72}
+                          className="w-full h-full object-cover rounded-full"
+                          unoptimized={true}
                         />
-                      </svg>
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-10 w-10 text-gray-700"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
                     </div>
                   </Link>
                   <Link
@@ -1068,6 +1083,7 @@ export default function Home() {
                         postId={post.postId}
                         userId={post.userId}
                         userNickname={post.userNickname}
+                        authorRole={post.userRole}
                         title={post.title || ""}
                         content={post.content || ""}
                         imageUrl={post.imageUrl || ""}

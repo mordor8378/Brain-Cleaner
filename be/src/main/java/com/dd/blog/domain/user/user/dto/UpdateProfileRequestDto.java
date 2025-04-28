@@ -17,7 +17,7 @@ public class UpdateProfileRequestDto {
     private String nickname;
     private String email;
     private String statusMessage;
-    private String detoxGoal;
+    private Integer detoxGoal;
     private LocalDate birthDate;
     private String profileImageUrl;
 } 

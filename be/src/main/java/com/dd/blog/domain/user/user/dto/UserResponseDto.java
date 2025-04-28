@@ -24,7 +24,7 @@ public class UserResponseDto {
     private LocalDateTime createdAt;
     private boolean isSocialUser;
     private String statusMessage;
-    private String detoxGoal;
+    private Integer detoxGoal;
     private LocalDate birthDate;
     private String profileImageUrl;
 

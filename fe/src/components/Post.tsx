@@ -1,13 +1,17 @@
-import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
-import { useUser } from "@/contexts/UserContext";
-import Link from "next/link";
-import CommentModal from "./CommentModal";
+import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/contexts/UserContext';
+import Link from 'next/link';
+import CommentModal from './CommentModal';
+import ReportPage from '@/app/report/write/page';
 import {
   convertEmojiCodesToImages,
   fetchPurchasedEmojis,
+  useGlobalEmojis,
   Emoji,
 } from "@/utils/emojiUtils";
+import { getProfilePath } from "@/utils/profileHelpers";
 
 export interface PostProps {
   postId: number;
@@ -29,6 +33,9 @@ export interface PostProps {
   onDelete?: (postId: number) => void;
   onCommentUpdate?: (count: number) => void;
   userProfileImage?: string | null;
+  authorRole: string;
+  viewCount?: number;
+  authorRole: string;
   viewCount?: number;
 }
 
@@ -52,8 +59,10 @@ export default function Post({
   onDelete,
   onCommentUpdate,
   userProfileImage,
+  authorRole,
   viewCount,
 }: PostProps) {
+  const router = useRouter();
   const { user } = useUser();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingContent, setIsEditingContent] = useState(false);
@@ -61,9 +70,10 @@ export default function Post({
   const [editedContent, setEditedContent] = useState(content);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
-  const [purchasedEmojis, setPurchasedEmojis] = useState<Emoji[]>([]);
   const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
+  const { globalEmojis, isLoading: isGlobalEmojisLoading } = useGlobalEmojis();
   const postRef = useRef<HTMLDivElement>(null);
 
   // 이미지 캐러셀을 위한 상태
@@ -72,21 +82,10 @@ export default function Post({
 
   // 이모티콘 로딩
   useEffect(() => {
-    const loadEmojis = async () => {
-      if (user?.id) {
-        try {
-          const emojis = await fetchPurchasedEmojis();
-          setPurchasedEmojis(emojis);
-          setIsEmojiLoaded(true);
-        } catch (error) {
-          console.error("이모티콘 로드 중 오류:", error);
-          setIsEmojiLoaded(true); // 오류가 있어도 로딩은 완료됨
-        }
-      }
-    };
-
-    loadEmojis();
-  }, []);
+    if (!isGlobalEmojisLoading) {
+      setIsEmojiLoaded(true);
+    }
+  }, [isGlobalEmojisLoading]);
 
   // 문자열 또는 JSON 문자열로 전달된 imageUrl을 파싱
   useEffect(() => {
@@ -299,6 +298,12 @@ export default function Post({
     setShowCommentModal(false);
   };
 
+  const openReportModal = () => {
+      console.log("신고 팝업 열기 postId: ", postId);
+      setShowReportModal(true);
+  };
+
+
   const handleCommentCountUpdate = (count: number) => {
     if (onCommentUpdate) {
       onCommentUpdate(count);
@@ -333,7 +338,7 @@ export default function Post({
   return (
     <div className="p-5" ref={postRef}>
       <div className="flex items-start mb-3">
-        <Link href={`/profile/${userId}`}>
+        <Link href={getProfilePath(user, userId)}>
           <div className="mr-3 cursor-pointer relative w-8 h-8">
             {profileImage ? (
               <Image
@@ -365,7 +370,7 @@ export default function Post({
         <div className="flex-1">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-1.5">
-              <Link href={`/profile/${userId}`}>
+              <Link href={getProfilePath(user, userId)}>
                 <span className="font-bold text-[14px] text-gray-900 cursor-pointer hover:text-pink-500">
                   {userNickname}
                 </span>
@@ -500,7 +505,7 @@ export default function Post({
                     }
 
                     // 이모티콘 변환 함수
-                    return convertEmojiCodesToImages(content, purchasedEmojis);
+                    return convertEmojiCodesToImages(content, globalEmojis);
                   })()}
                 </>
               ) : (
@@ -628,8 +633,8 @@ export default function Post({
           )}
         </div>
       )}
-
-      <div className="mt-4 flex items-center gap-4">
+<div className="mt-4 flex items-center justify-between">
+      <div className="flex items-center gap-4">
         <button
           onClick={() => (isLiked ? onUnlike(postId) : onLike(postId))}
           className={`flex items-center gap-1 group ${
@@ -668,23 +673,36 @@ export default function Post({
           <span className="text-sm">{likeCount}</span>
         </button>
 
-        <button
-          onClick={() => setShowCommentModal(true)}
-          className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M8 12h.01M12 12h.01M16 12h.01M3 12c0 4.97 4.03 9 9 9a9.863 9.863 0 004.255-.949L21 21l-1.395-4.72C20.488 15.042 21 13.574 21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9z" />
-          </svg>
-          <span className="text-sm">{commentCount}</span>
-        </button>
-      </div>
+           <button
+             onClick={() => setShowCommentModal(true)}
+             className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
+           >
+             <svg
+               xmlns="http://www.w3.org/2000/svg"
+               className="h-5 w-5"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               strokeWidth="2"
+             >
+               <path d="M8 12h.01M12 12h.01M16 12h.01M3 12c0 4.97 4.03 9 9 9a9.863 9.863 0 004.255-.949L21 21l-1.395-4.72C20.488 15.042 21 13.574 21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9z" />
+             </svg>
+             <span className="text-sm">{commentCount}</span>
+           </button>
+         </div>
+
+
+         {user?.id !== userId && authorRole !== 'ROLE_ADMIN' && (
+                   <button
+                     onClick={openReportModal}
+                     className="flex items-center gap-1 text-gray-400 hover:text-red-500 transition-colors text-sm cursor-pointer"
+                   >
+                    <span className="flex items-center justify-center h-5 w-5">🚨</span>
+                      <span className="text-sm">신고</span>
+                   </button>
+                 )}
+          </div>
+
 
       {/* 삭제 확인 모달 */}
       {showDeleteConfirm && (
@@ -726,6 +744,20 @@ export default function Post({
           </div>
         </div>
       )}
+
+       {/* 신고 모달 */}
+       {showReportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <ReportPage
+            postId={postId}
+            onClose={() => setShowReportModal(false)}
+            onSuccess={() => {
+              alert('신고가 접수되었습니다.');
+              setShowReportModal(false);
+            }}
+          />
+          </div>
+        )}
 
       {/* 댓글 모달 */}
       {showCommentModal && (

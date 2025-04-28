@@ -40,6 +40,21 @@ public class ApiV1CommentController {
         return ResponseEntity.ok(comments);
     }
 
+    // READ
+    // 특정 사용자가 작성한 모든 댓글 조회
+    @Operation(
+            summary = "사용자 댓글 목록 조회",
+            description = "사용자 ID를 통해 해당 사용자가 작성한 모든 댓글을 조회합니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공"),
+                    @ApiResponse(responseCode = "404", description = "해당 사용자 없음")
+            }
+    )
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<CommentResponseDto>> getUserComments(@PathVariable Long userId){
+        List<CommentResponseDto> comments = commentService.getCommentsByUserId(userId);
+        return ResponseEntity.ok(comments);
+    }
 
     // CREATE
     // 댓글, 대댓글
