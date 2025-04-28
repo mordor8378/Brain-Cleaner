@@ -26,6 +26,7 @@ export interface Post {
   updatedAt: string;
   likedByCurrentUser?: boolean;
   userProfileImage?: string | null;
+  userRole: string;
 }
 
 interface PostsResponse {
@@ -70,7 +71,7 @@ export default function Home() {
     { value: "1", label: "인증게시판" },
     { value: "2", label: "정보공유게시판" },
     { value: "3", label: "자유게시판" },
-    { value: '4', label: '공지사항' },
+    { value: "4", label: "공지사항" },
   ];
 
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
@@ -1073,7 +1074,6 @@ export default function Home() {
                 {posts.map((post, index) => {
                   // post가 undefined인 경우를 체크
                   if (!post || post.postId === undefined) return null;
-
                   return (
                     <div
                       key={post.postId}
@@ -1083,7 +1083,7 @@ export default function Home() {
                         postId={post.postId}
                         userId={post.userId}
                         userNickname={post.userNickname}
-                        authorRole={post.userRole}
+                        userRole={post.userRole}
                         title={post.title || ""}
                         content={post.content || ""}
                         imageUrl={post.imageUrl || ""}
