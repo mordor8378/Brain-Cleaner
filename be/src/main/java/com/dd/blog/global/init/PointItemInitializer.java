@@ -2,6 +2,7 @@ package com.dd.blog.global.init;
 
 import com.dd.blog.domain.point.pointstore.entity.PointItem;
 import com.dd.blog.domain.point.pointstore.repository.PointItemRepository;
+import com.dd.blog.global.aws.AwsS3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -86,16 +87,24 @@ public class PointItemInitializer implements CommandLineRunner {
         );
     }
 
-
     private void saveIfNotExist(String name, String desc, int price, String code, String imageUrl) {
         if (pointItemRepository.findByName(name).isEmpty()) {
+            String fullImageUrl = getFullImageUrl(imageUrl);
+
             pointItemRepository.save(PointItem.builder()
                     .name(name)
                     .description(desc)
                     .price(price)
-                    .imageUrl(imageUrl)
+                    .imageUrl(fullImageUrl)
                     .code(code)
                     .build());
         }
+    }
+
+    private String getFullImageUrl(String imageUrl) {
+        if (imageUrl.startsWith("/emojis/")) {
+            return "https://braincleaner-images.s3.ap-northeast-2.amazonaws.com" + imageUrl;
+        }
+        return imageUrl; // 다른 경우(이미 절대경로)에는 그냥 반환
     }
 }
