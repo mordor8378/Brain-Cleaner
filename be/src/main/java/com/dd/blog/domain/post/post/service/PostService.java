@@ -191,6 +191,30 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getPostsByFollowingPageable(Long userId, int page, int size) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+
+        // 유저가 팔로우한 사람들 조회
+        List<Follow> followings = followRepository.findByFollower(user);
+
+        // 팔로우한 유저들만 뽑아냄
+        List<User> followedUsers = followings.stream()
+                .map(Follow::getFollowing)
+                .toList();
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        if (followedUsers.isEmpty()) {
+            // 팔로우한 사용자가 없는 경우 빈 페이지 반환
+            return Page.empty(pageable);
+        }
+
+        Page<Post> postPage = postRepository.findByUserInOrderByCreatedAtDesc(followedUsers, pageable);
+        return postPage.map(PostResponseDto::fromEntity);
+    }
+
     // 게시글 페이지 조회
     @Transactional(readOnly = true)
     public Page<PostResponseDto> getAllPostsPageable(int page, int size) {

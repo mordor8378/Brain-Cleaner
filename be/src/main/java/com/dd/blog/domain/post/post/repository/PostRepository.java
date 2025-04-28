@@ -20,6 +20,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 팔로우한 유저들 ID로 조회
     List<Post> findByUserInOrderByCreatedAtDesc(List<User> users);
 
+    Page<Post> findByUserInOrderByCreatedAtDesc(List<User> users, Pageable pageable);
+
     // 특정 사용자의 게시물 목록 조회
     List<Post> findByUserOrderByCreatedAtDesc(User user);
 
