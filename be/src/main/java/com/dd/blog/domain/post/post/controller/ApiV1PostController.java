@@ -48,7 +48,7 @@ public class ApiV1PostController {
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<PostResponseDto> createPost(
             @RequestPart("postRequestDto") @Valid PostRequestDto postRequestDto,
-            @RequestPart(value = "postImage", required = false) MultipartFile postImage,
+            @RequestPart(value = "postImage", required = false) MultipartFile[] postImage,
             @AuthenticationPrincipal SecurityUser user
     ) throws IOException {
         PostResponseDto responseDto = postService.createPost(
@@ -178,7 +178,7 @@ public class ApiV1PostController {
     public ResponseEntity<PostResponseDto> updatePost(
             @Parameter(description = "게시글 ID", required = true) @PathVariable Long postId,
             @Valid @RequestPart PostPatchRequestDto postPatchRequestDto,
-            @RequestPart(value = "postImage", required = false) MultipartFile postImage) throws IOException {
+            @RequestPart(value = "postImage", required = false) MultipartFile[] postImage) throws IOException {
         PostResponseDto responseDto = postService.updatePost(postId, postPatchRequestDto, postImage);
         return ResponseEntity.ok(responseDto);
     }

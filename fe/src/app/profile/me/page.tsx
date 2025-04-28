@@ -15,7 +15,7 @@ interface Post {
   categoryId: number;
   title: string;
   content: string;
-  imageUrl: string;
+  imageUrl: string[] | string;
   viewCount: number;
   likeCount: number;
   verificationImageUrl: string | null;
@@ -77,6 +77,10 @@ export default function MyProfile() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showCommentModal, setShowCommentModal] = useState(false);
 
+  // 새로 추가한 상태
+  const [userComments, setUserComments] = useState<any[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -84,22 +88,34 @@ export default function MyProfile() {
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
+            // 캐시 방지
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
           },
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log("프로필 데이터 로드:", data);
+          console.log("프로필 데이터 로드 (원본):", data);
+          console.log(
+            "detoxGoal 타입:",
+            typeof data.detoxGoal,
+            "값:",
+            data.detoxGoal
+          );
+
           const userData = {
             ...data,
             profileImage: data.profileImageUrl,
           };
+          console.log("변환 후 userData:", userData);
           setUserInfo(userData);
 
           if (data.id) {
             fetchFollowStats(data.id);
             fetchUserPosts(data.id);
             fetchVerificationStats(data.id);
+            fetchUserComments(data.id);
           }
         } else {
           console.error("프로필 정보를 불러오는데 실패했습니다.");
@@ -162,9 +178,11 @@ export default function MyProfile() {
 
   const fetchVerificationStats = async (userId: number) => {
     try {
+      console.log("fetchVerificationStats 시작, 현재 userInfo:", userInfo);
+
       // 1. 연속 인증일수 가져오기
       const streakResponse = await fetch(
-        `http://localhost:8090/api/v1/verifications/streak/${userId}`,
+        `http://localhost:8090/api/v1/verifications/streak`,
         {
           credentials: "include",
         }
@@ -175,39 +193,146 @@ export default function MyProfile() {
         streakDays = await streakResponse.json();
       }
 
-      // 2. 인증 게시글만 필터링하여 가져오기 (categoryId가 1인 게시글만)
-      const verificationPostsResponse = await fetch(
-        `http://localhost:8090/api/v1/posts/user/${userId}?categoryId=3`,
+      // 2. 인증 카테고리(categoryId=1)의 모든 게시물 가져오기
+      const categoryPostsResponse = await fetch(
+        `http://localhost:8090/api/v1/posts/category/1`,
         {
           credentials: "include",
         }
       );
 
-      if (verificationPostsResponse.ok) {
-        const verificationPosts = await verificationPostsResponse.json();
+      if (categoryPostsResponse.ok) {
+        const allCategoryPosts = await categoryPostsResponse.json();
 
-        // 총 인증일수 = 인증 게시글 수
-        const totalVerificationDays = verificationPosts.length;
+        // 3. 현재 사용자가 작성한 인증 게시물만 필터링
+        const userVerificationPosts = allCategoryPosts.filter(
+          (post: Post) => post.userId === userId
+        );
 
-        // 디톡스 시간 계산 - 모든 인증 게시글의 detoxTime 합산
+        // 총 인증일수 = 해당 사용자의 인증 게시글 수
+        const totalVerificationDays = userVerificationPosts.length;
+
+        // 디톡스 시간 계산 - 해당 사용자의 인증 게시글의 detoxTime 합산
         let totalDetoxTime = 0;
-        verificationPosts.forEach((post: Post) => {
+        userVerificationPosts.forEach((post: Post) => {
           if (post.detoxTime) {
             totalDetoxTime += post.detoxTime;
           }
         });
+
+        // 최신 userInfo 가져오기
+        const latestUserInfo = await fetch(
+          "http://localhost:8090/api/v1/users/me",
+          {
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+            },
+          }
+        ).then((res) => res.json());
+
+        console.log("최신 사용자 정보:", latestUserInfo);
+        console.log("최신 detoxGoal:", latestUserInfo.detoxGoal);
+
+        // 목표 달성률 계산 - detoxGoal이 설정되어 있고 0보다 큰 경우에만 계산
+        let completionRate = 0;
+        let detoxGoal = latestUserInfo.detoxGoal;
+
+        if (detoxGoal && detoxGoal > 0) {
+          completionRate = Math.min(
+            100,
+            Math.round((totalDetoxTime / detoxGoal) * 100)
+          );
+        }
+
+        console.log("사용 중인 detoxGoal:", detoxGoal);
+        console.log("totalDetoxTime:", totalDetoxTime);
+        console.log("계산된 completionRate:", completionRate);
 
         // stats 상태 업데이트
         setStats({
           detoxDays: totalVerificationDays,
           streakDays: streakDays,
           detoxTime: totalDetoxTime,
-          completionRate: 85,
+          completionRate: completionRate,
           badges: 12,
         });
       }
     } catch (error) {
       console.error("Error fetching verification stats:", error);
+    }
+  };
+
+  const fetchUserComments = async (userId: number) => {
+    try {
+      setCommentsLoading(true);
+      // 올바른 API 엔드포인트로 사용자 댓글 가져오기
+      const response = await fetch(
+        `http://localhost:8090/api/v1/comments/user/${userId}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const comments = await response.json();
+        console.log("사용자 댓글 데이터:", comments);
+
+        if (!Array.isArray(comments)) {
+          console.error("댓글 데이터가 배열이 아닙니다:", comments);
+          setUserComments([]);
+          return;
+        }
+
+        // 댓글 데이터 정제 (snake_case -> camelCase)
+        const processedComments = comments.map((comment: any) => ({
+          ...comment,
+          userId: comment.userId || comment.user_id,
+          postId: comment.postId || comment.post_id,
+          parentId: comment.parentId || comment.parent_id,
+          createdAt: comment.createdAt || comment.created_at,
+          updatedAt: comment.updatedAt || comment.updated_at,
+        }));
+
+        // 필요한 게시글 정보 가져오기
+        const commentsWithPostInfo = await Promise.all(
+          processedComments.map(async (comment: any) => {
+            if (!comment.postId) {
+              return comment;
+            }
+
+            try {
+              const postResponse = await fetch(
+                `http://localhost:8090/api/v1/posts/${comment.postId}`,
+                {
+                  credentials: "include",
+                }
+              );
+
+              if (postResponse.ok) {
+                const post = await postResponse.json();
+                return { ...comment, post };
+              }
+              return comment;
+            } catch (error) {
+              console.error(
+                `댓글 ID ${comment.id}의 게시글 정보 로드 중 오류:`,
+                error
+              );
+              return comment;
+            }
+          })
+        );
+
+        setUserComments(commentsWithPostInfo);
+      } else {
+        console.error("댓글 조회 API 오류:", response.status);
+      }
+    } catch (error) {
+      console.error("사용자 댓글 로드 중 오류:", error);
+    } finally {
+      setCommentsLoading(false);
     }
   };
 
@@ -324,6 +449,64 @@ export default function MyProfile() {
           : post
       )
     );
+  };
+
+  // 댓글 클릭시 해당 게시글 모달 표시 함수
+  const handleCommentClick = (comment: any) => {
+    if (comment.post) {
+      setSelectedPost(comment.post);
+      setShowCommentModal(true);
+    }
+  };
+
+  // 이미지 URL을 안전하게 파싱하는 함수
+  const getSafeImageUrl = (imageUrl: string | string[]): string => {
+    if (!imageUrl) return "";
+
+    try {
+      // 배열인 경우
+      if (Array.isArray(imageUrl) && imageUrl.length > 0) {
+        // 유효한 URL만 반환
+        for (let i = 0; i < imageUrl.length; i++) {
+          if (imageUrl[i] && imageUrl[i].trim() !== "") {
+            return imageUrl[i];
+          }
+        }
+        return "";
+      }
+
+      // JSON 문자열인 경우
+      if (
+        typeof imageUrl === "string" &&
+        imageUrl.startsWith("[") &&
+        imageUrl.endsWith("]")
+      ) {
+        try {
+          const parsed = JSON.parse(imageUrl);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // 유효한 URL만 반환
+            for (let i = 0; i < parsed.length; i++) {
+              if (parsed[i] && parsed[i].trim() !== "") {
+                return parsed[i];
+              }
+            }
+          }
+        } catch (e) {
+          console.error("이미지 URL JSON 파싱 오류:", e);
+        }
+        return "";
+      }
+
+      // 일반 문자열인 경우
+      if (typeof imageUrl === "string" && imageUrl.trim() !== "") {
+        return imageUrl;
+      }
+
+      return "";
+    } catch (e) {
+      console.error("이미지 URL 파싱 오류:", e);
+      return "";
+    }
   };
 
   if (isLoading) {
@@ -527,12 +710,17 @@ export default function MyProfile() {
                   {post.imageUrl && (
                     <div className="aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
                       <Image
-                        src={post.imageUrl}
+                        src={getSafeImageUrl(post.imageUrl)}
                         alt="Post image"
                         width={300}
                         height={200}
                         className="w-full h-full object-cover"
                         unoptimized={true}
+                        onError={(e) => {
+                          console.error("이미지 로드 실패:", post.imageUrl);
+                          // 이미지 로드 실패 시 숨김 처리
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
                       />
                     </div>
                   )}
@@ -557,9 +745,70 @@ export default function MyProfile() {
 
         {selectedTab === "comments" && (
           <div className="space-y-4">
-            <p className="text-gray-500 text-center py-8">
-              아직 작성한 댓글이 없습니다.
-            </p>
+            {commentsLoading ? (
+              <div className="flex justify-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
+              </div>
+            ) : userComments.length > 0 ? (
+              userComments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="border-b pb-4 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition"
+                  onClick={() => handleCommentClick(comment)}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {userInfo.profileImage ? (
+                          <Image
+                            src={userInfo.profileImage}
+                            alt="프로필 이미지"
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                            unoptimized={true}
+                          />
+                        ) : (
+                          <svg
+                            className="w-4 h-4 text-gray-500"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">
+                            @{userInfo.nickname}
+                          </p>
+                          <span className="text-xs text-gray-400">
+                            {getTimeAgo(comment.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-gray-800 mt-1">{comment.content}</p>
+                      {comment.post && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          <span>게시글: {comment.post.title}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-8">
+                아직 작성한 댓글이 없습니다.
+              </p>
+            )}
           </div>
         )}
 
@@ -595,7 +844,13 @@ export default function MyProfile() {
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{
-                      width: `${(stats.detoxTime / 48) * 100}%`,
+                      width:
+                        userInfo.detoxGoal && userInfo.detoxGoal > 0
+                          ? `${Math.min(
+                              100,
+                              (stats.detoxTime / userInfo.detoxGoal) * 100
+                            )}%`
+                          : "0%",
                       backgroundColor: CUSTOM_PINK,
                     }}
                   ></div>

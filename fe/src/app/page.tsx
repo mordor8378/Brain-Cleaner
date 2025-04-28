@@ -24,8 +24,9 @@ export interface Post {
   detoxTime: number;
   createdAt: string;
   updatedAt: string;
-  likedByCurrentUser?: boolean;
+  likedByCurrentUser: boolean;
   userProfileImage?: string | null;
+  userRole: string;
 }
 
 interface PostsResponse {
@@ -70,7 +71,7 @@ export default function Home() {
     { value: "1", label: "인증게시판" },
     { value: "2", label: "정보공유게시판" },
     { value: "3", label: "자유게시판" },
-    { value: '4', label: '공지사항' },
+    { value: "4", label: "공지사항" },
   ];
 
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
@@ -124,9 +125,9 @@ export default function Home() {
           )
             .then((res) => {
               if (res.ok) return res.json();
-              return { liked: false };
+              return { likedByCurrentUser: false };
             })
-            .catch(() => ({ liked: false }))
+            .catch(() => ({ likedByCurrentUser: false }))
         );
 
         // 모든 좋아요 상태 요청 완료 대기
@@ -134,7 +135,8 @@ export default function Home() {
 
         // 좋아요 상태 정보 병합
         for (let i = 0; i < postsToProcess.length; i++) {
-          postsToProcess[i].likedByCurrentUser = likeStatuses[i].liked;
+          postsToProcess[i].likedByCurrentUser =
+            likeStatuses[i].likedByCurrentUser;
         }
 
         console.log("좋아요 상태 업데이트 후 게시글:", postsToProcess);
@@ -167,12 +169,20 @@ export default function Home() {
     isFetching,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["posts", selectedBoard, sortType, searchType, searchKeyword],
+    queryKey: [
+      "posts",
+      selectedBoard,
+      sortType,
+      searchType,
+      searchKeyword,
+      user?.id,
+    ],
     queryFn: fetchPosts,
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
       return lastPage.last ? undefined : lastPage.number + 1;
     },
+    enabled: !loading && user !== null, // 유저 정보 로딩이 완료되고 로그인된 경우에만 쿼리 활성화
   });
 
   const handleSearch = async () => {
@@ -391,9 +401,9 @@ export default function Home() {
                   )
                     .then((res) => {
                       if (res.ok) return res.json();
-                      return { liked: false };
+                      return { likedByCurrentUser: false };
                     })
-                    .catch(() => ({ liked: false }))
+                    .catch(() => ({ likedByCurrentUser: false }))
                 );
 
                 // 모든 좋아요 상태 요청 완료 대기
@@ -401,7 +411,8 @@ export default function Home() {
 
                 // 좋아요 상태 정보 병합
                 for (let i = 0; i < top5Posts.length; i++) {
-                  top5Posts[i].likedByCurrentUser = likeStatuses[i].liked;
+                  top5Posts[i].likedByCurrentUser =
+                    likeStatuses[i].likedByCurrentUser;
                 }
 
                 console.log("좋아요 상태 업데이트 후 인기 게시글:", top5Posts);
@@ -451,7 +462,7 @@ export default function Home() {
 
             if (likeStatusResponse.ok) {
               const likeStatus = await likeStatusResponse.json();
-              data.likedByCurrentUser = likeStatus.liked;
+              data.likedByCurrentUser = likeStatus.likedByCurrentUser;
             }
           } catch (error) {
             console.error("좋아요 상태 확인 중 오류:", error);
@@ -527,6 +538,7 @@ export default function Home() {
             };
           }
         );
+        refetch();
       }
     } catch (error) {
       console.error("좋아요 처리 중 오류:", error);
@@ -581,6 +593,7 @@ export default function Home() {
             };
           }
         );
+        refetch();
       } else {
         console.error("좋아요 취소 실패:", response.status);
         const errorText = await response.text();
@@ -725,14 +738,17 @@ export default function Home() {
               ) : user ? (
                 <div className="flex flex-col items-center">
                   <Link href={`/profile/me`}>
-                    <div className="rounded-full bg-pink-100 border-4 border-pink-200 p-4 mb-3 cursor-pointer">
+                    <div
+                      className="rounded-full bg-pink-100 border-4 border-pink-200 p-0 mb-3 cursor-pointer flex items-center justify-center overflow-hidden"
+                      style={{ width: "72px", height: "72px" }}
+                    >
                       {user.profileImage ? (
                         <Image
                           src={user.profileImage}
                           alt={`${user.nickname}의 프로필`}
-                          width={40}
-                          height={40}
-                          className="rounded-full w-10 h-10 object-cover"
+                          width={72}
+                          height={72}
+                          className="w-full h-full object-cover rounded-full"
                           unoptimized={true}
                         />
                       ) : (
@@ -1070,7 +1086,6 @@ export default function Home() {
                 {posts.map((post, index) => {
                   // post가 undefined인 경우를 체크
                   if (!post || post.postId === undefined) return null;
-
                   return (
                     <div
                       key={post.postId}
@@ -1080,7 +1095,7 @@ export default function Home() {
                         postId={post.postId}
                         userId={post.userId}
                         userNickname={post.userNickname}
-                        authorRole={post.userRole}
+                        userRole={post.userRole}
                         title={post.title || ""}
                         content={post.content || ""}
                         imageUrl={post.imageUrl || ""}
@@ -1094,7 +1109,7 @@ export default function Home() {
                         onUpdate={() => refetch()}
                         onLike={memoizedHandleLike}
                         onUnlike={memoizedHandleUnlike}
-                        isLiked={post.likedByCurrentUser}
+                        likedByCurrentUser={post.likedByCurrentUser || false}
                         onDelete={handleDelete}
                         onCommentUpdate={(count) =>
                           handleCommentUpdate(post.postId, count)

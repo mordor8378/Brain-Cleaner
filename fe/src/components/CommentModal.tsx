@@ -14,13 +14,13 @@ import EmojiPicker from "./EmojiPicker";
 interface CommentModalProps {
   postId: number;
   onClose: () => void;
-  postImage?: string;
+  postImage?: string | string[];
   postContent?: string;
   userNickname?: string;
   createdAt?: string;
   isOwnPost?: boolean;
   onUpdate?: (count: number) => void;
-  onImageUpdate?: (newImage: File) => void;
+  onImageUpdate?: (newImage: File | File[]) => void;
   detoxTime?: number;
   userProfileImage?: string | null;
   userId?: number;
@@ -370,22 +370,148 @@ export default function CommentModal({
     }
 
     try {
+      console.log("CommentModal - 이미지 원본 데이터:", postImage);
+
+      // 이미 배열인 경우 (백엔드에서 String[]으로 변경된 경우)
+      if (Array.isArray(postImage)) {
+        console.log("CommentModal - 배열 형태의 이미지:", postImage);
+
+        // 단계별 파싱 및 디버깅
+        const validUrls: string[] = [];
+
+        for (let i = 0; i < postImage.length; i++) {
+          const url = postImage[i];
+          console.log(`CommentModal - 배열 항목 ${i}:`, url, typeof url);
+
+          if (!url) continue;
+
+          // 이미 문자열인 경우, JSON 문자열일 수 있음
+          if (typeof url === "string") {
+            // JSON 문자열인지 확인
+            if (url.startsWith("[") && url.endsWith("]")) {
+              try {
+                const innerParsed = JSON.parse(url);
+                console.log(`CommentModal - JSON 파싱 결과 ${i}:`, innerParsed);
+
+                // 파싱된 결과가 배열인 경우
+                if (Array.isArray(innerParsed)) {
+                  innerParsed.forEach((innerUrl, j) => {
+                    if (
+                      innerUrl &&
+                      typeof innerUrl === "string" &&
+                      innerUrl.trim() !== ""
+                    ) {
+                      console.log(
+                        `CommentModal - 추가된 URL ${i}-${j}:`,
+                        innerUrl
+                      );
+                      validUrls.push(innerUrl);
+                    }
+                  });
+                }
+                // 문자열인 경우 직접 추가
+                else if (
+                  typeof innerParsed === "string" &&
+                  innerParsed.trim() !== ""
+                ) {
+                  console.log(`CommentModal - 추가된 URL ${i}:`, innerParsed);
+                  validUrls.push(innerParsed);
+                }
+              } catch (e) {
+                // JSON 파싱 실패 시 문자열 자체가 URL인지 확인
+                if (url.includes("http")) {
+                  // JSON 문자열 형태로 오는 URL 정리 (큰따옴표, 대괄호 제거)
+                  const cleanUrl = url
+                    .replace(/^\["|"\]$/g, "")
+                    .replace(/^"|"$/g, "");
+                  if (cleanUrl.startsWith("http")) {
+                    console.log(
+                      `CommentModal - 추가된 URL(정리) ${i}:`,
+                      cleanUrl
+                    );
+                    validUrls.push(cleanUrl);
+                  }
+                }
+              }
+            }
+            // 일반 URL 문자열인 경우
+            else if (url.includes("http")) {
+              console.log(`CommentModal - 추가된 URL(일반) ${i}:`, url);
+              validUrls.push(url);
+            }
+          }
+        }
+
+        console.log("CommentModal - 최종 유효한 URL 배열:", validUrls);
+        setParsedImageUrls(validUrls);
+        return;
+      }
+
       // JSON 형식으로 된 문자열인지 확인
-      if (postImage.startsWith("[") && postImage.endsWith("]")) {
-        const parsed = JSON.parse(postImage);
-        console.log("CommentModal - JSON 파싱 결과:", parsed);
-        if (Array.isArray(parsed)) {
-          setParsedImageUrls(parsed);
-          console.log("CommentModal - 이미지 배열 설정:", parsed);
+      if (typeof postImage === "string" && postImage.trim() !== "") {
+        if (postImage.startsWith("[") && postImage.endsWith("]")) {
+          try {
+            const parsed = JSON.parse(postImage);
+            console.log("CommentModal - JSON 파싱 결과:", parsed);
+
+            if (Array.isArray(parsed)) {
+              // 유효한 URL만 필터링
+              const validUrls: string[] = [];
+
+              parsed.forEach((url, i) => {
+                if (!url) return;
+
+                if (typeof url === "string") {
+                  // 따옴표와 대괄호 제거
+                  const cleanUrl = url
+                    .replace(/^\["|"\]$/g, "")
+                    .replace(/^"|"$/g, "");
+                  if (cleanUrl.trim() !== "" && cleanUrl.includes("http")) {
+                    console.log(
+                      `CommentModal - JSON 배열에서 추가된 URL ${i}:`,
+                      cleanUrl
+                    );
+                    validUrls.push(cleanUrl);
+                  }
+                }
+              });
+
+              console.log(
+                "CommentModal - JSON에서 파싱된 최종 URL 배열:",
+                validUrls
+              );
+              setParsedImageUrls(validUrls.length > 0 ? validUrls : []);
+              return;
+            }
+          } catch (e) {
+            console.error("CommentModal - JSON 파싱 오류:", e);
+            // JSON 파싱 실패 시, 문자열 자체가 URL일 수 있음
+            if (postImage.includes("http")) {
+              // 문자열 정리 (큰따옴표, 대괄호 제거)
+              const cleanUrl = postImage
+                .replace(/^\["|"\]$/g, "")
+                .replace(/^"|"$/g, "");
+              if (cleanUrl.includes("http")) {
+                console.log("CommentModal - URL로 간주:", cleanUrl);
+                setParsedImageUrls([cleanUrl]);
+                return;
+              }
+            }
+          }
+        } else if (postImage.includes("http")) {
+          // 일반 URL 문자열인 경우
+          console.log("CommentModal - 일반 URL 문자열:", postImage);
+          setParsedImageUrls([postImage]);
           return;
         }
       }
-      // 단일 URL 문자열인 경우
-      console.log("CommentModal - 단일 이미지 URL:", postImage);
-      setParsedImageUrls([postImage]);
+
+      // 위의 모든 검사를 통과하지 못한 경우
+      console.log("CommentModal - 파싱 불가능한 이미지 URL, 빈 배열 설정");
+      setParsedImageUrls([]);
     } catch (e) {
-      console.error("이미지 URL 파싱 오류:", e);
-      setParsedImageUrls([postImage]); // 파싱 실패 시 원본 URL을 사용
+      console.error("CommentModal - 이미지 URL 파싱 오류:", e);
+      setParsedImageUrls([]);
     }
   }, [postImage]);
 
@@ -574,9 +700,19 @@ export default function CommentModal({
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && onImageUpdate) {
-      onImageUpdate(file);
+    const files = e.target.files;
+    if (files && files.length > 0 && onImageUpdate) {
+      // 선택된 파일 배열을 FileList에서 File[] 배열로 변환
+      const fileArray: File[] = Array.from(files);
+      // 여러 파일 선택한 경우 안내 메시지
+      if (fileArray.length > 1) {
+        alert(`${fileArray.length}개의 이미지를 업로드합니다.`);
+      }
+
+      console.log("CommentModal - 선택한 이미지 파일:", fileArray.length, "개");
+
+      // onImageUpdate 콜백을 통해 상위 컴포넌트에 전달
+      onImageUpdate(fileArray);
     }
   };
 
@@ -647,11 +783,30 @@ export default function CommentModal({
         {parsedImageUrls.length > 0 && (
           <div className="w-[50%] bg-black flex items-center justify-center relative group">
             <Image
-              src={parsedImageUrls[currentImageIndex]}
+              src={parsedImageUrls[currentImageIndex] || ""}
               alt="게시글 이미지"
               width={600}
               height={450}
               className="max-h-full max-w-full object-contain"
+              onError={(e) => {
+                console.error(
+                  "CommentModal - 이미지 로드 실패:",
+                  parsedImageUrls[currentImageIndex]
+                );
+                console.log(
+                  "CommentModal - 전체 이미지 URL 배열:",
+                  parsedImageUrls
+                );
+                // 이미지 로드 실패 시 오류 메시지 표시
+                const container = (e.target as HTMLImageElement).parentElement;
+                if (container) {
+                  const errorMsg = document.createElement("div");
+                  errorMsg.className = "text-white text-sm p-4 text-center";
+                  errorMsg.textContent = "이미지를 불러올 수 없습니다";
+                  container.appendChild(errorMsg);
+                }
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
             />
 
             {/* 이미지 내부 좌/우 화살표 - 여러 이미지일 때만 표시 */}
@@ -739,6 +894,7 @@ export default function CommentModal({
               ref={fileInputRef}
               className="hidden"
               accept="image/*"
+              multiple
               onChange={handleImageChange}
             />
           </div>

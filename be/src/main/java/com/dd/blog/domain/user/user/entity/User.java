@@ -69,8 +69,8 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "status_message", length = 200)
     private String statusMessage;
 
-    @Column(name = "detox_goal", length = 500)
-    private String detoxGoal;
+    @Column(name = "detox_goal")
+    private Integer detoxGoal;
 
     @Column(name = "birth_date")
     private LocalDate birthDate;
@@ -130,7 +130,7 @@ public class User extends BaseEntity implements UserDetails {
         this.socialId = socialId;
     }
 
-    public void updateProfile(String nickname, String email, String statusMessage, String detoxGoal, LocalDate birthDate, String profileImageUrl) {
+    public void updateProfile(String nickname, String email, String statusMessage, Integer detoxGoal, LocalDate birthDate, String profileImageUrl) {
         this.nickname = nickname;
         this.email = email;
         this.statusMessage = statusMessage;
