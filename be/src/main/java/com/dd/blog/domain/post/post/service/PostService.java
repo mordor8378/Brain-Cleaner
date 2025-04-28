@@ -118,7 +118,12 @@ public class PostService {
         if (!combinedList.isEmpty()) {
             allImageUrls = combinedList.toArray(new String[0]);
         } else {
-            allImageUrls = null;
+            // 인증게시판(카테고리 ID 3)의 경우 이미지가 필수
+            if (categoryId == 3L) {
+                throw new IllegalArgumentException("인증게시판에는 이미지가 필수입니다.");
+            }
+            // 다른 게시판은 이미지 없이도 등록 가능 (빈 배열로 설정)
+            allImageUrls = new String[0];
         }
 
         Post post = Post.builder()
@@ -134,7 +139,7 @@ public class PostService {
 
         Post savedPost = postRepository.save(post);
 
-        if (categoryId == 3L) {
+        if (categoryId == 1L) {
             VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
                     .userId(userId)
                     .postId(savedPost.getId())
