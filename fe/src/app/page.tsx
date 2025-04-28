@@ -9,6 +9,7 @@ import Post from "@/components/Post";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export interface Post {
   postId: number;
@@ -65,6 +66,8 @@ export default function Home() {
 
   // 마지막 요소 참조용
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const router = useRouter();
 
   const boardOptions = [
     { value: "0", label: "전체게시판" },
@@ -767,14 +770,14 @@ export default function Home() {
                       )}
                     </div>
                   </Link>
-                  <Link
-                    href={`/profile/${user.id}`}
+                  <button
+                    onClick={() => router.push("/profile/me")}
                     className="hover:text-pink-500 transition-colors"
                   >
                     <h3 className="text-lg font-bold text-gray-900">
                       @{user.nickname}
                     </h3>
-                  </Link>
+                  </button>
                   <div className="px-2 py-0.5 bg-yellow-100 rounded-full text-sm text-yellow-800 font-medium mb-3 mt-1">
                     {userLevel}
                   </div>
