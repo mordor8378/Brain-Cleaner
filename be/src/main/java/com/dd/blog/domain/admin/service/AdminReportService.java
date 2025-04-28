@@ -44,7 +44,7 @@ public class AdminReportService {
         String reportedPostTitle = "[삭제된 게시글]";
         String reportedPostContent = "";
         String reportedPostCategoryName = "";
-        String reportedPostImageUrl = null;
+        String[] reportedPostImageUrl = null;
 
         if (reportedPost != null) {
             reportedPostId = reportedPost.getId();

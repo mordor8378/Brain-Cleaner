@@ -26,14 +26,14 @@ public class AdminReportDto {
     private Long reportedPostAuthorId;
     private String reportedPostAuthorNickname;
     private String reportedPostCategoryName;
-    private String reportedPostImageUrl;
+    private String[] reportedPostImageUrl;
 
 
     public AdminReportDto(Long reportId, String reason, ReportStatus status, LocalDateTime createdAt,
                           Long reporterId, String reporterNickname, Long reportedPostId,
                           String reportedPostTitle, String reportedPostContent,
                           Long reportedPostAuthorId, String reportedPostAuthorNickname,
-                          String reportedPostCategoryName, String reportedPostImageUrl) {
+                          String reportedPostCategoryName, String[] reportedPostImageUrl) {
         this.reportId = reportId;
         this.reason = reason;
         this.status = status;
