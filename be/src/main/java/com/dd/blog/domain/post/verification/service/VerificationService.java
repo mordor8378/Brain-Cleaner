@@ -32,39 +32,29 @@ public class VerificationService {
 
     // 인증요청 CREATE 메서드
     @Transactional
-    public VerificationResponseDto createVerification(VerificationRequestDto requestDto) {
-        // 사용자 ID로 사용자 조회 & 예외 처리
-        try {
-            User user = userRepository.findById(requestDto.getUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+    public VerificationResponseDto createVerification(VerificationRequestDto verificationRequestDto) {
+        Post post = postRepository.findById(verificationRequestDto.getPostId())
+                .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
+                
+        User user = userRepository.findById(verificationRequestDto.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자가 존재하지 않습니다."));
 
-            // 게시글 ID로 게시글 조회 & 예외 처리
-            Post post = postRepository.findById(requestDto.getPostId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 게시글입니다."));
+        // 인증 엔티티 생성
+        Verification verification = Verification.builder()
+                .user(user) // 연관 사용자 설정
+                .post(post) // 연관 게시글 설정
+                .status(VerificationStatus.PENDING) //default 상태값: PENDING
+                .detoxTime(verificationRequestDto.getDetoxTime()) // 디톡스 시간 설정
+                .build();
 
-            // 인증 엔티티 생성
-            Verification verification = Verification.builder()
-                    .user(user) // 연관 사용자 설정
-                    .post(post) // 연관 게시글 설정
-                    .status(VerificationStatus.PENDING) //default 상태값: PENDING
-                    .detoxTime(requestDto.getDetoxTime()) // 디톡스 시간 설정
-                    .build();
+        // 인증 정보 저장
+        verificationRepository.save(verification);
 
-            // 인증 정보 저장
-            verificationRepository.save(verification);
+        // 연속 인증 일수 업데이트
+        updateStreakDays(verificationRequestDto.getUserId());
 
-            // 연속 인증 일수 업데이트
-            updateStreakDays(requestDto.getUserId());
-
-            // 엔티티 DTO 변환
-            return toDto(verification);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "인증 등록 중 오류가 발생했습니다.");
-        }
-
-
+        // 엔티티 DTO 변환
+        return toDto(verification);
     }
 
     // 인증요청 READ 메서드(via ID)
@@ -135,9 +125,8 @@ public class VerificationService {
         Long postId = (post != null) ? post.getId() : null;
         String verificationImageUrl =
                 (post != null && post.getVerificationImageUrl() != null)
-                        ? post.getVerificationImageUrl()
-                        : post != null ? post.getImageUrl() : null;
-
+                        ? post.getVerificationImageUrl()  // String 타입 처리
+                        : null;
         return VerificationResponseDto.builder()
                 .verificationId(verification.getId())
                 .userId(userId)

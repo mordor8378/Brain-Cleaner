@@ -24,7 +24,7 @@ export interface Post {
   detoxTime: number;
   createdAt: string;
   updatedAt: string;
-  likedByCurrentUser?: boolean;
+  likedByCurrentUser: boolean;
   userProfileImage?: string | null;
   userRole: string;
 }
@@ -125,9 +125,9 @@ export default function Home() {
           )
             .then((res) => {
               if (res.ok) return res.json();
-              return { liked: false };
+              return { likedByCurrentUser: false };
             })
-            .catch(() => ({ liked: false }))
+            .catch(() => ({ likedByCurrentUser: false }))
         );
 
         // 모든 좋아요 상태 요청 완료 대기
@@ -135,7 +135,8 @@ export default function Home() {
 
         // 좋아요 상태 정보 병합
         for (let i = 0; i < postsToProcess.length; i++) {
-          postsToProcess[i].likedByCurrentUser = likeStatuses[i].liked;
+          postsToProcess[i].likedByCurrentUser =
+            likeStatuses[i].likedByCurrentUser;
         }
 
         console.log("좋아요 상태 업데이트 후 게시글:", postsToProcess);
@@ -168,12 +169,20 @@ export default function Home() {
     isFetching,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["posts", selectedBoard, sortType, searchType, searchKeyword],
+    queryKey: [
+      "posts",
+      selectedBoard,
+      sortType,
+      searchType,
+      searchKeyword,
+      user?.id,
+    ],
     queryFn: fetchPosts,
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
       return lastPage.last ? undefined : lastPage.number + 1;
     },
+    enabled: !loading && user !== null, // 유저 정보 로딩이 완료되고 로그인된 경우에만 쿼리 활성화
   });
 
   const handleSearch = async () => {
@@ -392,9 +401,9 @@ export default function Home() {
                   )
                     .then((res) => {
                       if (res.ok) return res.json();
-                      return { liked: false };
+                      return { likedByCurrentUser: false };
                     })
-                    .catch(() => ({ liked: false }))
+                    .catch(() => ({ likedByCurrentUser: false }))
                 );
 
                 // 모든 좋아요 상태 요청 완료 대기
@@ -402,7 +411,8 @@ export default function Home() {
 
                 // 좋아요 상태 정보 병합
                 for (let i = 0; i < top5Posts.length; i++) {
-                  top5Posts[i].likedByCurrentUser = likeStatuses[i].liked;
+                  top5Posts[i].likedByCurrentUser =
+                    likeStatuses[i].likedByCurrentUser;
                 }
 
                 console.log("좋아요 상태 업데이트 후 인기 게시글:", top5Posts);
@@ -452,7 +462,7 @@ export default function Home() {
 
             if (likeStatusResponse.ok) {
               const likeStatus = await likeStatusResponse.json();
-              data.likedByCurrentUser = likeStatus.liked;
+              data.likedByCurrentUser = likeStatus.likedByCurrentUser;
             }
           } catch (error) {
             console.error("좋아요 상태 확인 중 오류:", error);
@@ -528,6 +538,7 @@ export default function Home() {
             };
           }
         );
+        refetch();
       }
     } catch (error) {
       console.error("좋아요 처리 중 오류:", error);
@@ -582,6 +593,7 @@ export default function Home() {
             };
           }
         );
+        refetch();
       } else {
         console.error("좋아요 취소 실패:", response.status);
         const errorText = await response.text();
@@ -1097,7 +1109,7 @@ export default function Home() {
                         onUpdate={() => refetch()}
                         onLike={memoizedHandleLike}
                         onUnlike={memoizedHandleUnlike}
-                        isLiked={post.likedByCurrentUser}
+                        likedByCurrentUser={post.likedByCurrentUser || false}
                         onDelete={handleDelete}
                         onCommentUpdate={(count) =>
                           handleCommentUpdate(post.postId, count)

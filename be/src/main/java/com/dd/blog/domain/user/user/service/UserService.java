@@ -132,6 +132,10 @@ public class UserService {
             throw new ApiException(ErrorCode.INVALID_PASSWORD);
         }
 
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            throw new ApiException(ErrorCode.ACCOUNT_SUSPENDED);
+        }
+
         // 리프레시 토큰 생성
         String refreshToken = authTokenService.genRefreshToken(user);
 

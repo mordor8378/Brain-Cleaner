@@ -90,8 +90,10 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (request.getMethod().equals("GET") && request.getRequestURI().startsWith("/api/v1/posts")) {
-            filterChain.doFilter(request, response);
-            return;
+            if (!request.getRequestURI().contains("/like/check")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
         }
 
         try {

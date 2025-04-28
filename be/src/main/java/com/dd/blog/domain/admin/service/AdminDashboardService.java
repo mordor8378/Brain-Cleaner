@@ -21,7 +21,6 @@ import java.util.List;
 public class AdminDashboardService {
 
     private final UserRepository userRepository;
-    private final PostRepository postRepository;
     private final VerificationRepository verificationRepository;
     private final ReportRepository reportRepository;
 
@@ -33,7 +32,14 @@ public class AdminDashboardService {
 
         // 각 통계 계산
         long totalUsers = userRepository.count();
+
+
+        System.out.println(">>> [AdminDashboardService] Calling verificationRepository.countByStatus(PENDING)...");
         long pendingVerifications = verificationRepository.countByStatus(VerificationStatus.PENDING);
+        System.out.println(">>> [AdminDashboardService] Result from countByStatus: " + pendingVerifications);
+
+
+
         long verificationsProcessedToday = verificationRepository.countByStatusInAndUpdatedAtBetween(
                 List.of(VerificationStatus.APPROVED, VerificationStatus.REJECTED), // 처리된 상태 목록
                 startOfDay,
@@ -52,9 +58,9 @@ public class AdminDashboardService {
 
         return AdminDashboardStatsDto.builder()
                 .totalUsers(totalUsers)
+                .usersJoinedToday(usersJoinedToday)
                 .pendingVerifications(pendingVerifications)
                 .verificationsProcessedToday(verificationsProcessedToday)
-                .usersJoinedToday(usersJoinedToday)
                 .pendingReports(pendingReports)
                 .reportsProcessedToday(reportsProcessedToday)
                 .build();
