@@ -7,6 +7,8 @@ import com.dd.blog.domain.post.postlike.entity.PostLike;
 import com.dd.blog.domain.post.postlike.repository.PostLikeRepository;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
+import com.dd.blog.global.exception.ApiException;
+import com.dd.blog.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,5 +54,16 @@ public class PostLikeService {
         post.decreaseLikeCount(); // 게시글의 좋아요 수 감소 (메서드 없으면 추가 필요)
 
         return new LikeResponseDto(postId, (long) post.getLikeCount(), false);
+    }
+
+    @Transactional(readOnly = true)
+    public LikeResponseDto checkLike(Long userId, Long postId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
+        boolean isLiked = postLikeRepository.existsByUserAndPost(user, post);
+
+        return new LikeResponseDto(postId, (long) post.getLikeCount(), isLiked);
     }
 }
