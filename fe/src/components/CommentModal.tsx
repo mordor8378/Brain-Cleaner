@@ -345,7 +345,6 @@ export default function CommentModal({
 
         try {
           console.log(`유저 ID ${userId}의 프로필 이미지 요청 중`);
-          // 프로필 정보를 가져오기 위한 API 요청 - 기본 사용자 API 엔드포인트 사용
           const profileResponse = await fetch(
             `http://localhost:8090/api/v1/users/${userId}`,
             {
@@ -360,7 +359,6 @@ export default function CommentModal({
               profileData
             );
 
-            // profileImageUrl 필드에서 이미지 URL 가져오기
             const profileImageUrl = profileData.profileImageUrl || null;
             console.log(
               `유저 ID ${userId}의 프로필 이미지 URL:`,
@@ -369,30 +367,29 @@ export default function CommentModal({
 
             return {
               userId,
-              profileImage: profileImageUrl || "/profile.png",
+              profileImage: profileImageUrl,
             };
           } else {
             console.error(
               `유저 ID ${userId}의 프로필 로드 실패:`,
               profileResponse.status
             );
-            return { userId, profileImage: "/profile.png" };
+            return { userId, profileImage: null };
           }
         } catch (error) {
           console.error(`유저 ID ${userId}의 프로필 로드 중 오류:`, error);
-          return { userId, profileImage: "/profile.png" };
+          return { userId, profileImage: null };
         }
       });
 
       const profiles = await Promise.all(profilePromises);
       const validProfiles = profiles.filter(
-        (profile): profile is { userId: number; profileImage: string } =>
+        (profile): profile is { userId: number; profileImage: string | null } =>
           profile !== null && typeof profile === "object"
       );
 
       console.log("로드된 프로필 이미지:", validProfiles);
 
-      // 프로필 이미지 매핑 업데이트
       const newProfileImageMap = { ...userProfileImages };
 
       validProfiles.forEach((profile) => {
@@ -970,7 +967,8 @@ export default function CommentModal({
                   />
                 ) : (
                   <svg
-                    className="w-4 h-4 text-gray-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-gray-400"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -1029,7 +1027,8 @@ export default function CommentModal({
                       />
                     ) : (
                       <svg
-                        className="w-4 h-4 text-gray-500"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-gray-400"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -1167,7 +1166,8 @@ export default function CommentModal({
                           />
                         ) : (
                           <svg
-                            className="w-4 h-4 text-gray-500"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 text-gray-400"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                           >
@@ -1284,7 +1284,8 @@ export default function CommentModal({
                     />
                   ) : (
                     <svg
-                      className="w-4 h-4 text-gray-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-gray-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >

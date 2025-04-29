@@ -305,68 +305,65 @@ public class PostService {
     // UPDATE
     // 게시글 UPDATE(수정)
     @Transactional
-    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto, MultipartFile[] postImages) throws IOException{
+    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto, MultipartFile[] postImages) throws IOException {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
 
         if(post.getCategory().getId() == 4L)
             checkAdminAuthority();
 
-        // 기존 이미지 URL 처리 - DTO에서 가져오거나 기존 게시글에서 가져옴
-        String[] existingImageUrls;
-        if (postPatchRequestDto.getImageUrl() != null && postPatchRequestDto.getImageUrl().length > 0) {
-            existingImageUrls = postPatchRequestDto.getImageUrl();
-        } else {
-            existingImageUrls = post.getImageUrl(); // 기존 게시글의 이미지 URL
-        }
-        
-        if (existingImageUrls == null) {
-            existingImageUrls = new String[0];
-        }
-        
         // 새로 업로드된 이미지 처리
-        List<String> newImageUrlList = new ArrayList<>();
+        List<String> newImageUrls = new ArrayList<>();
+        System.out.println("업로드할 이미지 개수: " + (postImages != null ? postImages.length : 0));
+        
         if (postImages != null && postImages.length > 0) {
             for (MultipartFile postImage : postImages) {
+                System.out.println("이미지 업로드 시작: " + postImage.getOriginalFilename());
                 String uploadedUrl = awsS3Uploader.upload(postImage, "post");
-                newImageUrlList.add(uploadedUrl);
+                System.out.println("이미지 업로드 완료: " + uploadedUrl);
+                newImageUrls.add(uploadedUrl);
             }
         }
-        
-        // 기존 이미지 URL과 새 이미지 URL 결합
-        List<String> combinedList = new ArrayList<>();
 
-        // 기존 URL 추가 (null 체크)
-        if (existingImageUrls != null && existingImageUrls.length > 0) {
+        // 기존 이미지 URL과 새 이미지 URL 결합
+        List<String> combinedImageUrls = new ArrayList<>();
+        
+        // 기존 이미지 URL 추가 (DTO에서 가져오거나 기존 게시글에서 가져옴)
+        String[] existingImageUrls = postPatchRequestDto.getImageUrl() != null ? 
+            postPatchRequestDto.getImageUrl() : post.getImageUrl();
+        
+        System.out.println("기존 이미지 URL 개수: " + (existingImageUrls != null ? existingImageUrls.length : 0));
+        System.out.println("새로 업로드된 이미지 URL 개수: " + newImageUrls.size());
+        
+        if (existingImageUrls != null) {
             for (String url : existingImageUrls) {
                 if (url != null && !url.trim().isEmpty()) {
-                    combinedList.add(url);
+                    combinedImageUrls.add(url);
                 }
             }
         }
 
-        // 새 URL 추가
-        if (newImageUrlList != null && !newImageUrlList.isEmpty()) {
-            for (String url : newImageUrlList) {
-                if (url != null && !url.trim().isEmpty()) {
-                    combinedList.add(url);
-                }
-            }
-        }
+        // 새로 업로드된 이미지 URL 추가
+        combinedImageUrls.addAll(newImageUrls);
+        System.out.println("최종 결합된 이미지 URL 개수: " + combinedImageUrls.size());
 
         // 결과 배열 생성
-        String[] finalImageUrls;
-        if (!combinedList.isEmpty()) {
-            finalImageUrls = combinedList.toArray(new String[0]);
-        } else {
-            finalImageUrls = null;
-        }
+        String[] finalImageUrls = combinedImageUrls.isEmpty() ? null : combinedImageUrls.toArray(new String[0]);
+        System.out.println("최종 이미지 URL 배열: " + Arrays.toString(finalImageUrls));
 
-        post.update(postPatchRequestDto.getTitle(),
-                postPatchRequestDto.getContent(),
-                finalImageUrls);
+        // 게시글 업데이트
+        post.update(
+            postPatchRequestDto.getTitle(),
+            postPatchRequestDto.getContent(),
+            finalImageUrls
+        );
 
-        return PostResponseDto.fromEntity(post);
+        // 업데이트된 게시글을 저장하고 응답 DTO 생성
+        Post updatedPost = postRepository.save(post);
+        PostResponseDto responseDto = PostResponseDto.fromEntity(updatedPost);
+        responseDto.setImageUrl(finalImageUrls); // 최종 이미지 URL 설정
+        
+        return responseDto;
     }
 
     // DELETE
