@@ -31,7 +31,7 @@ public class PostResponseDto {
     private Integer detoxTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
+    private String status;
 
     public static PostResponseDto fromEntity(Post post) {
         // 이미지 URL 중복 처리
@@ -71,6 +71,7 @@ public class PostResponseDto {
                 .detoxTime(post.getDetoxTime())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
+                .status(null)
                 .build();
     }
 }
