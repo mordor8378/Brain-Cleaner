@@ -22,7 +22,8 @@ public enum ErrorCode {
 
     // 403 FORBIDDEN
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
-    ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "정지된 계정입니다. 관리자에게 문의하세요."), // <--- 여기 추가!
+    FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
+    ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "정지된 계정입니다. 관리자에게 문의하세요."),
     DAILY_POST_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "하루 게시글 작성 제한을 초과했습니다."),
     VERIFICATION_POST_ALREADY_SUBMITTED(HttpStatus.FORBIDDEN, "오늘은 이미 인증글을 작성했습니다."),
 
