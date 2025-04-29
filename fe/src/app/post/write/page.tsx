@@ -6,6 +6,7 @@ import Image from "next/image";
 import EmojiPicker from "@/components/EmojiPicker";
 import { fetchPurchasedEmojis, Emoji } from "@/utils/emojiUtils";
 import { useUser } from "@/contexts/UserContext";
+import { toast } from "react-hot-toast";
 
 interface WritePostPageProps {
   onClose?: () => void;
@@ -21,7 +22,7 @@ export default function WritePostPage({
   initialCategory = "2",
 }: WritePostPageProps) {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, mutate } = useUser();
   const isAdmin = user?.role === "ROLE_ADMIN";
   const [category, setCategory] = useState<string>(initialCategory);
   const [title, setTitle] = useState<string>("");
@@ -89,7 +90,7 @@ export default function WritePostPage({
     if (files && files.length > 0) {
       // 파일 업로드 중임을 사용자에게 알림
       if (files.length > 1) {
-        alert(
+        toast.loading(
           `${files.length}개의 이미지를 업로드합니다. 잠시만 기다려주세요.`
         );
       }
@@ -103,13 +104,13 @@ export default function WritePostPage({
 
         // 파일 크기 제한 (10MB)
         if (file.size > 10 * 1024 * 1024) {
-          alert("파일 크기는 10MB를 초과할 수 없습니다.");
+          toast.error("파일 크기는 10MB를 초과할 수 없습니다.");
           continue;
         }
 
         // 이미지 파일 타입 체크
         if (!file.type.startsWith("image/")) {
-          alert("이미지 파일만 업로드 가능합니다.");
+          toast.error("이미지 파일만 업로드 가능합니다.");
           continue;
         }
 
@@ -154,7 +155,7 @@ export default function WritePostPage({
         );
       } catch (error) {
         console.error("이미지 업로드 중 오류 발생:", error);
-        alert("일부 이미지 업로드에 실패했습니다.");
+        toast.error("일부 이미지 업로드에 실패했습니다.");
       }
     }
   };
@@ -170,7 +171,7 @@ export default function WritePostPage({
   const handleSubmit = async () => {
     // Validation
     if (!title || !content) {
-      alert("제목과 내용을 모두 입력해주세요.");
+      toast.error("제목과 내용을 모두 입력해주세요.");
       return;
     }
 
@@ -241,7 +242,10 @@ export default function WritePostPage({
         const response = await res.json();
         console.log("게시글 등록 응답:", response);
 
-        alert("게시글 등록 완료!");
+        toast.success("게시글이 성공적으로 등록되었습니다!");
+
+        await mutate(); // 유저 정보 갱신
+
         if (onSuccess) {
           onSuccess();
         }
@@ -251,13 +255,18 @@ export default function WritePostPage({
           router.push("/");
         }
       } else {
-        const errorText = await res.text();
-        console.error("게시글 등록 실패:", errorText);
-        alert(`등록 실패: ${res.status}`);
+        // 에러 응답 처리
+        const errorData = await res.json();
+        console.error("게시글 등록 실패:", errorData);
+        toast.error(
+          `등록 실패: ${
+            errorData.message || "게시글 작성 제한을 초과했습니다."
+          }`
+        );
       }
     } catch (error) {
       console.error("게시글 등록 중 오류 발생:", error);
-      alert("게시글 등록 중 오류가 발생했습니다");
+      toast.error("게시글 등록 중 오류가 발생했습니다");
     }
   };
 

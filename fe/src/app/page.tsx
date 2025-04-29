@@ -373,7 +373,7 @@ export default function Home() {
       fetchVerificationData();
       calculateUserLevel();
     }
-  }, [user]);
+  }, [user, user?.totalPoint]);
 
   // 인기 게시글 가져오기
   useEffect(() => {
@@ -653,11 +653,11 @@ export default function Home() {
         );
       } else {
         console.error("게시글 삭제 실패:", response.status);
-        alert("게시글 삭제에 실패했습니다.");
+        toast.error("게시글 삭제에 실패했습니다.");
       }
     } catch (error) {
       console.error("게시글 삭제 중 오류:", error);
-      alert("게시글 삭제 중 오류가 발생했습니다.");
+      toast.error("게시글 삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -729,13 +729,13 @@ export default function Home() {
               {writeCategory === "1" ? (
                 <VerificationWritePage
                   onClose={closeWriteModal}
-                  onSuccess={() => refetch()}
+                  onSuccess={refetch}
                   onCategoryChange={handleWriteCategoryChange}
                 />
               ) : (
                 <WritePostPage
                   onClose={closeWriteModal}
-                  onSuccess={() => refetch()}
+                  onSuccess={refetch}
                   onCategoryChange={handleWriteCategoryChange}
                   initialCategory={writeCategory}
                 />

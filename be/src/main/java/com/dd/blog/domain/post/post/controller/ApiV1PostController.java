@@ -42,6 +42,7 @@ public class ApiV1PostController {
             responses = {
                     @ApiResponse(responseCode = "201", description = "작성 성공"),
                     @ApiResponse(responseCode = "400", description = "잘못된 요청 (내용 누락 등)"),
+                    @ApiResponse(responseCode = "403", description = "게시글 작성 제한 초과"),
                     @ApiResponse(responseCode = "404", description = "해당 카테고리 없음")
             }
     )

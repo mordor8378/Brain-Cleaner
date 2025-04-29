@@ -23,11 +23,13 @@ public enum ErrorCode {
     // 403 FORBIDDEN
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
     ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "정지된 계정입니다. 관리자에게 문의하세요."), // <--- 여기 추가!
-
+    DAILY_POST_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "하루 게시글 작성 제한을 초과했습니다."),
+    VERIFICATION_POST_ALREADY_SUBMITTED(HttpStatus.FORBIDDEN, "오늘은 이미 인증글을 작성했습니다."),
 
     // 404 NOT_FOUND
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 게시글입니다."),
+    CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스가 존재하지 않습니다."),
     REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 신고입니다."),
 

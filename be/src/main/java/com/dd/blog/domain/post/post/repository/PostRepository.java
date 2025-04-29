@@ -36,4 +36,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             "WHERE (:type = 'title' AND p.title LIKE %:keyword%) " +
             "   OR (:type = 'writer' AND p.user.nickname LIKE %:keyword%)")
     List<Post> searchByTypeAndKeyword(@Param("type") String type, @Param("keyword") String keyword);
+
+    long countByUserIdAndCategoryIdAndCreatedAtBetween(Long userId, Long categoryId, LocalDateTime start, LocalDateTime end);
 }
