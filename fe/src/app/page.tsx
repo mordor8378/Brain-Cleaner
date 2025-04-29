@@ -515,7 +515,7 @@ export default function Home() {
       return;
     }
     setShowWriteModal(true);
-    setWriteCategory("2"); // 기본값으로 정보공유게시판 설정
+    setWriteCategory("1"); // 인증게시판의 ID로 설정
   };
 
   const closeWriteModal = () => {
