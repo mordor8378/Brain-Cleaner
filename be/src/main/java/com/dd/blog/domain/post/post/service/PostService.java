@@ -274,7 +274,7 @@ public class PostService {
         }
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Post> postPage = postRepository.findByCategoryIdOrderByIdAsc(categoryId, pageable);
+        Page<Post> postPage = postRepository.findByCategoryId(categoryId, pageable);
 
         return postPage.map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post));
     }
