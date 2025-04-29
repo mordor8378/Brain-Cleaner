@@ -36,6 +36,8 @@ export interface PostProps {
   userProfileImage?: string | null;
   userRole: string;
   viewCount?: number;
+  categoryId?: number;
+  status?: string;
 }
 
 export default function Post({
@@ -60,6 +62,8 @@ export default function Post({
   userProfileImage,
   userRole,
   viewCount,
+  categoryId,
+  status,
 }: PostProps) {
   const router = useRouter();
   const { user } = useUser();
@@ -79,6 +83,8 @@ export default function Post({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [parsedImageUrls, setParsedImageUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null); // 파일 입력을 위한 ref 추가
+
+  const isOwnPost = user?.id === userId;
 
   // 이모티콘 로딩
   useEffect(() => {
@@ -157,7 +163,7 @@ export default function Post({
       console.error("Post - 이미지 URL 파싱 중 오류:", error);
       setParsedImageUrls([]);
     }
-  }, [imageUrl]);
+  }, [imageUrl]); // imageUrl이 변경될 때마다 실행
 
   // 프로필 이미지 URL 가져오기
   const [profileImage, setProfileImage] = useState<string | null>(
@@ -252,17 +258,27 @@ export default function Post({
     }
 
     try {
+      const formData = new FormData();
+      formData.append(
+        "postPatchRequestDto",
+        new Blob(
+          [
+            JSON.stringify({
+              title: editedTitle,
+              content: content,
+              imageUrl: imageUrl,
+            }),
+          ],
+          { type: "application/json" }
+        )
+      );
+
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
           credentials: "include",
-          body: JSON.stringify({
-            title: editedTitle,
-          }),
+          body: formData,
         }
       );
 
@@ -292,17 +308,27 @@ export default function Post({
     }
 
     try {
+      const formData = new FormData();
+      formData.append(
+        "postPatchRequestDto",
+        new Blob(
+          [
+            JSON.stringify({
+              title: title,
+              content: editedContent,
+              imageUrl: imageUrl,
+            }),
+          ],
+          { type: "application/json" }
+        )
+      );
+
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
           credentials: "include",
-          body: JSON.stringify({
-            content: editedContent,
-          }),
+          body: formData,
         }
       );
 
@@ -347,6 +373,10 @@ export default function Post({
   };
 
   const openReportModal = () => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     console.log("신고 팝업 열기 postId: ", postId);
     setShowReportModal(true);
   };
@@ -380,7 +410,9 @@ export default function Post({
 
   // 이미지 업로드 핸들러 추가
   const handleImageClick = () => {
-    if (user?.id === userId && fileInputRef.current) {
+    if (isOwnPost && fileInputRef.current) {
+      // 파일 입력의 value를 초기화하여 같은 파일도 다시 선택할 수 있도록 함
+      fileInputRef.current.value = "";
       fileInputRef.current.click();
     }
   };
@@ -389,32 +421,177 @@ export default function Post({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const formData = new FormData();
+    console.log("선택된 파일 개수:", files.length);
+    for (let i = 0; i < files.length; i++) {
+      console.log(
+        `파일 ${i + 1}:`,
+        files[i].name,
+        files[i].size,
+        files[i].type
+      );
+    }
 
-    // 모든 선택된 파일을 FormData에 추가
+    const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
       formData.append("postImage", files[i]);
     }
 
     // 기존 이미지 URL 배열을 유지하기 위해 imageUrl을 PostPatchRequestDto에 포함
     const currentImageUrls = parsedImageUrls.length > 0 ? parsedImageUrls : [];
-
-    // 중복 이미지 URL 제거
     const uniqueImageUrls = [...new Set(currentImageUrls)];
-    console.log("이미지 업데이트시 중복 제거된 URL:", uniqueImageUrls);
+    console.log("기존 이미지 URL:", uniqueImageUrls);
+
+    // PostPatchRequestDto를 올바르게 생성
+    const postPatchRequestDto = {
+      title: title,
+      content: content,
+      imageUrl: uniqueImageUrls,
+    };
 
     formData.append(
       "postPatchRequestDto",
-      new Blob([JSON.stringify({ imageUrl: uniqueImageUrls })], {
+      new Blob([JSON.stringify(postPatchRequestDto)], {
         type: "application/json",
       })
     );
 
     try {
-      console.log(
-        "이미지 업데이트 시작 - 기존 이미지:",
-        uniqueImageUrls.length,
-        "개"
+      console.log("이미지 업로드 요청 시작");
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/${postId}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          body: formData,
+        }
+      );
+
+      console.log("서버 응답 상태:", response.status);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("이미지 업데이트 응답 오류:", errorData);
+        throw new Error(errorData.message || "이미지 업데이트 실패");
+      }
+
+      const updatedPost = await response.json();
+      console.log("서버 응답 데이터:", updatedPost);
+
+      // 업데이트된 이미지 URL로 상태 업데이트
+      if (updatedPost.imageUrl) {
+        let newImageUrls: string[];
+        if (Array.isArray(updatedPost.imageUrl)) {
+          newImageUrls = updatedPost.imageUrl;
+        } else {
+          newImageUrls = [updatedPost.imageUrl];
+        }
+        console.log("업데이트된 이미지 URL:", newImageUrls);
+        setParsedImageUrls(newImageUrls);
+      }
+    } catch (error) {
+      console.error("이미지 업로드 중 오류 발생:", error);
+      toast.error("이미지 업로드에 실패했습니다.");
+    }
+  };
+
+  const navigateToUserProfile = (userId: number) => {
+    if (!user) {
+      toast.error("로그인 후 다른 사용자의 프로필을 볼 수 있습니다.");
+      return;
+    }
+
+    router.push(getProfilePath(user, userId));
+  };
+
+  const handleCommentClick = () => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
+
+    setShowCommentModal(true);
+  };
+
+  // 상태 표시 마크 렌더링용
+  const renderStatusIcon = () => {
+    // 인증 게시글(카테고리 1)이 아니면 아이콘 표시하지 않음
+    if (categoryId !== 1) return null;
+
+    // 인증 게시글이면 상태에 따라 다른 아이콘 표시
+    switch (status) {
+      case "PENDING":
+        // 대기중 - 노란색 시계 아이콘
+        return (
+          <span className="ml-1 text-xs text-yellow-500">
+            <svg
+              className="w-3.5 h-3.5 inline"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                clipRule="evenodd"
+              ></path>
+            </svg>
+          </span>
+        );
+
+      case "APPROVED":
+        // 승인됨 - 초록색 체크 아이콘
+        return (
+          <span className="ml-1 text-xs text-green-500">
+            <svg
+              className="w-3.5 h-3.5 inline"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              ></path>
+            </svg>
+          </span>
+        );
+
+      case "REJECTED":
+        // 승인거부 - 빨간색 X 아이콘
+        return (
+          <span className="ml-1 text-xs text-red-500">
+            <svg
+              className="w-3.5 h-3.5 inline"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              ></path>
+            </svg>
+          </span>
+        );
+
+      default:
+        // 상태값이 없는 경우 아이콘 표시 X
+        return null;
+    }
+  };
+
+  // 이미지 삭제 핸들러 추가
+  const handleDeleteImage = async (index: number) => {
+    if (!isOwnPost) return;
+
+    try {
+      const updatedImageUrls = [...parsedImageUrls];
+      updatedImageUrls.splice(index, 1);
+
+      const formData = new FormData();
+      formData.append(
+        "postPatchRequestDto",
+        new Blob([JSON.stringify({ imageUrl: updatedImageUrls })], {
+          type: "application/json",
+        })
       );
 
       const response = await fetch(
@@ -427,26 +604,33 @@ export default function Post({
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("이미지 업데이트 응답 오류:", errorData);
-        throw new Error(errorData.message || "이미지 업데이트 실패");
+        throw new Error("이미지 삭제에 실패했습니다.");
       }
+
+      setParsedImageUrls(updatedImageUrls);
+      setCurrentImageIndex(Math.min(index, updatedImageUrls.length - 1));
 
       if (onUpdate) {
         onUpdate();
       }
 
-      toast.success("이미지가 성공적으로 업로드되었습니다.");
+      toast.success("이미지가 삭제되었습니다.");
     } catch (error) {
-      console.error("이미지 업데이트 중 오류:", error);
-      toast.error("이미지 업데이트에 실패했습니다.");
+      console.error("이미지 삭제 중 오류:", error);
+      toast.error("이미지 삭제에 실패했습니다.");
     }
   };
 
   return (
     <div className="p-5" ref={postRef}>
       <div className="flex items-start mb-3">
-        <Link href={getProfilePath(user, userId)}>
+        <Link
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            navigateToUserProfile(userId);
+          }}
+        >
           <div className="mr-3 cursor-pointer relative w-8 h-8">
             {profileImage ? (
               <Image
@@ -478,7 +662,13 @@ export default function Post({
         <div className="flex-1">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-1.5">
-              <Link href={getProfilePath(user, userId)}>
+              <Link
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigateToUserProfile(userId);
+                }}
+              >
                 <span className="font-bold text-[14px] text-gray-900 cursor-pointer hover:text-pink-500">
                   {userNickname}
                 </span>
@@ -489,19 +679,7 @@ export default function Post({
                   <span className="ml-1">• 수정됨</span>
                 )}
               </span>
-              <span className="ml-1 text-xs text-green-500">
-                <svg
-                  className="w-3.5 h-3.5 inline"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  ></path>
-                </svg>
-              </span>
+              {renderStatusIcon()}
             </div>
             <div className="group">
               {(user?.id === userId || user?.role === "ROLE_ADMIN") && (
@@ -543,7 +721,7 @@ export default function Post({
             </h3>
             <button
               onClick={handleSaveTitle}
-              className="ml-2 text-sm text-pink-500 hover:text-pink-600"
+              className="ml-2 text-sm text-[#F742CD] hover:opacity-90"
             >
               완료
             </button>
@@ -557,7 +735,7 @@ export default function Post({
               <div className="group">
                 <button
                   onClick={handleEditTitle}
-                  className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-gray-700"
+                  className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#F742CD] hover:opacity-90"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -589,7 +767,7 @@ export default function Post({
             </div>
             <button
               onClick={handleSaveContent}
-              className="ml-2 text-sm text-pink-500 hover:text-pink-600"
+              className="ml-2 text-sm text-[#F742CD] hover:opacity-90"
             >
               완료
             </button>
@@ -635,7 +813,7 @@ export default function Post({
             {user?.id === userId && (
               <button
                 onClick={handleEditContent}
-                className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-gray-700"
+                className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#F742CD] hover:opacity-90"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -669,7 +847,6 @@ export default function Post({
                   parsedImageUrls[currentImageIndex]
                 );
                 console.log("전체 이미지 URL 배열:", parsedImageUrls);
-                // 이미지 로드 실패 시 오류 메시지 표시
                 const container = (e.target as HTMLImageElement).parentElement;
                 if (container) {
                   const errorMsg = document.createElement("div");
@@ -723,10 +900,11 @@ export default function Post({
               </>
             )}
 
-            {user?.id === userId && (
+            {/* 이미지 삭제 버튼 */}
+            {isOwnPost && (
               <button
-                onClick={handleImageClick}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-white hover:text-gray-200 bg-black bg-opacity-50 rounded-full p-1.5"
+                onClick={() => handleDeleteImage(currentImageIndex)}
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:opacity-90 bg-white bg-opacity-80 rounded-full p-1"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -774,21 +952,13 @@ export default function Post({
           <div className="text-xs text-gray-600 mt-1 text-center">
             이미지 {currentImageIndex + 1}/{parsedImageUrls.length}
           </div>
-        </div>
-      )}
-      <div className="mt-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() =>
-              likedByCurrentUser ? onUnlike(postId) : onLike(postId)
-            }
-            className={`flex items-center gap-1 group ${
-              likedByCurrentUser
-                ? "text-pink-500"
-                : "text-gray-400 hover:text-pink-500"
-            } transition-colors`}
-          >
-            {likedByCurrentUser ? (
+
+          {/* 새로운 이미지 추가 버튼 */}
+          {isOwnPost && (
+            <button
+              onClick={handleImageClick}
+              className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#F742CD] hover:opacity-90 bg-white bg-opacity-80 rounded-full p-2"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5"
@@ -797,31 +967,43 @@ export default function Post({
               >
                 <path
                   fillRule="evenodd"
-                  d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                   clipRule="evenodd"
                 />
               </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                />
-              </svg>
-            )}
+            </button>
+          )}
+        </div>
+      )}
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() =>
+              likedByCurrentUser ? onUnlike(postId) : onLike(postId)
+            }
+            className={`flex items-center gap-1 ${
+              likedByCurrentUser
+                ? "text-[#F742CD] hover:opacity-90"
+                : "text-gray-400 hover:text-[#F742CD]"
+            } transition-colors`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                clipRule="evenodd"
+              />
+            </svg>
             <span className="text-sm">{likeCount}</span>
           </button>
 
           <button
-            onClick={() => setShowCommentModal(true)}
+            onClick={handleCommentClick}
             className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
           >
             <svg

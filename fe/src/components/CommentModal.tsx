@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   convertEmojiCodesToImages,
   fetchPurchasedEmojis,
+  useGlobalEmojis,
   Emoji,
 } from "@/utils/emojiUtils";
 import EmojiPicker from "./EmojiPicker";
@@ -50,6 +51,7 @@ export default function CommentModal({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [purchasedEmojis, setPurchasedEmojis] = useState<Emoji[]>([]);
   const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
+  const { globalEmojis, isLoading: isGlobalEmojisLoading } = useGlobalEmojis();
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [editedContent, setEditedContent] = useState(postContent || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +93,12 @@ export default function CommentModal({
 
     loadEmojis();
   }, []);
+
+  useEffect(() => {
+    if (!isGlobalEmojisLoading) {
+      setIsEmojiLoaded(true);
+    }
+  }, [isGlobalEmojisLoading]);
 
   // 이모티콘 선택
   const handleEmojiSelect = (emojiCode: string) => {
@@ -138,19 +146,39 @@ export default function CommentModal({
 
     setFollowLoading(true);
     try {
+      // 현재 로그인한 사용자 정보 가져오기
+      const meResponse = await fetch("http://localhost:8090/api/v1/users/me", {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!meResponse.ok) {
+        throw new Error("사용자 정보를 가져오는데 실패했습니다.");
+      }
+
+      const meData = await meResponse.json();
+
       if (isFollowing) {
         // 언팔로우
         const response = await fetch(
-          `http://localhost:8090/api/v1/follows/${userId}`,
+          `http://localhost:8090/api/v1/follows/${meData.id}/${userId}`,
           {
             method: "DELETE",
             credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
         );
 
         if (response.ok) {
           setIsFollowing(false);
           localStorage.setItem(`follow_${userId}`, "false");
+          toast.success("팔로우가 취소되었습니다.");
+        } else {
+          throw new Error("팔로우 취소에 실패했습니다.");
         }
       } else {
         // 팔로우
@@ -160,16 +188,27 @@ export default function CommentModal({
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify({ followingId: userId }),
+          body: JSON.stringify({
+            followerId: meData.id,
+            followingId: userId,
+          }),
         });
 
         if (response.ok) {
           setIsFollowing(true);
           localStorage.setItem(`follow_${userId}`, "true");
+          toast.success("팔로우가 완료되었습니다.");
+        } else {
+          throw new Error("팔로우에 실패했습니다.");
         }
       }
     } catch (error) {
       console.error("팔로우 상태 변경 중 오류 발생:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "팔로우 상태 변경에 실패했습니다."
+      );
     } finally {
       setFollowLoading(false);
     }
@@ -306,7 +345,6 @@ export default function CommentModal({
 
         try {
           console.log(`유저 ID ${userId}의 프로필 이미지 요청 중`);
-          // 프로필 정보를 가져오기 위한 API 요청 - 기본 사용자 API 엔드포인트 사용
           const profileResponse = await fetch(
             `http://localhost:8090/api/v1/users/${userId}`,
             {
@@ -321,7 +359,6 @@ export default function CommentModal({
               profileData
             );
 
-            // profileImageUrl 필드에서 이미지 URL 가져오기
             const profileImageUrl = profileData.profileImageUrl || null;
             console.log(
               `유저 ID ${userId}의 프로필 이미지 URL:`,
@@ -330,30 +367,29 @@ export default function CommentModal({
 
             return {
               userId,
-              profileImage: profileImageUrl || "/profile.png",
+              profileImage: profileImageUrl,
             };
           } else {
             console.error(
               `유저 ID ${userId}의 프로필 로드 실패:`,
               profileResponse.status
             );
-            return { userId, profileImage: "/profile.png" };
+            return { userId, profileImage: null };
           }
         } catch (error) {
           console.error(`유저 ID ${userId}의 프로필 로드 중 오류:`, error);
-          return { userId, profileImage: "/profile.png" };
+          return { userId, profileImage: null };
         }
       });
 
       const profiles = await Promise.all(profilePromises);
       const validProfiles = profiles.filter(
-        (profile): profile is { userId: number; profileImage: string } =>
+        (profile): profile is { userId: number; profileImage: string | null } =>
           profile !== null && typeof profile === "object"
       );
 
       console.log("로드된 프로필 이미지:", validProfiles);
 
-      // 프로필 이미지 매핑 업데이트
       const newProfileImageMap = { ...userProfileImages };
 
       validProfiles.forEach((profile) => {
@@ -931,7 +967,8 @@ export default function CommentModal({
                   />
                 ) : (
                   <svg
-                    className="w-4 h-4 text-gray-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-gray-400"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -954,10 +991,11 @@ export default function CommentModal({
                 className={`px-4 py-1.5 rounded text-sm font-bold ${
                   isFollowing
                     ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                    : "bg-[#F742CD] text-white hover:bg-pink-600"
+                    : "text-white hover:opacity-90"
                 } transition-colors ${
                   followLoading ? "opacity-70 cursor-not-allowed" : ""
                 }`}
+                style={{ backgroundColor: isFollowing ? undefined : "#F742CD" }}
               >
                 {followLoading
                   ? "처리중..."
@@ -989,7 +1027,8 @@ export default function CommentModal({
                       />
                     ) : (
                       <svg
-                        className="w-4 h-4 text-gray-500"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-gray-400"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -1080,7 +1119,7 @@ export default function CommentModal({
                           <>
                             {convertEmojiCodesToImages(
                               postContent || "",
-                              purchasedEmojis
+                              globalEmojis
                             )}
                           </>
                         ) : (
@@ -1127,7 +1166,8 @@ export default function CommentModal({
                           />
                         ) : (
                           <svg
-                            className="w-4 h-4 text-gray-500"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 text-gray-400"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                           >
@@ -1169,7 +1209,7 @@ export default function CommentModal({
                                 <>
                                   {convertEmojiCodesToImages(
                                     comment.content,
-                                    purchasedEmojis
+                                    globalEmojis
                                   )}
                                 </>
                               ) : (
@@ -1178,12 +1218,23 @@ export default function CommentModal({
                             })()}
                           </span>
                         </div>
-                        {user?.id === comment.userId && (
+                        {comment.userId === user?.id && (
                           <button
                             onClick={() => handleDeleteComment(comment.id)}
-                            className="text-xs text-gray-400 hover:text-red-500 ml-2"
+                            className="text-gray-400 hover:text-red-500 transition-colors"
                           >
-                            삭제
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
                           </button>
                         )}
                       </div>
@@ -1233,7 +1284,8 @@ export default function CommentModal({
                     />
                   ) : (
                     <svg
-                      className="w-4 h-4 text-gray-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-gray-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >

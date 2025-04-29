@@ -8,6 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 export interface User {
   id: number;
@@ -204,12 +205,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         const urlParams = new URLSearchParams(window.location.search);
         const isSocialLogin = urlParams.get("social") === "true";
+        const isNewLogin = urlParams.get("login") === "true";
         const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
         console.log(
           `[UserContext:useEffect:checkAuth] 소셜로그인 감지: ${isSocialLogin}, 로컬로그인상태: ${isLoggedIn}`
         ); // 로그 추가
 
-        if (isSocialLogin) {
+        if (isSocialLogin || isNewLogin) {
           console.log(
             "[UserContext:useEffect:checkAuth] 소셜 로그인 처리 시작 (URL 파라미터 제거)"
           ); // 로그 추가
@@ -218,6 +220,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
             document.title,
             window.location.pathname
           );
+          // 새로운 로그인인 경우에만 토스트 메시지 표시
+          if (isSocialLogin || isNewLogin) {
+            toast.success("로그인에 성공했습니다.");
+          }
         }
 
         if (isSocialLogin || isLoggedIn) {
