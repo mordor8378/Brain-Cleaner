@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   convertEmojiCodesToImages,
   fetchPurchasedEmojis,
+  useGlobalEmojis,
   Emoji,
 } from "@/utils/emojiUtils";
 import EmojiPicker from "./EmojiPicker";
@@ -50,6 +51,7 @@ export default function CommentModal({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [purchasedEmojis, setPurchasedEmojis] = useState<Emoji[]>([]);
   const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
+  const { globalEmojis, isLoading: isGlobalEmojisLoading } = useGlobalEmojis();
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [editedContent, setEditedContent] = useState(postContent || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +93,12 @@ export default function CommentModal({
 
     loadEmojis();
   }, []);
+
+  useEffect(() => {
+    if (!isGlobalEmojisLoading) {
+      setIsEmojiLoaded(true);
+    }
+  }, [isGlobalEmojisLoading]);
 
   // 이모티콘 선택
   const handleEmojiSelect = (emojiCode: string) => {
@@ -1112,7 +1120,7 @@ export default function CommentModal({
                           <>
                             {convertEmojiCodesToImages(
                               postContent || "",
-                              purchasedEmojis
+                              globalEmojis
                             )}
                           </>
                         ) : (
@@ -1201,7 +1209,7 @@ export default function CommentModal({
                                 <>
                                   {convertEmojiCodesToImages(
                                     comment.content,
-                                    purchasedEmojis
+                                    globalEmojis
                                   )}
                                 </>
                               ) : (

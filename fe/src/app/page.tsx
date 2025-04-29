@@ -10,6 +10,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { useGlobalEmojis, convertEmojiCodesToImages } from "@/utils/emojiUtils";
 
 export interface Post {
   postId: number;
@@ -62,6 +63,8 @@ export default function Home() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
   const [weeklyVerifications, setWeeklyVerifications] = useState<string[]>([]);
+  const { globalEmojis, isLoading: isGlobalEmojisLoading } = useGlobalEmojis();
+  const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
 
   // QueryClient 인스턴스 -> 캐시 조작용
   const queryClient = useQueryClient();
@@ -70,6 +73,12 @@ export default function Home() {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isGlobalEmojisLoading) {
+      setIsEmojiLoaded(true);
+    }
+  }, [isGlobalEmojisLoading]);
 
   const boardOptions = [
     { value: "0", label: "전체게시판" },
@@ -502,6 +511,55 @@ export default function Home() {
     } catch (error) {
       console.error("게시글 조회 중 오류:", error);
       toast.error("서버 연결에 실패했습니다.");
+    }
+  };
+
+  const getSafeImageUrl = (imageUrl: string | string[]): string => {
+    if (!imageUrl) return "";
+
+    try {
+      // 배열인 경우
+      if (Array.isArray(imageUrl) && imageUrl.length > 0) {
+        // 유효한 URL만 반환
+        for (let i = 0; i < imageUrl.length; i++) {
+          if (imageUrl[i] && imageUrl[i].trim() !== "") {
+            return imageUrl[i];
+          }
+        }
+        return "";
+      }
+
+      // JSON 문자열인 경우
+      if (
+        typeof imageUrl === "string" &&
+        imageUrl.startsWith("[") &&
+        imageUrl.endsWith("]")
+      ) {
+        try {
+          const parsed = JSON.parse(imageUrl);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // 유효한 URL만 반환
+            for (let i = 0; i < parsed.length; i++) {
+              if (parsed[i] && parsed[i].trim() !== "") {
+                return parsed[i];
+              }
+            }
+          }
+        } catch (e) {
+          console.error("이미지 URL JSON 파싱 오류:", e);
+        }
+        return "";
+      }
+
+      // 일반 문자열인 경우
+      if (typeof imageUrl === "string" && imageUrl.trim() !== "") {
+        return imageUrl;
+      }
+
+      return "";
+    } catch (e) {
+      console.error("이미지 URL 파싱 오류:", e);
+      return "";
     }
   };
 
@@ -1332,28 +1390,40 @@ export default function Home() {
                 </div>
 
                 <div className="mb-4">
-                  <p className="text-gray-700">{selectedPost.content}</p>
+                  <p className="text-gray-700">
+                    {isEmojiLoaded ? (
+                      <>
+                        {convertEmojiCodesToImages(
+                          selectedPost.content || "",
+                          globalEmojis
+                        )}
+                      </>
+                    ) : (
+                      selectedPost.content
+                    )}
+                  </p>
                 </div>
 
-                {selectedPost.imageUrl && (
-                  <div className="mb-4">
-                    <Image
-                      src={selectedPost.imageUrl}
-                      alt="게시글 이미지"
-                      width={500}
-                      height={300}
-                      className="rounded-lg w-full h-auto"
-                      unoptimized={true}
-                      onError={(e) => {
-                        console.error(
-                          "이미지 로드 실패:",
-                          selectedPost.imageUrl
-                        );
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  </div>
-                )}
+                {selectedPost.imageUrl &&
+                  getSafeImageUrl(selectedPost.imageUrl) && (
+                    <div className="mb-4">
+                      <Image
+                        src={getSafeImageUrl(selectedPost.imageUrl)}
+                        alt="게시글 이미지"
+                        width={500}
+                        height={300}
+                        className="rounded-lg w-full h-auto"
+                        unoptimized={true}
+                        onError={(e) => {
+                          console.error(
+                            "이미지 로드 실패:",
+                            selectedPost.imageUrl
+                          );
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
 
                 <div className="flex items-center text-gray-500 text-sm">
                   <div className="flex items-center mr-4">
