@@ -714,7 +714,7 @@ export default function MyProfile() {
                       </p>
                     </div>
                   </div>
-                  {post.imageUrl && (
+                  {post.imageUrl && getSafeImageUrl(post.imageUrl) && (
                     <div className="aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
                       <Image
                         src={getSafeImageUrl(post.imageUrl)}
@@ -725,7 +725,6 @@ export default function MyProfile() {
                         unoptimized={true}
                         onError={(e) => {
                           console.error("이미지 로드 실패:", post.imageUrl);
-                          // 이미지 로드 실패 시 숨김 처리
                           (e.target as HTMLImageElement).style.display = "none";
                         }}
                       />
