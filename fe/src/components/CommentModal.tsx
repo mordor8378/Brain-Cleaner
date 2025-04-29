@@ -56,7 +56,13 @@ export default function CommentModal({
   const [profileImage, setProfileImage] = useState<string | null>(
     userProfileImage || null
   );
-  const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [isFollowing, setIsFollowing] = useState<boolean>(() => {
+    if (typeof window !== "undefined" && userId) {
+      const storedFollowStatus = localStorage.getItem(`follow_${userId}`);
+      return storedFollowStatus === "true";
+    }
+    return false;
+  });
   const [followLoading, setFollowLoading] = useState(false);
 
   // 댓글 작성자의 프로필 이미지 저장 객체
@@ -119,6 +125,7 @@ export default function CommentModal({
       if (response.ok) {
         const data = await response.json();
         setIsFollowing(data.isFollowing);
+        localStorage.setItem(`follow_${userId}`, data.isFollowing.toString());
       }
     } catch (error) {
       console.error("팔로우 상태 확인 중 오류 발생:", error);
@@ -143,6 +150,7 @@ export default function CommentModal({
 
         if (response.ok) {
           setIsFollowing(false);
+          localStorage.setItem(`follow_${userId}`, "false");
         }
       } else {
         // 팔로우
@@ -157,6 +165,7 @@ export default function CommentModal({
 
         if (response.ok) {
           setIsFollowing(true);
+          localStorage.setItem(`follow_${userId}`, "true");
         }
       }
     } catch (error) {

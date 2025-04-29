@@ -648,29 +648,39 @@ export default function Home() {
         {
           method: "DELETE",
           credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      if (response.ok) {
-        // React Query 캐시 업데이트
-        queryClient.setQueryData<{ pages: PostsResponse[] }>(
-          ["posts", selectedBoard, sortType, searchType, searchKeyword],
-          (oldData) => {
-            if (!oldData) return oldData;
-
-            return {
-              ...oldData,
-              pages: oldData.pages.map((page) => ({
-                ...page,
-                content: page.content.filter((post) => post.postId !== postId),
-              })),
-            };
-          }
-        );
-      } else {
-        console.error("게시글 삭제 실패:", response.status);
-        toast.error("게시글 삭제에 실패했습니다.");
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("로그인이 필요합니다.");
+          return;
+        }
+        if (response.status === 403) {
+          toast.error("삭제 권한이 없습니다.");
+          return;
+        }
+        if (response.status === 404) {
+          toast.error("게시글이 존재하지 않습니다.");
+          return;
+        }
+        throw new Error("게시글 삭제에 실패했습니다.");
       }
+
+      // React Query 캐시 무효화 및 새로운 데이터 가져오기
+      await queryClient.invalidateQueries({
+        queryKey: ["posts", selectedBoard, sortType, searchType, searchKeyword],
+      });
+
+      // 인기 게시글 목록에서도 삭제
+      setTopPosts((prevPosts) =>
+        prevPosts.filter((post) => post.postId !== postId)
+      );
+
+      toast.success("게시글이 삭제되었습니다.");
     } catch (error) {
       console.error("게시글 삭제 중 오류:", error);
       toast.error("게시글 삭제 중 오류가 발생했습니다.");
