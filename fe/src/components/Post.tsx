@@ -36,6 +36,8 @@ export interface PostProps {
   userProfileImage?: string | null;
   userRole: string;
   viewCount?: number;
+  categoryId?: number;
+  status?: string;
 }
 
 export default function Post({
@@ -60,6 +62,8 @@ export default function Post({
   userProfileImage,
   userRole,
   viewCount,
+  categoryId,
+  status,
 }: PostProps) {
   const router = useRouter();
   const { user } = useUser();
@@ -465,6 +469,73 @@ export default function Post({
     setShowCommentModal(true);
   };
 
+  // 상태 표시 마크 렌더링용
+  const renderStatusIcon = () => {
+    // 인증 게시글(카테고리 1)이 아니면 아이콘 표시하지 않음
+    if (categoryId !== 1) return null;
+
+    // 인증 게시글이면 상태에 따라 다른 아이콘 표시
+    switch (status) {
+      case "PENDING":
+        // 대기중 - 노란색 시계 아이콘
+        return (
+          <span className="ml-1 text-xs text-yellow-500">
+            <svg
+              className="w-3.5 h-3.5 inline"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                clipRule="evenodd"
+              ></path>
+            </svg>
+          </span>
+        );
+
+      case "APPROVED":
+        // 승인됨 - 초록색 체크 아이콘
+        return (
+          <span className="ml-1 text-xs text-green-500">
+            <svg
+              className="w-3.5 h-3.5 inline"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              ></path>
+            </svg>
+          </span>
+        );
+
+      case "REJECTED":
+        // 승인거부 - 빨간색 X 아이콘
+        return (
+          <span className="ml-1 text-xs text-red-500">
+            <svg
+              className="w-3.5 h-3.5 inline"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              ></path>
+            </svg>
+          </span>
+        );
+
+      default:
+        // 상태값이 없는 경우 아이콘 표시 X
+        return null;
+    }
+  };
+
   return (
     <div className="p-5" ref={postRef}>
       <div className="flex items-start mb-3">
@@ -523,19 +594,7 @@ export default function Post({
                   <span className="ml-1">• 수정됨</span>
                 )}
               </span>
-              <span className="ml-1 text-xs text-green-500">
-                <svg
-                  className="w-3.5 h-3.5 inline"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  ></path>
-                </svg>
-              </span>
+              {renderStatusIcon()}
             </div>
             <div className="group">
               {(user?.id === userId || user?.role === "ROLE_ADMIN") && (
