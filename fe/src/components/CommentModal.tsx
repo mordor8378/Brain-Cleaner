@@ -141,7 +141,7 @@ export default function CommentModal({
       if (isFollowing) {
         // 언팔로우
         const response = await fetch(
-          `http://localhost:8090/api/v1/follows/${userId}`,
+          `http://localhost:8090/api/v1/follows/${user.id}/${userId}`,
           {
             method: "DELETE",
             credentials: "include",
@@ -151,6 +151,9 @@ export default function CommentModal({
         if (response.ok) {
           setIsFollowing(false);
           localStorage.setItem(`follow_${userId}`, "false");
+          toast.success("팔로우가 취소되었습니다.");
+        } else {
+          throw new Error("팔로우 취소에 실패했습니다.");
         }
       } else {
         // 팔로우
@@ -166,10 +169,18 @@ export default function CommentModal({
         if (response.ok) {
           setIsFollowing(true);
           localStorage.setItem(`follow_${userId}`, "true");
+          toast.success("팔로우가 완료되었습니다.");
+        } else {
+          throw new Error("팔로우에 실패했습니다.");
         }
       }
     } catch (error) {
       console.error("팔로우 상태 변경 중 오류 발생:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "팔로우 상태 변경에 실패했습니다."
+      );
     } finally {
       setFollowLoading(false);
     }
@@ -954,10 +965,11 @@ export default function CommentModal({
                 className={`px-4 py-1.5 rounded text-sm font-bold ${
                   isFollowing
                     ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                    : "bg-[#F742CD] text-white hover:bg-pink-600"
+                    : "text-white hover:opacity-90"
                 } transition-colors ${
                   followLoading ? "opacity-70 cursor-not-allowed" : ""
                 }`}
+                style={{ backgroundColor: isFollowing ? undefined : "#F742CD" }}
               >
                 {followLoading
                   ? "처리중..."
