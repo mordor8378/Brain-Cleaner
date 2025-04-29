@@ -589,22 +589,29 @@ export default function OtherUserProfile() {
         <div className="flex items-start gap-12 mb-8">
           <div className="flex flex-col items-center gap-4">
             {/* Profile Image */}
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden">
-                <div className="w-full h-full relative">
-                  <Image
-                    src={userInfo.profileImage || "/placeholder-avatar.png"}
-                    alt="Profile"
-                    fill
-                    style={{ objectFit: "cover" }}
-                    unoptimized={true}
+            <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+              {userInfo.profileImage ? (
+                <Image
+                  src={userInfo.profileImage}
+                  alt="프로필 이미지"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-16 w-16 text-gray-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                    clipRule="evenodd"
                   />
-                </div>
-              </div>
-              <div
-                className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
-                style={{ backgroundColor: CUSTOM_PINK }}
-              ></div>
+                </svg>
+              )}
             </div>
             {/* Status Message Container - Always present for consistent layout */}
             <div className="w-[16rem]">
