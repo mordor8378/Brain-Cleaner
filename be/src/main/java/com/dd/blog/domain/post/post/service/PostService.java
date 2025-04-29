@@ -347,15 +347,22 @@ public class PostService {
     // DELETE
     // 게시글 DELETE
     @Transactional
-    public void deletePost(Long postId){
+    public void deletePost(Long postId, Long userId){
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+                .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
 
-        if(post.getCategory().getId() == 4L)
+        // 관리자 게시판인 경우 관리자 권한 확인
+        if(post.getCategory().getId() == 4L) {
             checkAdminAuthority();
+        } else {
+            // 일반 게시판인 경우 게시글 작성자만 삭제 가능
+            if (!post.getUser().getId().equals(userId)) {
+                throw new ApiException(ErrorCode.FORBIDDEN);
+            }
+        }
 
+        // 연관된 데이터 삭제
         reportRepository.unlinkReportsFromPost(postId);
-
         verificationRepository.deleteByPost(post);
         postRepository.delete(post);
     }
