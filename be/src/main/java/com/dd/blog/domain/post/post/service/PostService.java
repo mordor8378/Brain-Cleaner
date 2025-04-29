@@ -11,11 +11,14 @@ import com.dd.blog.domain.post.post.repository.PostRepository;
 import com.dd.blog.domain.post.verification.dto.VerificationRequestDto;
 import com.dd.blog.domain.post.verification.repository.VerificationRepository;
 import com.dd.blog.domain.post.verification.service.VerificationService;
+import com.dd.blog.domain.report.repository.ReportRepository;
 import com.dd.blog.domain.user.follow.entity.Follow;
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.domain.user.follow.repository.FollowRepository;
 import com.dd.blog.global.aws.AwsS3Uploader;
+import com.dd.blog.global.exception.ApiException;
+import com.dd.blog.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -30,6 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,6 +52,7 @@ public class PostService {
     private final ApplicationEventPublisher eventPublisher;
     private final VerificationService verificationService;
     private final VerificationRepository verificationRepository;
+    private final ReportRepository reportRepository;
     private final AwsS3Uploader awsS3Uploader;
 
     private void checkAdminAuthority() {
@@ -65,30 +74,82 @@ public class PostService {
     // CREATE
     // 게시글 CREATE
     @Transactional
-    public PostResponseDto createPost(Long categoryId, Long userId, PostRequestDto postRequestDto, MultipartFile postImage) throws IOException {
+    public PostResponseDto createPost(Long categoryId, Long userId, PostRequestDto postRequestDto, MultipartFile[] postImages) throws IOException {
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("카테고리가 존재하지 않습니다."));
+                .orElseThrow(() -> new ApiException(ErrorCode.CATEGORY_NOT_FOUND));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        // 카테고리별 게시글 제한 체크
+        if (categoryId == 1L) { // 인증게시판
+            if (hasUserPostedVerificationToday(userId)) {
+                throw new ApiException(ErrorCode.VERIFICATION_POST_ALREADY_SUBMITTED);
+            }
+        } else if (categoryId == 2L || categoryId == 3L) { // 정보공유게시판이나 자유게시판
+            int postCount = countPostsByUserAndCategoryToday(userId, categoryId);
+            if (postCount >= 10) {
+                throw new ApiException(ErrorCode.DAILY_POST_LIMIT_EXCEEDED);
+            }
+        }
 
         if(category.getId() == 4L)
             checkAdminAuthority();
 
+        // 기존 이미지 URL 배열 (null이면 빈 배열로 초기화)
+        String[] existingImageUrls = postRequestDto.getImageUrl() != null ? postRequestDto.getImageUrl() : new String[0];
+        
+        // 새로 업로드된 이미지 처리
+        List<String> newImageUrlList = new ArrayList<>();
+        if (postImages != null && postImages.length > 0) {
+            for (MultipartFile postImage : postImages) {
+                String uploadedUrl = awsS3Uploader.upload(postImage, "post"); // 각 이미지를 S3에 업로드
+                newImageUrlList.add(uploadedUrl); // URL 리스트에 추가
+            }
+        }
 
-        String uploadedImageUrl = null;
-        if (postImage != null && !postImage.isEmpty()) {
-            uploadedImageUrl = awsS3Uploader.upload(postImage, "post");
+        // 기존 이미지 URL과 새 이미지 URL 결합
+        List<String> combinedList = new ArrayList<>();
+
+        // 기존 URL 추가 (null 체크)
+        if (existingImageUrls != null && existingImageUrls.length > 0) {
+            for (String url : existingImageUrls) {
+                if (url != null && !url.trim().isEmpty()) {
+                    combinedList.add(url);
+                }
+            }
+        }
+
+        // 새 URL 추가
+        if (newImageUrlList != null && !newImageUrlList.isEmpty()) {
+            for (String url : newImageUrlList) {
+                if (url != null && !url.trim().isEmpty()) {
+                    combinedList.add(url);
+                }
+            }
+        }
+
+        // 결과 배열 생성
+        String[] allImageUrls;
+        if (!combinedList.isEmpty()) {
+            allImageUrls = combinedList.toArray(new String[0]);
+        } else {
+            // 인증게시판(카테고리 ID 1)의 경우 이미지가 필수
+            if (categoryId == 1L) {
+                throw new IllegalArgumentException("인증게시판에는 이미지가 필수입니다.");
+            }
+            // 다른 게시판은 이미지 없이도 등록 가능 (빈 배열로 설정)
+            allImageUrls = new String[0];
         }
 
         Post post = Post.builder()
                 .title(postRequestDto.getTitle())
                 .content(postRequestDto.getContent())
-                .imageUrl(uploadedImageUrl != null ? uploadedImageUrl : postRequestDto.getImageUrl())
+                .imageUrl(allImageUrls)
                 .category(category)
                 .user(user)
                 .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
-                .verificationImageUrl(postRequestDto.getVerificationImageUrl()) // String: 인증 이미지 URL
+                .verificationImageUrl(null) // 항상 null로 설정, 이미지는 imageUrl 배열에만 유지
                 .viewCount(0) // 핫게시물 TOP5 위해 재추가
                 .build();
 
@@ -151,6 +212,30 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getPostsByFollowingPageable(Long userId, int page, int size) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+
+        // 유저가 팔로우한 사람들 조회
+        List<Follow> followings = followRepository.findByFollower(user);
+
+        // 팔로우한 유저들만 뽑아냄
+        List<User> followedUsers = followings.stream()
+                .map(Follow::getFollowing)
+                .toList();
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        if (followedUsers.isEmpty()) {
+            // 팔로우한 사용자가 없는 경우 빈 페이지 반환
+            return Page.empty(pageable);
+        }
+
+        Page<Post> postPage = postRepository.findByUserInOrderByCreatedAtDesc(followedUsers, pageable);
+        return postPage.map(PostResponseDto::fromEntity);
+    }
+
     // 게시글 페이지 조회
     @Transactional(readOnly = true)
     public Page<PostResponseDto> getAllPostsPageable(int page, int size) {
@@ -192,25 +277,69 @@ public class PostService {
         return PostResponseDto.fromEntity(post);
     }
 
-
     // UPDATE
     // 게시글 UPDATE(수정)
     @Transactional
-    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto, MultipartFile postImage) throws IOException{
+    public PostResponseDto updatePost(Long postId, PostPatchRequestDto postPatchRequestDto, MultipartFile[] postImages) throws IOException{
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
 
         if(post.getCategory().getId() == 4L)
             checkAdminAuthority();
 
-        String uploadedImageUrl = null;
-        if (postImage != null && !postImage.isEmpty()) {
-            uploadedImageUrl = awsS3Uploader.upload(postImage, "post");
+        // 기존 이미지 URL 처리 - DTO에서 가져오거나 기존 게시글에서 가져옴
+        String[] existingImageUrls;
+        if (postPatchRequestDto.getImageUrl() != null && postPatchRequestDto.getImageUrl().length > 0) {
+            existingImageUrls = postPatchRequestDto.getImageUrl();
+        } else {
+            existingImageUrls = post.getImageUrl(); // 기존 게시글의 이미지 URL
+        }
+        
+        if (existingImageUrls == null) {
+            existingImageUrls = new String[0];
+        }
+        
+        // 새로 업로드된 이미지 처리
+        List<String> newImageUrlList = new ArrayList<>();
+        if (postImages != null && postImages.length > 0) {
+            for (MultipartFile postImage : postImages) {
+                String uploadedUrl = awsS3Uploader.upload(postImage, "post");
+                newImageUrlList.add(uploadedUrl);
+            }
+        }
+        
+        // 기존 이미지 URL과 새 이미지 URL 결합
+        List<String> combinedList = new ArrayList<>();
+
+        // 기존 URL 추가 (null 체크)
+        if (existingImageUrls != null && existingImageUrls.length > 0) {
+            for (String url : existingImageUrls) {
+                if (url != null && !url.trim().isEmpty()) {
+                    combinedList.add(url);
+                }
+            }
+        }
+
+        // 새 URL 추가
+        if (newImageUrlList != null && !newImageUrlList.isEmpty()) {
+            for (String url : newImageUrlList) {
+                if (url != null && !url.trim().isEmpty()) {
+                    combinedList.add(url);
+                }
+            }
+        }
+
+        // 결과 배열 생성
+        String[] finalImageUrls;
+        if (!combinedList.isEmpty()) {
+            finalImageUrls = combinedList.toArray(new String[0]);
+        } else {
+            finalImageUrls = null;
         }
 
         post.update(postPatchRequestDto.getTitle(),
                 postPatchRequestDto.getContent(),
-                uploadedImageUrl != null ? uploadedImageUrl : postPatchRequestDto.getImageUrl());
+                finalImageUrls);
 
         return PostResponseDto.fromEntity(post);
     }
@@ -218,13 +347,22 @@ public class PostService {
     // DELETE
     // 게시글 DELETE
     @Transactional
-    public void deletePost(Long postId){
+    public void deletePost(Long postId, Long userId){
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+                .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
 
-        if(post.getCategory().getId() == 4L)
+        // 관리자 게시판인 경우 관리자 권한 확인
+        if(post.getCategory().getId() == 4L) {
             checkAdminAuthority();
+        } else {
+            // 일반 게시판인 경우 게시글 작성자만 삭제 가능
+            if (!post.getUser().getId().equals(userId)) {
+                throw new ApiException(ErrorCode.FORBIDDEN);
+            }
+        }
 
+        // 연관된 데이터 삭제
+        reportRepository.unlinkReportsFromPost(postId);
         verificationRepository.deleteByPost(post);
         postRepository.delete(post);
     }
@@ -241,5 +379,32 @@ public class PostService {
         return posts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+
+    // 게시글 갯수 제한 헬퍼
+    @Transactional(readOnly = true)
+    public int countPostsByUserAndCategoryToday(Long userId, Long categoryId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
+
+        return (int) postRepository.countByUserIdAndCategoryIdAndCreatedAtBetween(userId, categoryId, startOfDay, endOfDay);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasUserPostedVerificationToday(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
+
+        // 인증게시판 카테고리 ID (1L)로 오늘 작성한 게시글 수 확인
+        int count = (int) postRepository.countByUserIdAndCategoryIdAndCreatedAtBetween(userId, 1L, startOfDay, endOfDay);
+
+        return count > 0;
     }
 }

@@ -2,7 +2,10 @@ package com.dd.blog.global.security;
 
 import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.entity.UserRole;
+import com.dd.blog.domain.user.user.entity.UserStatus;
 import com.dd.blog.domain.user.user.service.UserService;
+import com.dd.blog.global.exception.ApiException;
+import com.dd.blog.global.exception.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -45,6 +48,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // 서비스 회원가입 또는 정보 업데이트
         User user = userService.joinOrUpdateOAuth2User(providerTypeCode, oauthId, email, nickname);
+
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+
+            throw new ApiException(ErrorCode.ACCOUNT_SUSPENDED);
+        }
 
         return new SecurityUser(
                 user.getId(),

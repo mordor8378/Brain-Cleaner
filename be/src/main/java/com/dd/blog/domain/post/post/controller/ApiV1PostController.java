@@ -42,13 +42,14 @@ public class ApiV1PostController {
             responses = {
                     @ApiResponse(responseCode = "201", description = "작성 성공"),
                     @ApiResponse(responseCode = "400", description = "잘못된 요청 (내용 누락 등)"),
+                    @ApiResponse(responseCode = "403", description = "게시글 작성 제한 초과"),
                     @ApiResponse(responseCode = "404", description = "해당 카테고리 없음")
             }
     )
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<PostResponseDto> createPost(
             @RequestPart("postRequestDto") @Valid PostRequestDto postRequestDto,
-            @RequestPart(value = "postImage", required = false) MultipartFile postImage,
+            @RequestPart(value = "postImage", required = false) MultipartFile[] postImage,
             @AuthenticationPrincipal SecurityUser user
     ) throws IOException {
         PostResponseDto responseDto = postService.createPost(
@@ -106,6 +107,23 @@ public class ApiV1PostController {
     public ResponseEntity<List<PostResponseDto>> getPostsByFollowing(
             @Parameter(description = "유저 ID", required = true) @PathVariable Long userId) {
         List<PostResponseDto> posts = postService.getPostsByFollowing(userId);
+        return ResponseEntity.ok(posts);
+    }
+
+    @GetMapping("/following/{userId}/pageable")
+    @Operation(
+            summary = "팔로잉 게시판 페이지 조회",
+            description = "페이지를 적용하여 현재 로그인한 사용자가 팔로우한 유저들의 게시글 목록을 조회합니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공"),
+                    @ApiResponse(responseCode = "404", description = "팔로우한 사용자가 없거나 게시글 없음")
+            }
+    )
+    public ResponseEntity<Page<PostResponseDto>> getPostsByFollowingPageable(
+            @Parameter(description = "유저 ID", required = true) @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<PostResponseDto> posts = postService.getPostsByFollowingPageable(userId, page, size);
         return ResponseEntity.ok(posts);
     }
 
@@ -178,7 +196,7 @@ public class ApiV1PostController {
     public ResponseEntity<PostResponseDto> updatePost(
             @Parameter(description = "게시글 ID", required = true) @PathVariable Long postId,
             @Valid @RequestPart PostPatchRequestDto postPatchRequestDto,
-            @RequestPart(value = "postImage", required = false) MultipartFile postImage) throws IOException {
+            @RequestPart(value = "postImage", required = false) MultipartFile[] postImage) throws IOException {
         PostResponseDto responseDto = postService.updatePost(postId, postPatchRequestDto, postImage);
         return ResponseEntity.ok(responseDto);
     }
@@ -190,15 +208,18 @@ public class ApiV1PostController {
             summary = "게시글 삭제",
             description = "게시글 ID를 통해 특정 게시글을 삭제합니다.",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "삭제 성공"),
+                    @ApiResponse(responseCode = "204", description = "삭제 성공"),
+                    @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+                    @ApiResponse(responseCode = "403", description = "권한이 없는 사용자"),
                     @ApiResponse(responseCode = "404", description = "해당 게시글 없음")
             }
     )
     @DeleteMapping("/{postId}")
-    public ResponseEntity<String> deletePost(
-            @Parameter(description = "게시글 ID", required = true) @PathVariable Long postId){
-        postService.deletePost(postId);
-        return ResponseEntity.ok("게시글이 삭제되었습니다.");
+    public ResponseEntity<Void> deletePost(
+            @Parameter(description = "게시글 ID", required = true) @PathVariable Long postId,
+            @AuthenticationPrincipal SecurityUser user) {
+        postService.deletePost(postId, user.getId());
+        return ResponseEntity.noContent().build();
     }
 
 

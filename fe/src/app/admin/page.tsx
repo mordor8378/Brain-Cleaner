@@ -10,8 +10,8 @@ interface AdminDashboardStats {
     pendingVerifications: number;
     verificationsProcessedToday: number; // '오늘 처리'에 해당
     usersJoinedToday: number;           // '오늘 가입자'에 해당
-    postsCreatedToday: number;          // '새 게시글(오늘 등록)'에 해당
-    totalPosts: number;                 // '전체 게시글'에 해당
+    pendingReports: number;
+    reportsProcessedToday?: number;
 }
 
 
@@ -68,16 +68,16 @@ export default function AdminDashboardPage() {
           <p className="text-3xl font-bold text-gray-800">{isLoading ? '-' : (statsData?.totalUsers ?? 0).toLocaleString()}</p>
         </div>
         <div className="bg-white rounded shadow p-6">
-          <p className="text-gray-500 mb-2">승인 대기 인증</p>
-          <p className="text-3xl font-bold text-gray-800">{isLoading ? '-' : (statsData?.pendingVerifications ?? 0)}</p>
-        </div>
-        <div className="bg-white rounded shadow p-6">
           <p className="text-gray-500 mb-2">오늘 가입자</p>
           <p className="text-3xl font-bold text-gray-800">{isLoading ? '-' : (statsData?.usersJoinedToday ?? 0)}</p>
         </div>
         <div className="bg-white rounded shadow p-6">
-          <p className="text-gray-500 mb-2">새 게시글</p>
-          <p className="text-3xl font-bold text-gray-800">{isLoading ? '-' : (statsData?.postsCreatedToday ?? 0)}</p>
+          <p className="text-gray-500 mb-2">승인 대기 인증</p>
+          <p className="text-3xl font-bold text-gray-800">{isLoading ? '-' : (statsData?.pendingVerifications ?? 0)}</p>
+        </div>
+        <div className="bg-white rounded shadow p-6">
+          <p className="text-gray-500 mb-2">처리 대기 신고</p>
+          <p className="text-3xl font-bold text-gray-800">{isLoading ? '-' : (statsData?.pendingReports ?? 0)}</p>
         </div>
       </div>
 
@@ -92,8 +92,8 @@ export default function AdminDashboardPage() {
           <Link href="/admin/verifications" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
             인증 승인 관리
           </Link>
-          <Link href="/admin/posts" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
-            게시글 관리
+          <Link href="/admin/reports" className="bg-primary text-white py-3 px-6 !rounded-button whitespace-nowrap">
+            신고 게시글 관리
           </Link>
         </div>
       </div>
@@ -131,15 +131,15 @@ export default function AdminDashboardPage() {
         {/* 게시글 관리 카드 */}
         <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">게시글 관리</h3>
+            <h3 className="text-xl font-semibold text-gray-800">신고 게시글 관리</h3>
             <div className="w-10 h-10 flex items-center justify-center text-primary">
               <i className="ri-file-list-line text-2xl" /> {/* 크기 조정 */}
             </div>
           </div>
-          <p className="text-gray-600 mb-4">전체 게시글 : {isLoading ? '-' : (statsData?.totalPosts ?? 0).toLocaleString()} 개</p>
-          <p className="text-gray-600 mb-6">오늘 등록 : {isLoading ? '-' : (statsData?.postsCreatedToday ?? 0)} 개</p>
-          <Link href="/admin/posts" className="block w-full bg-primary text-white text-center py-3 !rounded-button hover:bg-opacity-90 transition-colors">
-            게시글 관리
+          <p className="text-gray-600 mb-4">처리 대기 신고 : {isLoading ? '-' : (statsData?.pendingReports ?? 0).toLocaleString()} 건</p>
+          <p className="text-gray-600 mb-6">오늘 처리 신고 : {isLoading ? '-' : (statsData?.reportsProcessedToday?? 0)} 건</p>
+          <Link href="/admin/reports" className="block w-full bg-primary text-white text-center py-3 !rounded-button hover:bg-opacity-90 transition-colors">
+            신고 게시글 관리
           </Link>
         </div>
       </div>

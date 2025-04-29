@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
+import { toast } from "react-hot-toast";
 import Image from "next/image";
 
 interface VerificationWritePageProps {
@@ -32,7 +33,7 @@ export default function VerificationWritePage({
   onCategoryChange,
 }: VerificationWritePageProps = {}) {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, mutate } = useUser();
   const [category, setCategory] = useState("1"); // 인증=1, 정보공유=2, 자유=3
   const [detoxTime, setDetoxTime] = useState<number>(0);
   const [imageUrl, setImageUrl] = useState<string>("");
@@ -77,13 +78,13 @@ export default function VerificationWritePage({
     if (file) {
       // 파일 크기 제한 (10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert("파일 크기는 10MB를 초과할 수 없습니다.");
+        toast.error("파일 크기는 10MB를 초과할 수 없습니다.");
         return;
       }
 
       // 이미지 파일 타입 체크
       if (!file.type.startsWith("image/")) {
-        alert("이미지 파일만 업로드 가능합니다.");
+        toast.error("이미지 파일만 업로드 가능합니다.");
         return;
       }
 
@@ -108,14 +109,14 @@ export default function VerificationWritePage({
         })
         .catch((error) => {
           console.error("Error uploading image:", error);
-          alert("이미지 업로드에 실패했습니다.");
+          toast.error("이미지 업로드에 실패했습니다.");
         });
     }
   };
 
   const handleSubmit = async () => {
     if (!imageUrl || detoxTime <= 0) {
-      alert("휴대폰 이용시간 캡쳐와 디톡스 시간을 모두 입력해야 합니다.");
+      toast.error("휴대폰 이용시간 캡쳐와 디톡스 시간을 모두 입력해야 합니다.");
       return;
     }
 
@@ -130,7 +131,7 @@ export default function VerificationWritePage({
         userId,
         title: "도파민 디톡스 인증",
         content: detoxTime.toString(),
-        imageUrl: imageUrl,
+        imageUrl: [imageUrl], // 문자열 배열로 변환
         detoxTime: detoxTime,
         categoryId: parseInt(category),
       };
@@ -155,54 +156,30 @@ export default function VerificationWritePage({
         credentials: "include",
       });
 
-      if (!postResponse.ok) {
-        const errorText = await postResponse.text();
-        console.error("게시글 등록 실패:", errorText);
-        throw new Error("게시글 등록에 실패했습니다");
-      }
+      if (postResponse.ok) {
+        toast.success("인증이 완료되었습니다!");
+        await mutate(); // 유저 정보 갱신
 
-      // 게시글 등록 응답에서 postId를 추출
-      // const postData = await postResponse.json();
-      // const postId = postData.postId;
-
-      // // 인증 정보를 등록
-      // const verificationRequest: VerificationRequest = {
-      //   postId: postId,
-      //   userId: userId,
-      //   detoxTime: detoxTime,
-      //   status: "PENDING", // 기본 상태
-      // };
-
-      // const verificationResponse = await fetch(
-      //   "http://localhost:8090/api/v1/verifications",
-      //   {
-      //     method: "POST",
-      //     headers: { "Content-Type": "application/json" },
-      //     body: JSON.stringify(verificationRequest),
-      //     credentials: "include",
-      //   }
-      // );
-
-      // if (!verificationResponse.ok) {
-      //   console.error("인증 등록 실패:", await verificationResponse.text());
-      //   // 인증 등록은 실패해도 게시글은 등록
-      //   alert("게시글은 등록되었으나 인증 정보 등록에 실패했습니다");
-      // } else {
-      //   alert("인증 게시글 등록 완료!");
-      // }
-
-      if (onSuccess) {
-        onSuccess();
-      }
-
-      if (onClose) {
-        onClose();
+        if (onSuccess) {
+          onSuccess();
+        }
+        if (onClose) {
+          onClose();
+        } else {
+          router.push("/");
+        }
       } else {
-        router.push("/");
+        // 에러 응답 처리
+        const errorData = await postResponse.json();
+        toast.error(
+          `등록 실패: ${
+            errorData.message || "오늘은 더 이상 인증글을 작성할 수 없습니다."
+          }`
+        );
       }
     } catch (error) {
       console.error("인증 게시글 등록 중 오류:", error);
-      alert(
+      toast.error(
         "등록 실패: " + (error instanceof Error ? error.message : String(error))
       );
     }
