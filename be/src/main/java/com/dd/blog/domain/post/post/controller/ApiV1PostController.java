@@ -208,15 +208,18 @@ public class ApiV1PostController {
             summary = "게시글 삭제",
             description = "게시글 ID를 통해 특정 게시글을 삭제합니다.",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "삭제 성공"),
+                    @ApiResponse(responseCode = "204", description = "삭제 성공"),
+                    @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+                    @ApiResponse(responseCode = "403", description = "권한이 없는 사용자"),
                     @ApiResponse(responseCode = "404", description = "해당 게시글 없음")
             }
     )
     @DeleteMapping("/{postId}")
-    public ResponseEntity<String> deletePost(
-            @Parameter(description = "게시글 ID", required = true) @PathVariable Long postId){
-        postService.deletePost(postId);
-        return ResponseEntity.ok("게시글이 삭제되었습니다.");
+    public ResponseEntity<Void> deletePost(
+            @Parameter(description = "게시글 ID", required = true) @PathVariable Long postId,
+            @AuthenticationPrincipal SecurityUser user) {
+        postService.deletePost(postId, user.getId());
+        return ResponseEntity.noContent().build();
     }
 
 
