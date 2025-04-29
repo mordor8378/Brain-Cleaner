@@ -1300,6 +1300,14 @@ export default function Home() {
                       width={500}
                       height={300}
                       className="rounded-lg w-full h-auto"
+                      unoptimized={true}
+                      onError={(e) => {
+                        console.error(
+                          "이미지 로드 실패:",
+                          selectedPost.imageUrl
+                        );
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
                     />
                   </div>
                 )}
