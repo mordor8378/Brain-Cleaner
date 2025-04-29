@@ -34,6 +34,56 @@ const BADGES = [
   { name: "브레인클리너", requiredPoints: 7500, emoji: "🧠" },
 ];
 
+// 이미지 URL을 안전하게 파싱하는 함수
+const getSafeImageUrl = (imageUrl: string | string[]): string => {
+  if (!imageUrl) return "";
+
+  try {
+    // 배열인 경우
+    if (Array.isArray(imageUrl) && imageUrl.length > 0) {
+      // 유효한 URL만 반환
+      for (let i = 0; i < imageUrl.length; i++) {
+        if (imageUrl[i] && imageUrl[i].trim() !== "") {
+          return imageUrl[i];
+        }
+      }
+      return "";
+    }
+
+    // JSON 문자열인 경우
+    if (
+      typeof imageUrl === "string" &&
+      imageUrl.startsWith("[") &&
+      imageUrl.endsWith("]")
+    ) {
+      try {
+        const parsed = JSON.parse(imageUrl);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // 유효한 URL만 반환
+          for (let i = 0; i < parsed.length; i++) {
+            if (parsed[i] && parsed[i].trim() !== "") {
+              return parsed[i];
+            }
+          }
+        }
+      } catch (e) {
+        console.error("이미지 URL JSON 파싱 오류:", e);
+      }
+      return "";
+    }
+
+    // 일반 문자열인 경우
+    if (typeof imageUrl === "string" && imageUrl.trim() !== "") {
+      return imageUrl;
+    }
+
+    return "";
+  } catch (e) {
+    console.error("이미지 URL 파싱 오류:", e);
+    return "";
+  }
+};
+
 export default function OtherUserProfile() {
   const router = useRouter();
   const params = useParams();
@@ -745,14 +795,20 @@ export default function OtherUserProfile() {
                         </p>
                       </div>
                     </div>
-                    {post.imageUrl && (
+                    {post.imageUrl && getSafeImageUrl(post.imageUrl) && (
                       <div className="aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
                         <Image
-                          src={post.imageUrl}
+                          src={getSafeImageUrl(post.imageUrl)}
                           alt="Post image"
                           width={300}
                           height={200}
                           className="w-full h-full object-cover"
+                          unoptimized={true}
+                          onError={(e) => {
+                            console.error("이미지 로드 실패:", post.imageUrl);
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
                         />
                       </div>
                     )}
