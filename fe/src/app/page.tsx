@@ -458,6 +458,10 @@ export default function Home() {
 
   // 게시글 세부 정보 가져오기
   const fetchPostDetail = async (postId: number) => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     try {
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}`,
@@ -506,6 +510,10 @@ export default function Home() {
   };
 
   const openWriteModal = () => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     setShowWriteModal(true);
     setWriteCategory("2"); // 기본값으로 정보공유게시판 설정
   };
@@ -520,6 +528,10 @@ export default function Home() {
   };
 
   const handleLike = async (postId: number) => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     try {
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}/like`,
@@ -566,6 +578,10 @@ export default function Home() {
   };
 
   const handleUnlike = async (postId: number) => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     try {
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}/like`,

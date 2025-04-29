@@ -347,6 +347,10 @@ export default function Post({
   };
 
   const openReportModal = () => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     console.log("신고 팝업 열기 postId: ", postId);
     setShowReportModal(true);
   };
@@ -443,10 +447,34 @@ export default function Post({
     }
   };
 
+  const navigateToUserProfile = (userId: number) => {
+    if (!user) {
+      toast.error("로그인 후 다른 사용자의 프로필을 볼 수 있습니다.");
+      return;
+    }
+
+    router.push(getProfilePath(user, userId));
+  };
+
+  const handleCommentClick = () => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
+
+    setShowCommentModal(true);
+  };
+
   return (
     <div className="p-5" ref={postRef}>
       <div className="flex items-start mb-3">
-        <Link href={getProfilePath(user, userId)}>
+        <Link
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            navigateToUserProfile(userId);
+          }}
+        >
           <div className="mr-3 cursor-pointer relative w-8 h-8">
             {profileImage ? (
               <Image
@@ -478,7 +506,13 @@ export default function Post({
         <div className="flex-1">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-1.5">
-              <Link href={getProfilePath(user, userId)}>
+              <Link
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigateToUserProfile(userId);
+                }}
+              >
                 <span className="font-bold text-[14px] text-gray-900 cursor-pointer hover:text-pink-500">
                   {userNickname}
                 </span>
@@ -821,7 +855,7 @@ export default function Post({
           </button>
 
           <button
-            onClick={() => setShowCommentModal(true)}
+            onClick={handleCommentClick}
             className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
           >
             <svg

@@ -96,7 +96,6 @@ const PurchaseModal = ({
             onClick={onConfirm}
             className="flex-1 px-4 py-2 text-white rounded hover:opacity-90 transition-colors"
             style={{ backgroundColor: CUSTOM_PINK }}
-            disabled={remainingPoints < 0}
           >
             구매하기
           </button>
@@ -223,6 +222,15 @@ export default function PointStorePage() {
 
   const handleConfirmPurchase = async () => {
     if (!selectedItem || !user) return;
+
+    if (
+      user.remainingPoint !== undefined &&
+      user.remainingPoint < selectedItem.price
+    ) {
+      toast.error("포인트가 부족합니다.");
+      setSelectedItem(null);
+      return;
+    }
 
     try {
       const result = await pointStoreApi.purchaseItem({
