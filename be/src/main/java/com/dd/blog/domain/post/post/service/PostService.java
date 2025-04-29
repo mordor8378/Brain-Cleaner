@@ -17,6 +17,8 @@ import com.dd.blog.domain.user.user.entity.User;
 import com.dd.blog.domain.user.user.repository.UserRepository;
 import com.dd.blog.domain.user.follow.repository.FollowRepository;
 import com.dd.blog.global.aws.AwsS3Uploader;
+import com.dd.blog.global.exception.ApiException;
+import com.dd.blog.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -31,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -72,10 +76,22 @@ public class PostService {
     @Transactional
     public PostResponseDto createPost(Long categoryId, Long userId, PostRequestDto postRequestDto, MultipartFile[] postImages) throws IOException {
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("카테고리가 존재하지 않습니다."));
+                .orElseThrow(() -> new ApiException(ErrorCode.CATEGORY_NOT_FOUND));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        // 카테고리별 게시글 제한 체크
+        if (categoryId == 1L) { // 인증게시판
+            if (hasUserPostedVerificationToday(userId)) {
+                throw new ApiException(ErrorCode.VERIFICATION_POST_ALREADY_SUBMITTED);
+            }
+        } else if (categoryId == 2L || categoryId == 3L) { // 정보공유게시판이나 자유게시판
+            int postCount = countPostsByUserAndCategoryToday(userId, categoryId);
+            if (postCount >= 10) {
+                throw new ApiException(ErrorCode.DAILY_POST_LIMIT_EXCEEDED);
+            }
+        }
 
         if(category.getId() == 4L)
             checkAdminAuthority();
@@ -118,7 +134,12 @@ public class PostService {
         if (!combinedList.isEmpty()) {
             allImageUrls = combinedList.toArray(new String[0]);
         } else {
-            allImageUrls = null;
+            // 인증게시판(카테고리 ID 1)의 경우 이미지가 필수
+            if (categoryId == 1L) {
+                throw new IllegalArgumentException("인증게시판에는 이미지가 필수입니다.");
+            }
+            // 다른 게시판은 이미지 없이도 등록 가능 (빈 배열로 설정)
+            allImageUrls = new String[0];
         }
 
         Post post = Post.builder()
@@ -134,7 +155,7 @@ public class PostService {
 
         Post savedPost = postRepository.save(post);
 
-        if (categoryId == 3L) {
+        if (categoryId == 1L) {
             VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
                     .userId(userId)
                     .postId(savedPost.getId())
@@ -189,6 +210,30 @@ public class PostService {
         return posts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getPostsByFollowingPageable(Long userId, int page, int size) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+
+        // 유저가 팔로우한 사람들 조회
+        List<Follow> followings = followRepository.findByFollower(user);
+
+        // 팔로우한 유저들만 뽑아냄
+        List<User> followedUsers = followings.stream()
+                .map(Follow::getFollowing)
+                .toList();
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        if (followedUsers.isEmpty()) {
+            // 팔로우한 사용자가 없는 경우 빈 페이지 반환
+            return Page.empty(pageable);
+        }
+
+        Page<Post> postPage = postRepository.findByUserInOrderByCreatedAtDesc(followedUsers, pageable);
+        return postPage.map(PostResponseDto::fromEntity);
     }
 
     // 게시글 페이지 조회
@@ -327,5 +372,32 @@ public class PostService {
         return posts.stream()
                 .map(PostResponseDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+
+    // 게시글 갯수 제한 헬퍼
+    @Transactional(readOnly = true)
+    public int countPostsByUserAndCategoryToday(Long userId, Long categoryId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
+
+        return (int) postRepository.countByUserIdAndCategoryIdAndCreatedAtBetween(userId, categoryId, startOfDay, endOfDay);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasUserPostedVerificationToday(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
+
+        // 인증게시판 카테고리 ID (1L)로 오늘 작성한 게시글 수 확인
+        int count = (int) postRepository.countByUserIdAndCategoryIdAndCreatedAtBetween(userId, 1L, startOfDay, endOfDay);
+
+        return count > 0;
     }
 }

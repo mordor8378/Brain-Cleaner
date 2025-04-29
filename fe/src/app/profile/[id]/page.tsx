@@ -34,11 +34,68 @@ const BADGES = [
   { name: "브레인클리너", requiredPoints: 7500, emoji: "🧠" },
 ];
 
+// 이미지 URL을 안전하게 파싱하는 함수
+const getSafeImageUrl = (imageUrl: string | string[]): string => {
+  if (!imageUrl) return "";
+
+  try {
+    // 배열인 경우
+    if (Array.isArray(imageUrl) && imageUrl.length > 0) {
+      // 유효한 URL만 반환
+      for (let i = 0; i < imageUrl.length; i++) {
+        if (imageUrl[i] && imageUrl[i].trim() !== "") {
+          return imageUrl[i];
+        }
+      }
+      return "";
+    }
+
+    // JSON 문자열인 경우
+    if (
+      typeof imageUrl === "string" &&
+      imageUrl.startsWith("[") &&
+      imageUrl.endsWith("]")
+    ) {
+      try {
+        const parsed = JSON.parse(imageUrl);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // 유효한 URL만 반환
+          for (let i = 0; i < parsed.length; i++) {
+            if (parsed[i] && parsed[i].trim() !== "") {
+              return parsed[i];
+            }
+          }
+        }
+      } catch (e) {
+        console.error("이미지 URL JSON 파싱 오류:", e);
+      }
+      return "";
+    }
+
+    // 일반 문자열인 경우
+    if (typeof imageUrl === "string" && imageUrl.trim() !== "") {
+      return imageUrl;
+    }
+
+    return "";
+  } catch (e) {
+    console.error("이미지 URL 파싱 오류:", e);
+    return "";
+  }
+};
+
 export default function OtherUserProfile() {
   const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(() => {
+    // 로컬 스토리지에서 팔로우 상태 복원
+    if (typeof window !== "undefined") {
+      const storedFollowStatus = localStorage.getItem(`follow_${userId}`);
+      return storedFollowStatus === "true";
+    }
+    return false;
+  });
   const [userInfo, setUserInfo] = useState<UserInfo>({
     id: null,
     nickname: "",
@@ -178,6 +235,44 @@ export default function OtherUserProfile() {
     }
   };
 
+  const checkFollowStatus = async (profileUserId: number) => {
+    try {
+      // 현재 로그인한 사용자 정보 가져오기
+      const meResponse = await fetch("http://localhost:8090/api/v1/users/me", {
+        credentials: "include",
+      });
+
+      if (meResponse.ok) {
+        const meData = await meResponse.json();
+
+        // 자신의 프로필이면 팔로우 상태 확인할 필요 없음
+        if (meData.id === profileUserId) {
+          setIsFollowing(false);
+          return;
+        }
+
+        // 팔로우 상태 확인 API 호출
+        const followStatusResponse = await fetch(
+          `http://localhost:8090/api/v1/follows/check?followerId=${meData.id}&followingId=${profileUserId}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (followStatusResponse.ok) {
+          const isFollowing = await followStatusResponse.json();
+          setIsFollowing(isFollowing);
+          localStorage.setItem(
+            `follow_${profileUserId}`,
+            isFollowing.toString()
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error checking follow status:", error);
+    }
+  };
+
   const handleFollowToggle = async () => {
     try {
       // 현재 로그인한 사용자 정보 가져오기
@@ -195,8 +290,13 @@ export default function OtherUserProfile() {
 
       const meData = await meResponse.json();
 
+      if (!userInfo.id) {
+        console.error("User ID is not available");
+        return;
+      }
+
       if (isFollowing) {
-        // 언팔로우 로직 - 백엔드 API 수정사항 반영
+        // 언팔로우 로직
         const unfollowResponse = await fetch(
           `http://localhost:8090/api/v1/follows/${meData.id}/${userInfo.id}`,
           {
@@ -210,24 +310,14 @@ export default function OtherUserProfile() {
 
         if (unfollowResponse.ok) {
           setIsFollowing(false);
-          // 팔로워 수 업데이트
-          if (userInfo.id !== null) {
-            fetchFollowStats(userInfo.id);
-          }
+          localStorage.setItem(`follow_${userId}`, "false");
+          fetchFollowStats(userInfo.id);
         } else {
-          console.error(
-            `Failed to unfollow. Status: ${unfollowResponse.status}`,
-            await unfollowResponse.text()
-          );
+          // 언팔로우 실패 시 상태 확인
+          await checkFollowStatus(userInfo.id);
         }
       } else {
         // 팔로우 로직
-        // API 엔드포인트 확인 - "/api/v1/follows"로 POST 요청
-        console.log("Sending follow request:", {
-          followerId: meData.id,
-          followingId: userInfo.id,
-        });
-
         const followResponse = await fetch(
           "http://localhost:8090/api/v1/follows",
           {
@@ -245,19 +335,19 @@ export default function OtherUserProfile() {
 
         if (followResponse.ok) {
           setIsFollowing(true);
-          // 팔로워 수 업데이트
-          if (userInfo.id !== null) {
-            fetchFollowStats(userInfo.id);
-          }
+          localStorage.setItem(`follow_${userId}`, "true");
+          fetchFollowStats(userInfo.id);
         } else {
-          console.error(
-            `Failed to follow. Status: ${followResponse.status}`,
-            await followResponse.text()
-          );
+          // 팔로우 실패 시 상태 확인
+          await checkFollowStatus(userInfo.id);
         }
       }
     } catch (error) {
       console.error("Error toggling follow status:", error);
+      // 에러 발생 시 상태 확인
+      if (userInfo.id) {
+        await checkFollowStatus(userInfo.id);
+      }
     }
   };
 
@@ -524,40 +614,6 @@ export default function OtherUserProfile() {
     }
   };
 
-  // 팔로우 상태 확인 함수 추가
-  const checkFollowStatus = async (profileUserId: number) => {
-    try {
-      // 현재 로그인한 사용자 정보 가져오기
-      const meResponse = await fetch("http://localhost:8090/api/v1/users/me", {
-        credentials: "include",
-      });
-
-      if (meResponse.ok) {
-        const meData = await meResponse.json();
-
-        // 자신의 프로필이면 팔로우 상태 확인할 필요 없음
-        if (meData.id === profileUserId) {
-          return;
-        }
-
-        // 팔로우 상태 확인 API 호출
-        const followStatusResponse = await fetch(
-          `http://localhost:8090/api/v1/follows/status/${meData.id}/${profileUserId}`,
-          {
-            credentials: "include",
-          }
-        );
-
-        if (followStatusResponse.ok) {
-          const isFollowing = await followStatusResponse.json();
-          setIsFollowing(isFollowing);
-        }
-      }
-    } catch (error) {
-      console.error("Error checking follow status:", error);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-white">
@@ -573,38 +629,46 @@ export default function OtherUserProfile() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">{userInfo.nickname}</h1>
 
-          {/* 항상 팔로우 버튼만 표시 */}
-          <button
-            onClick={handleFollowToggle}
-            className={`w-20 text-white px-3 py-1.5 rounded-md text-sm hover:opacity-90 transition-colors ${
-              isFollowing ? "bg-gray-400" : ""
-            }`}
-            style={{ backgroundColor: isFollowing ? undefined : CUSTOM_PINK }}
-          >
-            {isFollowing ? "팔로잉" : "팔로우"}
-          </button>
+          {/* 팔로우 버튼 - 자신의 프로필이 아닐 때만 표시 */}
+          {userInfo.id && (
+            <button
+              onClick={handleFollowToggle}
+              className={`w-20 text-white px-3 py-1.5 rounded-md text-sm hover:opacity-90 transition-colors ${
+                isFollowing ? "bg-gray-400" : "bg-[#F742CD]"
+              }`}
+            >
+              {isFollowing ? "팔로잉" : "팔로우"}
+            </button>
+          )}
         </div>
 
         {/* Profile Info */}
         <div className="flex items-start gap-12 mb-8">
           <div className="flex flex-col items-center gap-4">
             {/* Profile Image */}
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden">
-                <div className="w-full h-full relative">
-                  <Image
-                    src={userInfo.profileImage || "/placeholder-avatar.png"}
-                    alt="Profile"
-                    fill
-                    style={{ objectFit: "cover" }}
-                    unoptimized={true}
+            <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+              {userInfo.profileImage ? (
+                <Image
+                  src={userInfo.profileImage}
+                  alt="프로필 이미지"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-16 w-16 text-gray-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                    clipRule="evenodd"
                   />
-                </div>
-              </div>
-              <div
-                className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
-                style={{ backgroundColor: CUSTOM_PINK }}
-              ></div>
+                </svg>
+              )}
             </div>
             {/* Status Message Container - Always present for consistent layout */}
             <div className="w-[16rem]">
@@ -738,14 +802,20 @@ export default function OtherUserProfile() {
                         </p>
                       </div>
                     </div>
-                    {post.imageUrl && (
+                    {post.imageUrl && getSafeImageUrl(post.imageUrl) && (
                       <div className="aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden">
                         <Image
-                          src={post.imageUrl}
+                          src={getSafeImageUrl(post.imageUrl)}
                           alt="Post image"
                           width={300}
                           height={200}
                           className="w-full h-full object-cover"
+                          unoptimized={true}
+                          onError={(e) => {
+                            console.error("이미지 로드 실패:", post.imageUrl);
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
                         />
                       </div>
                     )}
@@ -903,6 +973,92 @@ export default function OtherUserProfile() {
           )}
         </div>
       </div>
+
+      {/* 팔로워 모달 */}
+      {showFollowersModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 w-72 max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">팔로워</h3>
+              <button
+                onClick={() => setShowFollowersModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-60">
+              {isLoadingFollows ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500"></div>
+                </div>
+              ) : followers.length > 0 ? (
+                <ul className="space-y-2">
+                  {followers.map((follower, index) => (
+                    <li
+                      key={index}
+                      className="py-2 px-3 hover:bg-gray-100 rounded cursor-pointer"
+                      onClick={() => navigateToUserProfile(follower.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                        <span>@{follower.nickname}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-center text-gray-500 py-4">
+                  팔로워가 없습니다.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 팔로잉 모달 */}
+      {showFollowingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 w-72 max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">팔로잉</h3>
+              <button
+                onClick={() => setShowFollowingModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-60">
+              {isLoadingFollows ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500"></div>
+                </div>
+              ) : followings.length > 0 ? (
+                <ul className="space-y-2">
+                  {followings.map((following, index) => (
+                    <li
+                      key={index}
+                      className="py-2 px-3 hover:bg-gray-100 rounded cursor-pointer"
+                      onClick={() => navigateToUserProfile(following.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                        <span>@{following.nickname}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-center text-gray-500 py-4">
+                  팔로잉하는 사용자가 없습니다.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CommentModal */}
       {showCommentModal && selectedPost && (

@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { pointStoreApi } from '@/utils/api/pointStore';
-import { PointItem } from '@/types/pointStore';
-import Image from 'next/image';
-import { toast } from 'react-hot-toast';
-import { useUser } from '@/contexts/UserContext';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { getEmojiUrl } from '@/constants/emoji-map';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { pointStoreApi } from "@/utils/api/pointStore";
+import { PointItem } from "@/types/pointStore";
+import Image from "next/image";
+import { toast } from "react-hot-toast";
+import { useUser } from "@/contexts/UserContext";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { getEmojiUrl } from "@/constants/emoji-map";
 
 interface PurchaseModalProps {
   item: PointItem;
@@ -106,6 +106,8 @@ const PurchaseModal = ({
   );
 };
 
+const CUSTOM_PINK = "#F742CD";
+
 const ItemImage = ({
   src,
   code,
@@ -115,52 +117,18 @@ const ItemImage = ({
   code: string;
   alt: string;
 }) => {
-  const [error, setError] = useState(false);
-  const emojiUrl = getEmojiUrl(code);
-
   return (
-    <div className="relative h-36 flex items-center justify-center">
-      <div className="flex flex-col items-center">
-        {/* 메인 이미지 */}
-        <div className="relative w-24 h-24 flex items-center justify-center">
-          {error ? (
-            <div className="text-gray-400 text-sm">
-              이미지를 불러올 수 없습니다
-            </div>
-          ) : (
-            <Image
-              src={src}
-              alt={alt}
-              width={96}
-              height={96}
-              className="object-contain"
-              onError={() => setError(true)}
-            />
-          )}
-        </div>
-
-        {/* 이모지 미리보기 */}
-        {emojiUrl && (
-          <div className="text-center">
-            <p className="text-sm text-gray-500 mb-2">이모지 미리보기</p>
-            <div className="relative w-12 h-12">
-              <Image
-                src={emojiUrl}
-                alt={`${alt} emoji`}
-                width={48}
-                height={48}
-                className="object-contain"
-              />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">{code}</p>
-          </div>
-        )}
-      </div>
+    <div className="relative h-36 bg-gray-100">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className="object-contain p-1"
+        unoptimized={true}
+      />
     </div>
   );
 };
-
-const CUSTOM_PINK = '#F742CD';
 
 const ItemCard = ({
   item,
@@ -220,8 +188,8 @@ export default function PointStorePage() {
       const data = await pointStoreApi.getItems();
       setItems(data);
     } catch (err) {
-      console.error('Failed to load items:', err);
-      toast.error('아이템 목록을 불러오는데 실패했습니다.');
+      console.error("Failed to load items:", err);
+      toast.error("아이템 목록을 불러오는데 실패했습니다.");
     }
   };
 
@@ -239,15 +207,15 @@ export default function PointStorePage() {
       }));
       setPurchasedItems(items);
     } catch (err) {
-      console.error('Failed to load purchased items:', err);
-      toast.error('구매 내역을 불러오는데 실패했습니다.');
+      console.error("Failed to load purchased items:", err);
+      toast.error("구매 내역을 불러오는데 실패했습니다.");
     }
   };
 
   const handlePurchase = async (item: PointItem) => {
     if (!user) {
-      toast.error('로그인이 필요합니다.');
-      router.push('/login');
+      toast.error("로그인이 필요합니다.");
+      router.push("/login");
       return;
     }
     setSelectedItem(item);
@@ -268,8 +236,8 @@ export default function PointStorePage() {
       loadItems();
       loadPurchasedItems();
     } catch (err) {
-      console.error('Failed to purchase item:', err);
-      toast.error(err instanceof Error ? err.message : '구매에 실패했습니다.');
+      console.error("Failed to purchase item:", err);
+      toast.error(err instanceof Error ? err.message : "구매에 실패했습니다.");
     }
   };
 

@@ -9,6 +9,7 @@ import Post from "@/components/Post";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export interface Post {
   postId: number;
@@ -66,21 +67,39 @@ export default function Home() {
   // 마지막 요소 참조용
   const observerRef = useRef<IntersectionObserver | null>(null);
 
+  const router = useRouter();
+
   const boardOptions = [
     { value: "0", label: "전체게시판" },
     { value: "1", label: "인증게시판" },
     { value: "2", label: "정보공유게시판" },
     { value: "3", label: "자유게시판" },
     { value: "4", label: "공지사항" },
+    { value: "following", label: "팔로워게시판" },
   ];
 
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
-    const categoryParam =
-      selectedBoard === "0" ? "" : `&categoryId=${selectedBoard}`;
+    let url = "";
     const sortParam =
       sortType === "popular" ? "&sort=likeCount,desc" : "&sort=createdAt,desc";
 
-    let url = `http://localhost:8090/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
+    // 팔로워 게시판 선택 시 다른 엔드포인트 사용
+    if (selectedBoard === "following") {
+      if (!user?.id) {
+        // 로그인하지 않은 경우 빈 응답 반환
+        return {
+          content: [],
+          pageable: { pageNumber: 0 },
+          last: true,
+          number: 0,
+        };
+      }
+      url = `http://localhost:8090/api/v1/posts/following/${user.id}/pageable?page=${pageParam}&size=10${sortParam}`;
+    } else {
+      const categoryParam =
+        selectedBoard === "0" ? "" : `&categoryId=${selectedBoard}`;
+      url = `http://localhost:8090/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
+    }
 
     // 검색어가 있으면 검색 API 사용
     if (searchKeyword.trim()) {
@@ -182,7 +201,7 @@ export default function Home() {
     getNextPageParam: (lastPage) => {
       return lastPage.last ? undefined : lastPage.number + 1;
     },
-    enabled: !loading && user !== null, // 유저 정보 로딩이 완료되고 로그인된 경우에만 쿼리 활성화
+    enabled: !loading, // 유저 정보 로딩이 완료된 경우에만 쿼리 활성화
   });
 
   const handleSearch = async () => {
@@ -354,7 +373,7 @@ export default function Home() {
       fetchVerificationData();
       calculateUserLevel();
     }
-  }, [user]);
+  }, [user, user?.totalPoint]);
 
   // 인기 게시글 가져오기
   useEffect(() => {
@@ -483,6 +502,7 @@ export default function Home() {
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     console.log("선택된 카테고리:", e.target.value); // 카테고리 변경 확인용 로그
     setSelectedBoard(e.target.value);
+    setSearchKeyword(""); // 게시판 변경 시 검색어 초기화
   };
 
   const openWriteModal = () => {
@@ -633,11 +653,11 @@ export default function Home() {
         );
       } else {
         console.error("게시글 삭제 실패:", response.status);
-        alert("게시글 삭제에 실패했습니다.");
+        toast.error("게시글 삭제에 실패했습니다.");
       }
     } catch (error) {
       console.error("게시글 삭제 중 오류:", error);
-      alert("게시글 삭제 중 오류가 발생했습니다.");
+      toast.error("게시글 삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -709,13 +729,13 @@ export default function Home() {
               {writeCategory === "1" ? (
                 <VerificationWritePage
                   onClose={closeWriteModal}
-                  onSuccess={() => refetch()}
+                  onSuccess={refetch}
                   onCategoryChange={handleWriteCategoryChange}
                 />
               ) : (
                 <WritePostPage
                   onClose={closeWriteModal}
-                  onSuccess={() => refetch()}
+                  onSuccess={refetch}
                   onCategoryChange={handleWriteCategoryChange}
                   initialCategory={writeCategory}
                 />
@@ -767,14 +787,14 @@ export default function Home() {
                       )}
                     </div>
                   </Link>
-                  <Link
-                    href={`/profile/${user.id}`}
+                  <button
+                    onClick={() => router.push("/profile/me")}
                     className="hover:text-pink-500 transition-colors"
                   >
                     <h3 className="text-lg font-bold text-gray-900">
                       @{user.nickname}
                     </h3>
-                  </Link>
+                  </button>
                   <div className="px-2 py-0.5 bg-yellow-100 rounded-full text-sm text-yellow-800 font-medium mb-3 mt-1">
                     {userLevel}
                   </div>
@@ -1068,69 +1088,105 @@ export default function Home() {
 
               {/* 게시글 목록 */}
               <div className="divide-y divide-gray-100">
-                {/* 초기 로딩 중 */}
-                {isFetching && !isFetchingNextPage && posts.length === 0 && (
-                  <div className="p-8 flex justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                {/* 팔로워 게시판인데 로그인하지 않은 경우 */}
+                {selectedBoard === "following" && !user ? (
+                  <div className="p-8 text-center">
+                    <p className="text-lg text-gray-500 mb-4">
+                      로그인이 필요한 서비스입니다
+                    </p>
+                    <Link href="/login">
+                      <button className="bg-pink-500 text-white py-2 px-6 rounded-full text-sm font-medium hover:bg-pink-600 transition">
+                        로그인하기
+                      </button>
+                    </Link>
                   </div>
-                )}
-
-                {/* 데이터가 없을 때 */}
-                {!isFetching && posts.length === 0 && (
-                  <div className="p-8 text-center text-gray-500">
-                    게시글이 없습니다.
+                ) : selectedBoard === "following" &&
+                  user &&
+                  followStats.following === 0 &&
+                  !isFetching ? (
+                  <div className="p-8 text-center">
+                    <p className="text-lg text-gray-500 mb-4">
+                      팔로우한 사용자가 없습니다
+                    </p>
+                    <p className="text-sm text-gray-400 mb-4">
+                      다른 사용자를 팔로우하면 여기에 게시글이 표시됩니다
+                    </p>
                   </div>
-                )}
+                ) : (
+                  <>
+                    {/* 초기 로딩 중 */}
+                    {isFetching &&
+                      !isFetchingNextPage &&
+                      posts.length === 0 && (
+                        <div className="p-8 flex justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                        </div>
+                      )}
 
-                {/* 게시글 목록 */}
-                {posts.map((post, index) => {
-                  // post가 undefined인 경우를 체크
-                  if (!post || post.postId === undefined) return null;
-                  return (
-                    <div
-                      key={post.postId}
-                      ref={index === posts.length - 1 ? lastPostRef : undefined}
-                    >
-                      <Post
-                        postId={post.postId}
-                        userId={post.userId}
-                        userNickname={post.userNickname}
-                        userRole={post.userRole}
-                        title={post.title || ""}
-                        content={post.content || ""}
-                        imageUrl={post.imageUrl || ""}
-                        viewCount={post.viewCount || 0}
-                        likeCount={post.likeCount || 0}
-                        commentCount={post.commentCount}
-                        verificationImageUrl={post.verificationImageUrl || ""}
-                        detoxTime={post.detoxTime || 0}
-                        createdAt={post.createdAt || ""}
-                        updatedAt={post.updatedAt || ""}
-                        onUpdate={() => refetch()}
-                        onLike={memoizedHandleLike}
-                        onUnlike={memoizedHandleUnlike}
-                        likedByCurrentUser={post.likedByCurrentUser || false}
-                        onDelete={handleDelete}
-                        onCommentUpdate={(count) =>
-                          handleCommentUpdate(post.postId, count)
-                        }
-                      />
-                    </div>
-                  );
-                })}
+                    {/* 데이터가 없을 때 */}
+                    {!isFetching && posts.length === 0 && (
+                      <div className="p-8 text-center text-gray-500">
+                        게시글이 없습니다.
+                      </div>
+                    )}
 
-                {/* 추가 로딩 인디케이터 */}
-                {isFetchingNextPage && (
-                  <div className="p-5 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
-                  </div>
-                )}
+                    {/* 게시글 목록 */}
+                    {posts.map((post, index) => {
+                      // post가 undefined인 경우를 체크
+                      if (!post || post.postId === undefined) return null;
+                      return (
+                        <div
+                          key={post.postId}
+                          ref={
+                            index === posts.length - 1 ? lastPostRef : undefined
+                          }
+                        >
+                          <Post
+                            postId={post.postId}
+                            userId={post.userId}
+                            userNickname={post.userNickname}
+                            userRole={post.userRole}
+                            title={post.title || ""}
+                            content={post.content || ""}
+                            imageUrl={post.imageUrl || ""}
+                            viewCount={post.viewCount || 0}
+                            likeCount={post.likeCount || 0}
+                            commentCount={post.commentCount}
+                            verificationImageUrl={
+                              post.verificationImageUrl || ""
+                            }
+                            detoxTime={post.detoxTime || 0}
+                            createdAt={post.createdAt || ""}
+                            updatedAt={post.updatedAt || ""}
+                            onUpdate={() => refetch()}
+                            onLike={memoizedHandleLike}
+                            onUnlike={memoizedHandleUnlike}
+                            likedByCurrentUser={
+                              post.likedByCurrentUser || false
+                            }
+                            onDelete={handleDelete}
+                            onCommentUpdate={(count) =>
+                              handleCommentUpdate(post.postId, count)
+                            }
+                          />
+                        </div>
+                      );
+                    })}
 
-                {/* 더 이상 로드할 데이터가 없을 때 메시지 */}
-                {!hasNextPage && posts.length > 0 && !isFetching && (
-                  <div className="p-5 text-center text-gray-500">
-                    더 이상 게시글이 없습니다.
-                  </div>
+                    {/* 추가 로딩 인디케이터 */}
+                    {isFetchingNextPage && (
+                      <div className="p-5 text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
+                      </div>
+                    )}
+
+                    {/* 더 이상 로드할 데이터가 없을 때 메시지 */}
+                    {!hasNextPage && posts.length > 0 && !isFetching && (
+                      <div className="p-5 text-center text-gray-500">
+                        더 이상 게시글이 없습니다.
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -1244,6 +1300,14 @@ export default function Home() {
                       width={500}
                       height={300}
                       className="rounded-lg w-full h-auto"
+                      unoptimized={true}
+                      onError={(e) => {
+                        console.error(
+                          "이미지 로드 실패:",
+                          selectedPost.imageUrl
+                        );
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
                     />
                   </div>
                 )}

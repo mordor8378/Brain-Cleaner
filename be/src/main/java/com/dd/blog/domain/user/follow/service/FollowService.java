@@ -92,9 +92,9 @@ public class FollowService {
         List<Follow> followerList = followRepository.findByFollowing(follower);
 
         return followerList.stream()
+                .filter(follow -> !follow.getFollower().getId().equals(userId)) // 자기 자신 제외
                 .map(FollowResponseDto::fromEntity)
                 .collect(Collectors.toList());
-
     }
 
     @Transactional
@@ -106,6 +106,7 @@ public class FollowService {
         List<Follow> followingList = followRepository.findByFollower(following);
 
         return followingList.stream()
+                .filter(follow -> !follow.getFollowing().getId().equals(userId)) // 자기 자신 제외
                 .map(FollowResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }

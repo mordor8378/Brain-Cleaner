@@ -10,6 +10,7 @@ import {
   Emoji,
 } from "@/utils/emojiUtils";
 import EmojiPicker from "./EmojiPicker";
+import { toast } from "react-hot-toast";
 
 interface CommentModalProps {
   postId: number;
@@ -706,7 +707,7 @@ export default function CommentModal({
       const fileArray: File[] = Array.from(files);
       // 여러 파일 선택한 경우 안내 메시지
       if (fileArray.length > 1) {
-        alert(`${fileArray.length}개의 이미지를 업로드합니다.`);
+        toast(`${fileArray.length}개의 이미지를 업로드합니다.`);
       }
 
       console.log("CommentModal - 선택한 이미지 파일:", fileArray.length, "개");
