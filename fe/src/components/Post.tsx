@@ -163,7 +163,7 @@ export default function Post({
       console.error("Post - 이미지 URL 파싱 중 오류:", error);
       setParsedImageUrls([]);
     }
-  }, [imageUrl]);
+  }, [imageUrl]); // imageUrl이 변경될 때마다 실행
 
   // 프로필 이미지 URL 가져오기
   const [profileImage, setProfileImage] = useState<string | null>(
@@ -411,6 +411,8 @@ export default function Post({
   // 이미지 업로드 핸들러 추가
   const handleImageClick = () => {
     if (isOwnPost && fileInputRef.current) {
+      // 파일 입력의 value를 초기화하여 같은 파일도 다시 선택할 수 있도록 함
+      fileInputRef.current.value = "";
       fileInputRef.current.click();
     }
   };
@@ -418,6 +420,16 @@ export default function Post({
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    console.log("선택된 파일 개수:", files.length);
+    for (let i = 0; i < files.length; i++) {
+      console.log(
+        `파일 ${i + 1}:`,
+        files[i].name,
+        files[i].size,
+        files[i].type
+      );
+    }
 
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
@@ -427,15 +439,24 @@ export default function Post({
     // 기존 이미지 URL 배열을 유지하기 위해 imageUrl을 PostPatchRequestDto에 포함
     const currentImageUrls = parsedImageUrls.length > 0 ? parsedImageUrls : [];
     const uniqueImageUrls = [...new Set(currentImageUrls)];
+    console.log("기존 이미지 URL:", uniqueImageUrls);
+
+    // PostPatchRequestDto를 올바르게 생성
+    const postPatchRequestDto = {
+      title: title,
+      content: content,
+      imageUrl: uniqueImageUrls,
+    };
 
     formData.append(
       "postPatchRequestDto",
-      new Blob([JSON.stringify({ imageUrl: uniqueImageUrls })], {
+      new Blob([JSON.stringify(postPatchRequestDto)], {
         type: "application/json",
       })
     );
 
     try {
+      console.log("이미지 업로드 요청 시작");
       const response = await fetch(
         `http://localhost:8090/api/v1/posts/${postId}`,
         {
@@ -445,6 +466,7 @@ export default function Post({
         }
       );
 
+      console.log("서버 응답 상태:", response.status);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("이미지 업데이트 응답 오류:", errorData);
@@ -452,24 +474,22 @@ export default function Post({
       }
 
       const updatedPost = await response.json();
+      console.log("서버 응답 데이터:", updatedPost);
 
       // 업데이트된 이미지 URL로 상태 업데이트
       if (updatedPost.imageUrl) {
-        const newImageUrls = Array.isArray(updatedPost.imageUrl)
-          ? updatedPost.imageUrl
-          : [updatedPost.imageUrl];
+        let newImageUrls: string[];
+        if (Array.isArray(updatedPost.imageUrl)) {
+          newImageUrls = updatedPost.imageUrl;
+        } else {
+          newImageUrls = [updatedPost.imageUrl];
+        }
+        console.log("업데이트된 이미지 URL:", newImageUrls);
         setParsedImageUrls(newImageUrls);
-        setCurrentImageIndex(0); // 첫 번째 이미지로 이동
       }
-
-      if (onUpdate) {
-        onUpdate();
-      }
-
-      toast.success("이미지가 성공적으로 업로드되었습니다.");
     } catch (error) {
-      console.error("이미지 업데이트 중 오류:", error);
-      toast.error("이미지 업데이트에 실패했습니다.");
+      console.error("이미지 업로드 중 오류 발생:", error);
+      toast.error("이미지 업로드에 실패했습니다.");
     }
   };
 
@@ -555,6 +575,49 @@ export default function Post({
       default:
         // 상태값이 없는 경우 아이콘 표시 X
         return null;
+    }
+  };
+
+  // 이미지 삭제 핸들러 추가
+  const handleDeleteImage = async (index: number) => {
+    if (!isOwnPost) return;
+
+    try {
+      const updatedImageUrls = [...parsedImageUrls];
+      updatedImageUrls.splice(index, 1);
+
+      const formData = new FormData();
+      formData.append(
+        "postPatchRequestDto",
+        new Blob([JSON.stringify({ imageUrl: updatedImageUrls })], {
+          type: "application/json",
+        })
+      );
+
+      const response = await fetch(
+        `http://localhost:8090/api/v1/posts/${postId}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("이미지 삭제에 실패했습니다.");
+      }
+
+      setParsedImageUrls(updatedImageUrls);
+      setCurrentImageIndex(Math.min(index, updatedImageUrls.length - 1));
+
+      if (onUpdate) {
+        onUpdate();
+      }
+
+      toast.success("이미지가 삭제되었습니다.");
+    } catch (error) {
+      console.error("이미지 삭제 중 오류:", error);
+      toast.error("이미지 삭제에 실패했습니다.");
     }
   };
 
@@ -784,7 +847,6 @@ export default function Post({
                   parsedImageUrls[currentImageIndex]
                 );
                 console.log("전체 이미지 URL 배열:", parsedImageUrls);
-                // 이미지 로드 실패 시 오류 메시지 표시
                 const container = (e.target as HTMLImageElement).parentElement;
                 if (container) {
                   const errorMsg = document.createElement("div");
@@ -837,6 +899,27 @@ export default function Post({
                 </button>
               </>
             )}
+
+            {/* 이미지 삭제 버튼 */}
+            {isOwnPost && (
+              <button
+                onClick={() => handleDeleteImage(currentImageIndex)}
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:opacity-90 bg-white bg-opacity-80 rounded-full p-1"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* 이미지 인디케이터 (이미지가 여러 장일 때만 표시) */}
@@ -870,18 +953,23 @@ export default function Post({
             이미지 {currentImageIndex + 1}/{parsedImageUrls.length}
           </div>
 
+          {/* 새로운 이미지 추가 버튼 */}
           {isOwnPost && (
             <button
               onClick={handleImageClick}
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#F742CD] hover:opacity-90 bg-white bg-opacity-80 rounded-full p-1"
+              className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#F742CD] hover:opacity-90 bg-white bg-opacity-80 rounded-full p-2"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
+                className="h-5 w-5"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
               </svg>
             </button>
           )}
