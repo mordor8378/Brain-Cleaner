@@ -846,7 +846,8 @@ export default function Home() {
                     ) : (
                       <button
                         onClick={openWriteModal}
-                        className="mt-3 w-full bg-pink-500 text-white py-3 px-4 rounded-full hover:bg-pink-600 transition font-medium"
+                        className="mt-3 w-full text-white py-2 px-4 rounded-full hover:opacity-90 transition text-sm font-medium"
+                        style={{ backgroundColor: "#F742CD" }}
                       >
                         오늘 인증하기
                       </button>
@@ -897,14 +898,20 @@ export default function Home() {
                     <div className="mt-4">
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-gray-600">보유 포인트</span>
-                        <span className="font-bold text-pink-500">
+                        <span
+                          className="font-bold"
+                          style={{ color: "#F742CD" }}
+                        >
                           {user.remainingPoint || 0} P
                         </span>
                       </div>
                       <div className="flex justify-between text-sm mb-4">
                         <span className="text-gray-600">연속 인증</span>
-                        <span className="font-bold text-pink-500">
-                          {streakDays}일째
+                        <span
+                          className="font-bold"
+                          style={{ color: "#F742CD" }}
+                        >
+                          {streakDays}일 째
                         </span>
                       </div>
 
@@ -917,12 +924,13 @@ export default function Home() {
 
                       <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
                         <div
-                          className="bg-pink-500 h-2.5 rounded-full"
+                          className="h-2.5 rounded-full"
                           style={{
                             width: `${Math.min(
                               100,
                               ((user.totalPoint || 0) / maxProgressPoints) * 100
                             )}%`,
+                            backgroundColor: "#F742CD",
                           }}
                         ></div>
                       </div>
@@ -958,7 +966,10 @@ export default function Home() {
                   </p>
 
                   <Link href="/login" className="w-full">
-                    <button className="w-full bg-pink-500 text-white py-2 px-4 rounded-full hover:bg-pink-600 transition">
+                    <button
+                      className="w-full text-white py-2 px-4 rounded-full hover:opacity-90 transition"
+                      style={{ backgroundColor: "#F742CD" }}
+                    >
                       로그인하기
                     </button>
                   </Link>
@@ -966,7 +977,8 @@ export default function Home() {
                   <div className="mt-2 w-full text-center">
                     <Link
                       href="/signup"
-                      className="text-sm text-pink-500 hover:text-pink-700"
+                      className="text-sm hover:opacity-90 transition"
+                      style={{ color: "#F742CD" }}
                     >
                       아직 계정이 없으신가요? 회원가입
                     </Link>
@@ -1012,7 +1024,8 @@ export default function Home() {
                   </div>
                   <button
                     onClick={openWriteModal}
-                    className="bg-pink-500 text-white py-2 px-6 rounded-full text-sm font-medium hover:bg-pink-600 transition"
+                    className="text-white py-2 px-6 rounded-full hover:opacity-90 transition text-sm font-medium"
+                    style={{ backgroundColor: "#F742CD" }}
                   >
                     글쓰기
                   </button>
