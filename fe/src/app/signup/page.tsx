@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { debounce } from "lodash";
+import { toast } from "react-hot-toast";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -231,7 +232,7 @@ export default function Signup() {
     e.preventDefault();
 
     if (!isFormValid()) {
-      setGeneralError("입력 정보를 확인해주세요.");
+      toast.error("입력 정보를 확인해주세요.");
       return;
     }
 
@@ -255,15 +256,16 @@ export default function Signup() {
       );
 
       if (response.ok) {
+        toast.success("회원가입에 성공했습니다.");
         // 회원가입 성공 시 로그인 페이지로 이동
         router.push("/login?signup=success");
       } else {
         const errorData = await response.json().catch(() => null);
-        setGeneralError(errorData?.message || "회원가입에 실패했습니다.");
+        toast.error(errorData?.message || "회원가입에 실패했습니다.");
       }
     } catch (error) {
       console.error("회원가입 중 오류 발생:", error);
-      setGeneralError("서버 오류가 발생했습니다.");
+      toast.error("서버 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }

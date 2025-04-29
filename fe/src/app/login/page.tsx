@@ -1,59 +1,60 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { toast } from "react-hot-toast";
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       // 로그인 요청
-      const response = await fetch('http://localhost:8090/api/v1/users/login', {
-        method: 'POST',
+      const response = await fetch("http://localhost:8090/api/v1/users/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (response.ok) {
         const userData = await response.json();
-        console.log('로그인 응답 데이터:', JSON.stringify(userData, null, 2));
+        console.log("로그인 응답 데이터:", JSON.stringify(userData, null, 2));
 
         // 로그인 성공시 로그인 상태와 사용자 정보 저장
-        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem("isLoggedIn", "true");
 
-        localStorage.setItem('userRole', userData.role);
-        localStorage.setItem('userId', userData.id.toString());
-        localStorage.setItem('userEmail', userData.email);
-        localStorage.setItem('userNickname', userData.nickname);
+        localStorage.setItem("userRole", userData.role);
+        localStorage.setItem("userId", userData.id.toString());
+        localStorage.setItem("userEmail", userData.email);
+        localStorage.setItem("userNickname", userData.nickname);
 
         // 사용자 역할에 따라 다른 페이지로 리다이렉트
-        if (userData.role === 'ROLE_ADMIN') {
-          router.push('/admin');
+        if (userData.role === "ROLE_ADMIN") {
+          router.push("/admin?login=true");
         } else {
-          router.push('/');
+          router.push("/?login=true");
         }
       } else {
-          let errorMessage = '로그인에 실패했습니다.';
+        let errorMessage = "로그인에 실패했습니다.";
 
-          if (response.status === 403) {
-                     errorMessage = '해당 ID는 정지된 계정입니다.\n자세한 내용은 관리자에게 문의해주세요.';
-            }
-          setError(errorMessage);
-
+        if (response.status === 403) {
+          errorMessage =
+            "해당 ID는 정지된 계정입니다.\n자세한 내용은 관리자에게 문의해주세요.";
+        }
+        toast.error(errorMessage);
 
         // // 서버에서 반환된 에러 메시지 사용
         // if (data.message === 'USER_NOT_FOUND') {
@@ -65,8 +66,8 @@ export default function Login() {
         // }
       }
     } catch (error) {
-      console.error('로그인 중 오류 발생:', error);
-      setError('서버 연결에 실패했습니다.');
+      console.error("로그인 중 오류 발생:", error);
+      toast.error("서버 연결에 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +78,7 @@ export default function Login() {
     sessionStorage.clear();
 
     // 메인 페이지로 리다이렉트
-    const redirectUrl = window.location.origin + '?social=true';
+    const redirectUrl = window.location.origin + "?social=true";
     window.location.href = `http://localhost:8090/oauth2/authorization/kakao?redirectUrl=${redirectUrl}`;
   };
 
@@ -215,7 +216,7 @@ export default function Login() {
                 disabled={isLoading}
                 className="group relative flex w-full justify-center rounded-md border border-transparent bg-pink-500 py-3 px-4 text-sm font-medium text-white hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
               >
-                {isLoading ? '로그인 중...' : '로그인'}
+                {isLoading ? "로그인 중..." : "로그인"}
               </button>
             </div>
           </form>
