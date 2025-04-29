@@ -47,6 +47,14 @@ export default function Login() {
           router.push('/');
         }
       } else {
+          let errorMessage = '로그인에 실패했습니다.';
+
+          if (response.status === 403) {
+                     errorMessage = '해당 ID는 정지된 계정입니다.\n자세한 내용은 관리자에게 문의해주세요.';
+            }
+          setError(errorMessage);
+
+
         // // 서버에서 반환된 에러 메시지 사용
         // if (data.message === 'USER_NOT_FOUND') {
         //   setError('존재하지 않는 사용자입니다.');
@@ -107,7 +115,7 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded whitespace-pre-wrap">
               {error}
             </div>
           )}
