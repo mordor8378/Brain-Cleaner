@@ -141,7 +141,7 @@ export default function CommentModal({
       if (isFollowing) {
         // 언팔로우
         const response = await fetch(
-          `http://localhost:8090/api/v1/follows/${userId}`,
+          `http://localhost:8090/api/v1/follows/${user.id}/${userId}`,
           {
             method: "DELETE",
             credentials: "include",
@@ -151,6 +151,9 @@ export default function CommentModal({
         if (response.ok) {
           setIsFollowing(false);
           localStorage.setItem(`follow_${userId}`, "false");
+          toast.success("팔로우가 취소되었습니다.");
+        } else {
+          throw new Error("팔로우 취소에 실패했습니다.");
         }
       } else {
         // 팔로우
@@ -166,10 +169,18 @@ export default function CommentModal({
         if (response.ok) {
           setIsFollowing(true);
           localStorage.setItem(`follow_${userId}`, "true");
+          toast.success("팔로우가 완료되었습니다.");
+        } else {
+          throw new Error("팔로우에 실패했습니다.");
         }
       }
     } catch (error) {
       console.error("팔로우 상태 변경 중 오류 발생:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "팔로우 상태 변경에 실패했습니다."
+      );
     } finally {
       setFollowLoading(false);
     }
@@ -954,10 +965,11 @@ export default function CommentModal({
                 className={`px-4 py-1.5 rounded text-sm font-bold ${
                   isFollowing
                     ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                    : "bg-[#F742CD] text-white hover:bg-pink-600"
+                    : "text-white hover:opacity-90"
                 } transition-colors ${
                   followLoading ? "opacity-70 cursor-not-allowed" : ""
                 }`}
+                style={{ backgroundColor: isFollowing ? undefined : "#F742CD" }}
               >
                 {followLoading
                   ? "처리중..."
@@ -1178,12 +1190,23 @@ export default function CommentModal({
                             })()}
                           </span>
                         </div>
-                        {user?.id === comment.userId && (
+                        {comment.userId === user?.id && (
                           <button
                             onClick={() => handleDeleteComment(comment.id)}
-                            className="text-xs text-gray-400 hover:text-red-500 ml-2"
+                            className="text-gray-400 hover:text-red-500 transition-colors"
                           >
-                            삭제
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
                           </button>
                         )}
                       </div>
