@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
@@ -122,8 +123,16 @@ public class ApiV1PostController {
     public ResponseEntity<Page<PostResponseDto>> getPostsByFollowingPageable(
             @Parameter(description = "유저 ID", required = true) @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<PostResponseDto> posts = postService.getPostsByFollowingPageable(userId, page, size);
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false, defaultValue = "createdAt,desc") String sort) {
+
+        String[] sortParams = sort.split(",");
+        String sortField = sortParams[0];
+        Sort.Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("asc")
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        Page<PostResponseDto> posts = postService.getPostsByFollowingPageable(userId, page, size, sortField, direction);
         return ResponseEntity.ok(posts);
     }
 
@@ -139,12 +148,19 @@ public class ApiV1PostController {
     public ResponseEntity<Page<PostResponseDto>> getPostsByPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) Long categoryId) {
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false, defaultValue = "createdAt,desc") String sort) {
+        String[] sortParams = sort.split(",");
+        String sortField = sortParams[0];
+        Sort.Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("asc")
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
         Page<PostResponseDto> posts;
         if (categoryId != null) {
-            posts = postService.getPostsByCategoryPageable(categoryId, page, size);
+            posts = postService.getPostsByCategoryPageable(categoryId, page, size, sortField, direction);
         } else {
-            posts = postService.getAllPostsPageable(page, size);
+            posts = postService.getAllPostsPageable(page, size, sortField, direction);
         }
         return ResponseEntity.ok(posts);
     }
@@ -230,14 +246,20 @@ public class ApiV1PostController {
             description = "제목 또는 작성자 기준으로 게시글을 검색합니다. type=title 또는 type=writer" // Swagger 설명
     )
     @GetMapping("/search")
-    public ResponseEntity<List<PostResponseDto>> searchPosts(
-            @RequestParam String type,      // 검색 타입 (title 또는 writer)
-            @RequestParam String keyword    // 검색할 문자열
-    ) {
-        // Service 호출하여 결과 받아오기
-        List<PostResponseDto> posts = postService.searchPosts(type, keyword);
+    public ResponseEntity<Page<PostResponseDto>> searchPosts(
+            @RequestParam String type,
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false, defaultValue = "createdAt,desc") String sort) {
 
-        // HTTP 응답으로 검색 결과 반환 (200 OK)
+        String[] sortParams = sort.split(",");
+        String sortField = sortParams[0];
+        Sort.Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("asc")
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        Page<PostResponseDto> posts = postService.searchPostsPageable(type, keyword, page, size, sortField, direction);
         return ResponseEntity.ok(posts);
     }
 

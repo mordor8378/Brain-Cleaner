@@ -262,15 +262,6 @@ export default function Login() {
               회원가입
             </Link>
           </p>
-          <div className="mt-2 flex justify-center space-x-4 text-gray-500">
-            <Link href="/find-id" className="hover:text-gray-700">
-              아이디 찾기
-            </Link>
-            <span>|</span>
-            <Link href="/find-password" className="hover:text-gray-700">
-              비밀번호 찾기
-            </Link>
-          </div>
         </div>
       </div>
     </div>

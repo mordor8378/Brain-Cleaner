@@ -92,7 +92,9 @@ export default function Home() {
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
     let url = "";
     const sortParam =
-      sortType === "popular" ? "&sort=likeCount,desc" : "&sort=createdAt,desc";
+      sortType === "popular"
+        ? "&sort=likeCount,desc&sort=id,asc"
+        : "&sort=createdAt,desc";
 
     // 팔로워 게시판 선택 시 다른 엔드포인트 사용
     if (selectedBoard === "following") {
@@ -214,6 +216,17 @@ export default function Home() {
     },
     enabled: !loading, // 유저 정보 로딩이 완료된 경우에만 쿼리 활성화
   });
+
+  const handleSortTypeChange = () => {
+    // 현재 정렬 방식의 반대로 설정
+    const newSortType = sortType === "latest" ? "popular" : "latest";
+    setSortType(newSortType);
+
+    // 캐시 무효화, 데이터 refetch
+    queryClient.invalidateQueries({
+      queryKey: ["posts"],
+    });
+  };
 
   const handleSearch = async () => {
     if (!searchKeyword.trim()) {
@@ -1096,11 +1109,7 @@ export default function Home() {
                   <div className="flex items-center gap-2">
                     {/* 정렬 토글 버튼 */}
                     <button
-                      onClick={() =>
-                        setSortType(
-                          sortType === "latest" ? "popular" : "latest"
-                        )
-                      }
+                      onClick={handleSortTypeChange}
                       className="px-4 py-1.5 text-sm text-gray-600 rounded-full hover:bg-gray-100/50 transition-all duration-200 whitespace-nowrap flex items-center"
                     >
                       <span className="text-base leading-none">

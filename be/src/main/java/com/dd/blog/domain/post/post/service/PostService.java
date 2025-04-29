@@ -221,45 +221,61 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> getPostsByFollowingPageable(Long userId, int page, int size) {
+    public Page<PostResponseDto> getPostsByFollowingPageable(Long userId, int page, int size, String sortField, Sort.Direction direction) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
 
-        // 유저가 팔로우한 사람들 조회
         List<Follow> followings = followRepository.findByFollower(user);
-
-        // 팔로우한 유저들만 뽑아냄
         List<User> followedUsers = followings.stream()
                 .map(Follow::getFollowing)
                 .toList();
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Sort sort = Sort.by(direction, sortField);
+        Pageable pageable = PageRequest.of(page, size, sort);
 
         if (followedUsers.isEmpty()) {
-            // 팔로우한 사용자가 없는 경우 빈 페이지 반환
             return Page.empty(pageable);
         }
 
-        Page<Post> postPage = postRepository.findByUserInOrderByCreatedAtDesc(followedUsers, pageable);
+        Page<Post> postPage = postRepository.findByUserIn(followedUsers, pageable);
+
         return postPage.map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post));
     }
 
     // 게시글 페이지 조회
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> getAllPostsPageable(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+    public Page<PostResponseDto> getAllPostsPageable(int page, int size, String sortField, Sort.Direction direction) {
+        Sort sort;
+        if ("likeCount".equals(sortField)) {
+            // 좋아요 수로 정렬할 때는 2차 정렬 기준으로 id를 추가하여 항상 동일한 순서 보장
+            sort = Sort.by(direction, sortField).and(Sort.by(Sort.Direction.ASC, "id"));
+        } else {
+            // 기본적으로는 생성일 기준 정렬
+            sort = Sort.by(direction, "createdAt");
+        }
+        Pageable pageable = PageRequest.of(page, size, sort);
         Page<Post> postPage = postRepository.findAll(pageable);
         return postPage.map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post));
     }
 
     // 게시글 페이지 조회 (카테고리 ID)
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> getPostsByCategoryPageable(Long categoryId, int page, int size) {
+    public Page<PostResponseDto> getPostsByCategoryPageable(Long categoryId, int page, int size, String sortField, Sort.Direction direction) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Post> postPage = postRepository.findByCategoryIdOrderByCreatedAtDesc(categoryId, pageable);
+        Sort sort;
+        if ("likeCount".equals(sortField)) {
+            // 좋아요 수로 정렬할 때는 2차 정렬 기준으로 id를 추가하여 항상 동일한 순서 보장
+            sort = Sort.by(direction, sortField).and(Sort.by(Sort.Direction.ASC, "id"));
+        } else {
+            // 기본적으로는 생성일 기준 정렬
+            sort = Sort.by(direction, "createdAt");
+        }
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Post> postPage = postRepository.findByCategoryId(categoryId, pageable);
+
         return postPage.map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post));
     }
 
@@ -390,6 +406,13 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> searchPostsPageable(String type, String keyword, int page, int size, String sortField, Sort.Direction direction) {
+        Sort sort = Sort.by(direction, sortField);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Post> postPage = postRepository.searchByTypeAndKeywordPageable(type, keyword, pageable);
+        return postPage.map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post));
+    }
 
     // 게시글 갯수 제한 헬퍼
     @Transactional(readOnly = true)
