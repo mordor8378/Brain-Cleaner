@@ -511,13 +511,13 @@ export default function Home() {
     setSearchKeyword(""); // 게시판 변경 시 검색어 초기화
   };
 
-  const openWriteModal = () => {
+  const openWriteModal = (isVerification: boolean = false) => {
     if (!user) {
       toast.error("로그인이 필요한 기능입니다.");
       return;
     }
     setShowWriteModal(true);
-    setWriteCategory("2"); // 기본값으로 정보공유게시판 설정
+    setWriteCategory(isVerification ? "1" : "2"); // 인증게시판(1) 또는 정보공유게시판(2)
   };
 
   const closeWriteModal = () => {
@@ -847,7 +847,7 @@ export default function Home() {
                       renderAdminButton()
                     ) : (
                       <button
-                        onClick={openWriteModal}
+                        onClick={() => openWriteModal(true)}
                         className="mt-3 w-full text-white py-2 px-4 rounded-full hover:opacity-90 transition text-sm font-medium"
                         style={{ backgroundColor: "#F742CD" }}
                       >
@@ -1025,7 +1025,7 @@ export default function Home() {
                     </div>
                   </div>
                   <button
-                    onClick={openWriteModal}
+                    onClick={() => openWriteModal(false)}
                     className="text-white py-2 px-6 rounded-full hover:opacity-90 transition text-sm font-medium"
                     style={{ backgroundColor: "#F742CD" }}
                   >

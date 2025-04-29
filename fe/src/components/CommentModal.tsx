@@ -138,13 +138,30 @@ export default function CommentModal({
 
     setFollowLoading(true);
     try {
+      // 현재 로그인한 사용자 정보 가져오기
+      const meResponse = await fetch("http://localhost:8090/api/v1/users/me", {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!meResponse.ok) {
+        throw new Error("사용자 정보를 가져오는데 실패했습니다.");
+      }
+
+      const meData = await meResponse.json();
+
       if (isFollowing) {
         // 언팔로우
         const response = await fetch(
-          `http://localhost:8090/api/v1/follows/${user.id}/${userId}`,
+          `http://localhost:8090/api/v1/follows/${meData.id}/${userId}`,
           {
             method: "DELETE",
             credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
         );
 
@@ -163,7 +180,10 @@ export default function CommentModal({
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify({ followingId: userId }),
+          body: JSON.stringify({
+            followerId: meData.id,
+            followingId: userId,
+          }),
         });
 
         if (response.ok) {
