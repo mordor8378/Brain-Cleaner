@@ -28,6 +28,8 @@ export interface Post {
   likedByCurrentUser: boolean;
   userProfileImage?: string | null;
   userRole: string;
+  categoryId: number;
+  status?: string;
 }
 
 interface PostsResponse {
@@ -1207,6 +1209,8 @@ export default function Home() {
                             onCommentUpdate={(count) =>
                               handleCommentUpdate(post.postId, count)
                             }
+                            categoryId={post.categoryId}
+                            status={post.status}
                           />
                         </div>
                       );

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface VerificationRepository extends JpaRepository<Verification, Long> {
 
@@ -29,4 +30,7 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
 
     // 지정된 상태(status)와 지정된 기간 (start - end)사이 인증 요청 개수 반환
     long countByStatusInAndUpdatedAtBetween(List<VerificationStatus> statuses, LocalDateTime start, LocalDateTime end);
+
+    // postId로 Verification 조회
+    Optional<Verification> findByPostId(Long postId);
 }

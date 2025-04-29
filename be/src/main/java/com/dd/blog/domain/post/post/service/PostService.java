@@ -9,6 +9,8 @@ import com.dd.blog.domain.post.post.dto.PostResponseDto;
 import com.dd.blog.domain.post.post.entity.Post;
 import com.dd.blog.domain.post.post.repository.PostRepository;
 import com.dd.blog.domain.post.verification.dto.VerificationRequestDto;
+import com.dd.blog.domain.post.verification.entity.Verification;
+import com.dd.blog.domain.post.verification.entity.VerificationStatus;
 import com.dd.blog.domain.post.verification.repository.VerificationRepository;
 import com.dd.blog.domain.post.verification.service.VerificationService;
 import com.dd.blog.domain.report.repository.ReportRepository;
@@ -35,10 +37,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -174,19 +173,25 @@ public class PostService {
     // READ
     // 전체 게시글 READ
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getAllPosts(){
+    public List<PostResponseDto> getAllPosts() {
         return postRepository.findAll().stream()
-                .map(PostResponseDto::fromEntity)
+                .map(post -> {
+                    PostResponseDto dto = PostResponseDto.fromEntity(post);
+                    return setVerificationStatus(dto, post);
+                })
                 .collect(Collectors.toList());
     }
 
     // 특정 카테고리 게시판 READ
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getPostsByCategory(Long categoryId){
+    public List<PostResponseDto> getPostsByCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
         return postRepository.findByCategoryId(categoryId).stream()
-                .map(PostResponseDto::fromEntity)
+                .map(post -> {
+                    PostResponseDto dto = PostResponseDto.fromEntity(post);
+                    return setVerificationStatus(dto, post);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -208,7 +213,10 @@ public class PostService {
         List<Post> posts = postRepository.findByUserInOrderByCreatedAtDesc(followedUsers);
 
         return posts.stream()
-                .map(PostResponseDto::fromEntity)
+                .map(post -> {
+                    PostResponseDto dto = PostResponseDto.fromEntity(post);
+                    return setVerificationStatus(dto, post);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -233,7 +241,7 @@ public class PostService {
         }
 
         Page<Post> postPage = postRepository.findByUserInOrderByCreatedAtDesc(followedUsers, pageable);
-        return postPage.map(PostResponseDto::fromEntity);
+        return postPage.map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post));
     }
 
     // 게시글 페이지 조회
@@ -241,7 +249,7 @@ public class PostService {
     public Page<PostResponseDto> getAllPostsPageable(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Post> postPage = postRepository.findAll(pageable);
-        return postPage.map(PostResponseDto::fromEntity);
+        return postPage.map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post));
     }
 
     // 게시글 페이지 조회 (카테고리 ID)
@@ -252,7 +260,7 @@ public class PostService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Post> postPage = postRepository.findByCategoryIdOrderByCreatedAtDesc(categoryId, pageable);
-        return postPage.map(PostResponseDto::fromEntity);
+        return postPage.map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post));
     }
 
     // 특정 사용자의 게시물 목록 조회
@@ -263,18 +271,19 @@ public class PostService {
 
         List<Post> posts = postRepository.findByUserOrderByCreatedAtDesc(user);
         return posts.stream()
-                .map(PostResponseDto::fromEntity)
+                .map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post))
                 .collect(Collectors.toList());
     }
 
     // 게시글 1개 READ(상세보기)
     @Transactional(readOnly = true)
-    public PostResponseDto getPostById(Long postId){
+    public PostResponseDto getPostById(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
         // 조회수 증가
         post.increaseViewCount();
-        return PostResponseDto.fromEntity(post);
+        PostResponseDto dto = PostResponseDto.fromEntity(post);
+        return setVerificationStatus(dto, post);
     }
 
     // UPDATE
@@ -375,9 +384,9 @@ public class PostService {
         // PostRepository에서 검색 조건에 맞는 게시글 목록 조회
         List<Post> posts = postRepository.searchByTypeAndKeyword(type, keyword);
 
-        // Entity → DTO 변환 후 결과 리스트 반환
+        // Entity → DTO 변환 후 결과 리스트 반환 (인증 상태 추가)
         return posts.stream()
-                .map(PostResponseDto::fromEntity)
+                .map(post -> setVerificationStatus(PostResponseDto.fromEntity(post), post))
                 .collect(Collectors.toList());
     }
 
@@ -406,5 +415,24 @@ public class PostService {
         int count = (int) postRepository.countByUserIdAndCategoryIdAndCreatedAtBetween(userId, 1L, startOfDay, endOfDay);
 
         return count > 0;
+    }
+
+    // 인증 상태 설정
+    private PostResponseDto setVerificationStatus(PostResponseDto dto, Post post) {
+        // 인증 게시판(카테고리 ID: 1)인 경우에만 상태값 설정
+        if (post.getCategory().getId() == 1L) {
+            // 해당 게시글에 연결된 Verification 조회
+            Optional<Verification> verification = verificationRepository.findByPostId(post.getId());
+
+            if (verification.isPresent()) {
+                // Verification이 존재하면 상태값 설정
+                dto.setStatus(verification.get().getStatus().toString());
+            } else {
+                // Verification이 없으면 기본값 PENDING 설정
+                dto.setStatus(VerificationStatus.PENDING.toString());
+            }
+        }
+
+        return dto;
     }
 }
