@@ -12,10 +12,12 @@ const AdminAuthGuard = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const validateAdminRole = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/v1/users/me", {
-          //
-          credentials: "include",
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/me",
+          {
+            credentials: "include",
+          }
+        );
 
         if (!response.ok) {
           throw new Error(`권한 확인 실패 (${response.status})`); // 상태 코드 포함

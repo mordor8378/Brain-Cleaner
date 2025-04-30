@@ -47,14 +47,13 @@ const AdminVerificationPage: React.FC = () => {
   const observerRef = useRef<IntersectionObserver | null>(null); // IntersectionObserver 참조
 
   const ADMIN_VERIFICATIONS_API_URL =
-    "http://localhost:8080/api/admin/verifications";
+    `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/admin/verifications";
 
   // 백엔드 API 응답 타입 정의 (Page<Verification> 구조에 맞춰야 함)
   interface VerificationPage {
     content: Verification[]; // Verification 타입 배열 (아래 Verification 타입 정의 필요)
     last: boolean;
     number: number;
-    totalElements: number;
   }
 
   interface Verification {
@@ -209,31 +208,38 @@ const AdminVerificationPage: React.FC = () => {
   }, []);
 
   const deleteMutation = useMutation({
+    // mutationFn은 postId를 인자로 받음
     mutationFn: async (postId: number) => {
       // 확인된 실제 백엔드 게시글 삭제 API 주소 사용
-      const postDeleteApiUrl = `http://localhost:8080/api/v1/posts/${postId}`;
+      const postDeleteApiUrl =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/posts/${postId}`;
 
       console.log("Requesting Post Delete API:", postDeleteApiUrl);
 
       const response = await fetch(postDeleteApiUrl, {
-        method: "DELETE",
-        credentials: "include",
+        method: "DELETE", // DELETE 메소드 사용
+        credentials: "include", // 필요시 사용
       });
 
       if (!response.ok) {
         const errorData = await response.text();
         console.error("게시글 삭제 실패:", response.status, errorData);
+        // 실제 에러 메시지를 포함하여 throw 하는 것이 더 좋음
         throw new Error(
           `게시글 삭제 처리 실패: ${response.status} - ${errorData}`
         );
       }
+      // DELETE 성공 시 보통 응답 본문이 없으므로 (204 No Content), 별도 파싱 불필요
       console.log(`Post (ID: ${postId}) deleted successfully.`);
     },
-    onSuccess: (_, postId: number) => {
+    onSuccess: (data, postId) => {
+      // 성공 시 삭제된 postId도 받을 수 있음
       console.log(`삭제 성공 (Post ID: ${postId}), 목록 새로고침`);
+      // 삭제 성공 후 관리자 목록 새로고침
       queryClient.invalidateQueries({ queryKey: ["adminVerifications"] });
     },
-    onError: (error: Error, postId: number) => {
+    onError: (error, postId) => {
+      // 실패 시 postId도 받을 수 있음
       console.error(`삭제 처리 중 에러 (Post ID: ${postId}):`, error);
       alert(`삭제 처리 중 오류가 발생했습니다: ${error.message}`);
     },

@@ -126,7 +126,8 @@ export default function CommentModal({
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/follows/check?followingId=${userId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/follows/check?followingId=${userId}`,
         { credentials: "include" }
       );
 
@@ -147,12 +148,15 @@ export default function CommentModal({
     setFollowLoading(true);
     try {
       // 현재 로그인한 사용자 정보 가져오기
-      const meResponse = await fetch("http://localhost:8080/api/v1/users/me", {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const meResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/me",
+        {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!meResponse.ok) {
         throw new Error("사용자 정보를 가져오는데 실패했습니다.");
@@ -163,7 +167,8 @@ export default function CommentModal({
       if (isFollowing) {
         // 언팔로우
         const response = await fetch(
-          `http://localhost:8080/api/v1/follows/${meData.id}/${userId}`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+            `/api/v1/follows/${meData.id}/${userId}`,
           {
             method: "DELETE",
             credentials: "include",
@@ -182,17 +187,20 @@ export default function CommentModal({
         }
       } else {
         // 팔로우
-        const response = await fetch(`http://localhost:8080/api/v1/follows`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            followerId: meData.id,
-            followingId: userId,
-          }),
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/follows`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              followerId: meData.id,
+              followingId: userId,
+            }),
+          }
+        );
 
         if (response.ok) {
           setIsFollowing(true);
@@ -221,7 +229,7 @@ export default function CommentModal({
   ) => {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/users/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/users/${userId}`,
         { credentials: "include" }
       );
 
@@ -240,7 +248,8 @@ export default function CommentModal({
   const fetchComments = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/comments/${postId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/comments/${postId}`,
         {
           credentials: "include",
         }
@@ -346,7 +355,8 @@ export default function CommentModal({
         try {
           console.log(`유저 ID ${userId}의 프로필 이미지 요청 중`);
           const profileResponse = await fetch(
-            `http://localhost:8080/api/v1/users/${userId}`,
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+              `/api/v1/users/${userId}`,
             {
               credentials: "include",
             }
@@ -581,14 +591,17 @@ export default function CommentModal({
 
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:8080/api/v1/comments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(commentData),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(commentData),
+        }
+      );
 
       if (response.ok) {
         console.log("댓글 작성 성공!");
@@ -665,7 +678,8 @@ export default function CommentModal({
   const handleDeleteComment = async (commentId: number) => {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/comments/${commentId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/comments/${commentId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -712,7 +726,7 @@ export default function CommentModal({
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/posts/${postId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/posts/${postId}`,
         {
           method: "PATCH",
           headers: {

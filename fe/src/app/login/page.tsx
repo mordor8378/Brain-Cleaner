@@ -20,14 +20,17 @@ export default function Login() {
 
     try {
       // 로그인 요청
-      const response = await fetch("http://localhost:8080/api/v1/users/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         const userData = await response.json();
@@ -79,7 +82,9 @@ export default function Login() {
 
     // 메인 페이지로 리다이렉트
     const redirectUrl = window.location.origin + "?social=true";
-    window.location.href = `http://localhost:8090/oauth2/authorization/kakao?redirectUrl=${redirectUrl}`;
+    window.location.href =
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+      `/oauth2/authorization/kakao?redirectUrl=${redirectUrl}`;
   };
 
   return (
@@ -214,7 +219,8 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative flex w-full justify-center rounded-md border border-transparent bg-pink-500 py-3 px-4 text-sm font-medium text-white hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                className="group relative flex w-full justify-center rounded-md border border-transparent py-3 px-4 text-sm font-medium text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                style={{ backgroundColor: "#F742CD" }}
               >
                 {isLoading ? "로그인 중..." : "로그인"}
               </button>

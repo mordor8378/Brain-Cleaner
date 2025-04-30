@@ -60,8 +60,6 @@ const AdminReportPage: React.FC = () => {
     reportedPostContent: string; // 신고된 게시글 내용
     reportedPostAuthorId: number; // 신고된 게시글 작성자 ID
     reportedPostAuthorNickname: string; // 신고된 게시글 작성자 닉네임
-    reportedPostCategoryName?: string; // 신고된 게시글 카테고리 이름
-    reportedPostImageUrl?: string; // 신고된 게시글 이미지 URL
   }
 
   interface ReportPage {
@@ -72,14 +70,13 @@ const AdminReportPage: React.FC = () => {
   }
 
   // 백엔드 API 호출 함수
-  const fetchReports = async ({
-    pageParam = 0,
-  }: {
-    pageParam?: number;
-  }): Promise<ReportPage> => {
+  const fetchReports = async ({ pageParam = 0 }): Promise<ReportPage> => {
+    // <--- 함수 이름, 반환 타입 변경!
     // 관리자 신고 목록 조회 API 엔드포인트 (상대 경로 사용 - 프록시 설정 필요!)
-    const apiUrl = `http://localhost:8080/api/v1/admin/reports?page=${pageParam}&size=10&sort=createdAt,asc`;
-    console.log("Requesting Admin Reports API:", apiUrl);
+    const apiUrl =
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+      `/api/admin/reports?page=${pageParam}&size=10&sort=createdAt,asc`;
+    console.log("Requesting Admin Reports API:", apiUrl); // 로그 변경
 
     try {
       const response = await fetch(apiUrl, {
@@ -112,24 +109,27 @@ const AdminReportPage: React.FC = () => {
 
   // useInfiniteQuery 훅 사용
   const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isFetching,
-    refetch,
-  } = useInfiniteQuery({
-    queryKey: ["adminReports"],
-    queryFn: fetchReports,
-    initialPageParam: 0,
+    data, // 실제 데이터 (pages 배열 형태)
+    fetchNextPage, // 다음 페이지 로드 함수
+    hasNextPage, // 다음 페이지 존재 여부
+    isFetchingNextPage, // 다음 페이지 로딩 중 여부
+    isFetching, // 초기 데이터 로딩 중 여부 (isFetchingNextPage 포함)
+    refetch, // 데이터 새로고침 함수
+  } = useInfiniteQuery<ReportPage, Error>({
+    queryKey: ["adminReports"], // 쿼리 키
+    queryFn: fetchReports, // API 호출 함수
+    initialPageParam: 0, // 초기 페이지 파라미터
     getNextPageParam: (lastPage) => {
+      // 마지막 페이지면 undefined 반환, 아니면 다음 페이지 번호 반환
       return lastPage.last ? undefined : lastPage.number + 1;
     },
   });
 
   const approveMutation = useMutation({
     mutationFn: async (reportId: number) => {
-      const apiUrl = `http://localhost:8080/api/v1/admin/reports/${reportId}/status`;
+      const apiUrl =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+        `/api/admin/reports/${reportId}/status`;
 
       console.log("Requesting Approve API:", apiUrl);
 
@@ -138,8 +138,8 @@ const AdminReportPage: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
-        body: JSON.stringify({ reportStatus: "APPROVED" }),
+        credentials: "include", // 필요시 사용
+        body: JSON.stringify({ reportStatus: "APPROVED" }), // 요청 본문
       });
 
       if (!response.ok) {
@@ -167,7 +167,9 @@ const AdminReportPage: React.FC = () => {
     mutationFn: async (reportId: number) => {
       // 파라미터 이름 reportId로 명확화
       // API 주소 확인! (프록시 사용 시 상대 경로, 아니면 전체 주소)
-      const apiUrl = `http://localhost:8080/api/v1/admin/reports/${reportId}/status`;
+      const apiUrl =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+        `/api/admin/reports/${reportId}/status`;
 
       console.log("Requesting Reject API:", apiUrl);
 
@@ -200,8 +202,7 @@ const AdminReportPage: React.FC = () => {
   });
 
   // 실제 데이터 배열로 변환
-  const requests =
-    data?.pages.flatMap((page: ReportPage) => page.content) || [];
+  const requests = data?.pages.flatMap((page) => page.content) || [];
 
   // 마지막 요소 관찰 콜백 (무한 스크롤 트리거)
   const lastItemRef = useCallback(
@@ -239,7 +240,9 @@ const AdminReportPage: React.FC = () => {
     // mutationFn은 postId를 인자로 받음
     mutationFn: async (postId: number) => {
       // 확인된 실제 백엔드 게시글 삭제 API 주소 사용
-      const postDeleteApiUrl = `http://localhost:8080/api/v1/admin/posts/${postId}`;
+      const postDeleteApiUrl =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+        `/api/admin/posts/${postId}`;
 
       console.log("Requesting Post Delete API:", postDeleteApiUrl);
 

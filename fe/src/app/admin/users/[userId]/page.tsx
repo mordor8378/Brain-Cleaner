@@ -98,7 +98,9 @@ export default function UserDetailPage() {
       // 나중에 여기에 포인트 내역 로딩 상태(isLoading 같은)를 true로 설정하는 코드 추가 가능
 
       try {
-        const historyApiUrl = `http://localhost:8080/api/admin/users/${userId}/point-history?page=${apiPage}&size=10`;
+        const historyApiUrl =
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/admin/users/${userId}/point-history?page=${apiPage}&size=10`;
         console.log(`[fetchPointHistory] 요청 URL: ${historyApiUrl}`);
 
         // API 호출
@@ -158,7 +160,9 @@ export default function UserDetailPage() {
       setError(null); // 에러 초기화
 
       try {
-        const backendApiUrl = `http://localhost:8080/api/admin/users/${params.userId}`;
+        const backendApiUrl =
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/admin/users/${params.userId}`;
         console.log(`[UserDetail] Request URL: ${backendApiUrl}`);
 
         // API 호출 예시 (실제 구현에서는 실제 API 엔드포인트로 변경)
@@ -241,13 +245,15 @@ export default function UserDetailPage() {
       console.log(
         `[handleApplyChanges] 상태 변경 API 호출 준비: ${selectedStatus}`
       );
-      const statusUrl = `http://localhost:8080/api/admin/users/${userId}/status`;
+      const statusUrl =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+        `/api/admin/users/${userId}/status`;
       apiCalls.push(
         fetch(statusUrl, {
-          method: "PUT",
+          method: "PUT", // ★★★ PUT 방식 사용 ★★★
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ newStatus: selectedStatus }),
+          body: JSON.stringify({ newStatus: selectedStatus }), // ★★★ 백엔드 DTO 필드명 newStatus 에 맞춤 ★★★
         })
       );
     }
@@ -256,13 +262,15 @@ export default function UserDetailPage() {
       console.log(
         `[handleApplyChanges] 역할 변경 API 호출 준비: ${selectedRole}`
       );
-      const roleUrl = `http://localhost:8080/api/admin/users/${userId}/role`;
+      const roleUrl =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+        `/api/admin/users/${userId}/role`;
       apiCalls.push(
         fetch(roleUrl, {
-          method: "PUT",
+          method: "PUT", // ★★★ PUT 방식 사용 ★★★
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ newRole: selectedRole }),
+          body: JSON.stringify({ newRole: selectedRole }), // ★★★ 백엔드 DTO 필드명 newRole 에 맞춤 ★★★
         })
       );
     }

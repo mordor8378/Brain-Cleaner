@@ -52,12 +52,8 @@ export default function Signup() {
     setEmailChecking(true);
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/users/check-email?email=${encodeURIComponent(
-          email
-        )}`,
-        {
-          credentials: "include",
-        }
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/users/check-email?email=${encodeURIComponent(email)}`
       );
       const data = await response.json();
 
@@ -88,12 +84,10 @@ export default function Signup() {
     setNicknameChecking(true);
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/users/check-nickname?nickname=${encodeURIComponent(
-          nickname
-        )}`,
-        {
-          credentials: "include",
-        }
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/users/check-nickname?nickname=${encodeURIComponent(
+            nickname
+          )}`
       );
       const data = await response.json();
 
@@ -247,7 +241,7 @@ export default function Signup() {
 
     try {
       const response = await fetch(
-        "http://localhost:8080/api/v1/users/signup",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/signup",
         {
           method: "POST",
           headers: {
@@ -752,7 +746,7 @@ export default function Signup() {
                 disabled={isLoading || !isFormValid()}
                 className={`group relative flex w-full justify-center rounded-md border border-transparent py-3 px-4 text-sm font-medium text-white ${
                   isFormValid()
-                    ? "bg-pink-500 hover:bg-pink-600"
+                    ? "bg-[#F742CD] hover:opacity-90"
                     : "bg-gray-400 cursor-not-allowed"
                 } focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2`}
               >

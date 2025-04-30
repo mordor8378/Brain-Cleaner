@@ -20,7 +20,7 @@ export default function AdminDashboardPage() {
   // 백엔드 대시보드 통계 API 호출 함수
   const fetchDashboardStats = async (): Promise<AdminDashboardStats> => {
     const response = await fetch(
-      "http://localhost:8080/api/admin/dashboard/stats",
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/admin/dashboard/stats",
       {
         credentials: "include", // 필요시 사용
       }

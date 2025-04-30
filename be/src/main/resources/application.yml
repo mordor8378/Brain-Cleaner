@@ -79,3 +79,9 @@ cloud:
       static: ap-northeast-2
     stack:
       auto: false
+
+admin:
+  initial:
+    email: admin@admin.com
+    password: Admin1234!
+    nickname: 관리자

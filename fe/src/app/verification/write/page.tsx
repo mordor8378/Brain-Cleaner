@@ -92,7 +92,7 @@ export default function VerificationWritePage({
       formData.append("file", file);
 
       // S3 업로드 엔드포인트 사용
-      fetch("http://localhost:8090/api/v1/s3/upload", {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/s3/upload", {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -150,13 +150,16 @@ export default function VerificationWritePage({
         formData.append("postImage", fileInputRef.current.files[0]);
       }
 
-      const res = await fetch(`http://localhost:8080/api/v1/posts`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
+      const postResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/posts`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
 
-      if (res.ok) {
+      if (postResponse.ok) {
         toast.success("인증이 완료되었습니다!");
         await mutate(); // 유저 정보 갱신
 
@@ -170,7 +173,7 @@ export default function VerificationWritePage({
         }
       } else {
         // 에러 응답 처리
-        const errorData = await res.json();
+        const errorData = await postResponse.json();
         toast.error(
           `등록 실패: ${
             errorData.message || "오늘은 더 이상 인증글을 작성할 수 없습니다."

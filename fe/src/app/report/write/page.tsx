@@ -63,7 +63,8 @@ export default function ReportPage({
     // 백엔드 API 호출
     try {
       // API 주소 - 필요시 http://localhost:8090 와 같이 전체 주소로 변경
-      const apiUrl = "http://localhost:8080/api/v1/reports";
+      const apiUrl =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/reports";
 
       // 보낼 데이터 준비 (postId와 reason 사용)
       const reportData = {
