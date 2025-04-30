@@ -84,15 +84,18 @@ export default function MyProfile() {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch("http://localhost:8090/api/v1/users/me", {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            // 캐시 방지
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-          },
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/me",
+          {
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              // 캐시 방지
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              Pragma: "no-cache",
+            },
+          }
+        );
 
         if (response.ok) {
           const data = await response.json();
@@ -135,13 +138,15 @@ export default function MyProfile() {
     try {
       const [followersRes, followingRes] = await Promise.all([
         fetch(
-          `http://localhost:8090/api/v1/follows/${userId}/followers/number`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+            `/api/v1/follows/${userId}/followers/number`,
           {
             credentials: "include",
           }
         ),
         fetch(
-          `http://localhost:8090/api/v1/follows/${userId}/followings/number`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+            `/api/v1/follows/${userId}/followings/number`,
           {
             credentials: "include",
           }
@@ -161,7 +166,8 @@ export default function MyProfile() {
   const fetchUserPosts = async (userId: number) => {
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/user/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/posts/user/${userId}`,
         {
           credentials: "include",
         }
@@ -182,7 +188,8 @@ export default function MyProfile() {
 
       // 1. 연속 인증일수 가져오기
       const streakResponse = await fetch(
-        `http://localhost:8090/api/v1/verifications/streak`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/verifications/streak`,
         {
           credentials: "include",
         }
@@ -195,7 +202,7 @@ export default function MyProfile() {
 
       // 2. 인증 카테고리(categoryId=1)의 모든 게시물 가져오기
       const categoryPostsResponse = await fetch(
-        `http://localhost:8090/api/v1/posts/category/1`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/posts/category/1`,
         {
           credentials: "include",
         }
@@ -222,7 +229,7 @@ export default function MyProfile() {
 
         // 최신 userInfo 가져오기
         const latestUserInfo = await fetch(
-          "http://localhost:8090/api/v1/users/me",
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/me",
           {
             credentials: "include",
             headers: {
@@ -269,7 +276,8 @@ export default function MyProfile() {
       setCommentsLoading(true);
       // 올바른 API 엔드포인트로 사용자 댓글 가져오기
       const response = await fetch(
-        `http://localhost:8090/api/v1/comments/user/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/comments/user/${userId}`,
         {
           credentials: "include",
         }
@@ -304,7 +312,8 @@ export default function MyProfile() {
 
             try {
               const postResponse = await fetch(
-                `http://localhost:8090/api/v1/posts/${comment.postId}`,
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+                  `/api/v1/posts/${comment.postId}`,
                 {
                   credentials: "include",
                 }
@@ -357,7 +366,8 @@ export default function MyProfile() {
     try {
       setIsLoadingFollows(true);
       const response = await fetch(
-        `http://localhost:8090/api/v1/follows/${userId}/followers`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/follows/${userId}/followers`,
         {
           credentials: "include",
         }
@@ -379,7 +389,8 @@ export default function MyProfile() {
     try {
       setIsLoadingFollows(true);
       const response = await fetch(
-        `http://localhost:8090/api/v1/follows/${userId}/followings`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/follows/${userId}/followings`,
         {
           credentials: "include",
         }

@@ -118,11 +118,14 @@ export default function WritePostPage({
         formData.append("file", file);
 
         // S3 업로드 엔드포인트 사용 - Promise를 배열에 추가
-        const uploadPromise = fetch("http://localhost:8090/api/v1/s3/upload", {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        })
+        const uploadPromise = fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/s3/upload",
+          {
+            method: "POST",
+            body: formData,
+            credentials: "include",
+          }
+        )
           .then((response) => {
             if (response.ok) {
               return response.text(); // 백엔드에서 문자열로 URL만 반환
@@ -232,11 +235,14 @@ export default function WritePostPage({
         console.log(`FormData에 포함된 키: ${key}`);
       }
 
-      const res = await fetch(`http://localhost:8090/api/v1/posts`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/posts`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
 
       if (res.ok) {
         const response = await res.json();

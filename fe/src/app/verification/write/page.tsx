@@ -92,7 +92,7 @@ export default function VerificationWritePage({
       formData.append("file", file);
 
       // S3 업로드 엔드포인트 사용
-      fetch("http://localhost:8090/api/v1/s3/upload", {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/s3/upload", {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -150,11 +150,14 @@ export default function VerificationWritePage({
         formData.append("postImage", fileInputRef.current.files[0]);
       }
 
-      const postResponse = await fetch(`http://localhost:8090/api/v1/posts`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
+      const postResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/posts`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
 
       if (postResponse.ok) {
         toast.success("인증이 완료되었습니다!");

@@ -35,12 +35,15 @@ export default function EditProfile() {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch("http://localhost:8090/api/v1/users/me", {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/me",
+          {
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (response.ok) {
           const data = await response.json();
@@ -99,11 +102,14 @@ export default function EditProfile() {
           file.type
         );
 
-        const response = await fetch("http://localhost:8090/api/v1/s3/upload", {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/s3/upload",
+          {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+          }
+        );
 
         console.log("Upload response status:", response.status);
 
@@ -190,7 +196,8 @@ export default function EditProfile() {
       }
 
       const response = await fetch(
-        `http://localhost:8090/api/v1/users/${userInfo.id}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/users/${userInfo.id}`,
         {
           method: "PUT",
           credentials: "include",
@@ -233,7 +240,8 @@ export default function EditProfile() {
     try {
       console.log("API 호출 시도:", userInfo.id);
       const response = await fetch(
-        `http://localhost:8090/api/v1/users/${userInfo.id}/password`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/users/${userInfo.id}/password`,
         {
           method: "PUT",
           credentials: "include",
@@ -276,7 +284,8 @@ export default function EditProfile() {
     try {
       // 계정 삭제 요청
       const deleteResponse = await fetch(
-        `http://localhost:8090/api/v1/users/${userInfo.id}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/users/${userInfo.id}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -289,7 +298,7 @@ export default function EditProfile() {
       if (deleteResponse.ok) {
         // 로그아웃 요청
         const logoutResponse = await fetch(
-          "http://localhost:8090/api/v1/users/logout",
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/logout",
           {
             method: "POST",
             credentials: "include",
