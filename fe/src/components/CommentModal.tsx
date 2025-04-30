@@ -126,7 +126,7 @@ export default function CommentModal({
 
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/follows/check?followingId=${userId}`,
+        `http://localhost:8080/api/v1/follows/check?followingId=${userId}`,
         { credentials: "include" }
       );
 
@@ -147,7 +147,7 @@ export default function CommentModal({
     setFollowLoading(true);
     try {
       // 현재 로그인한 사용자 정보 가져오기
-      const meResponse = await fetch("http://localhost:8090/api/v1/users/me", {
+      const meResponse = await fetch("http://localhost:8080/api/v1/users/me", {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -163,7 +163,7 @@ export default function CommentModal({
       if (isFollowing) {
         // 언팔로우
         const response = await fetch(
-          `http://localhost:8090/api/v1/follows/${meData.id}/${userId}`,
+          `http://localhost:8080/api/v1/follows/${meData.id}/${userId}`,
           {
             method: "DELETE",
             credentials: "include",
@@ -182,7 +182,7 @@ export default function CommentModal({
         }
       } else {
         // 팔로우
-        const response = await fetch(`http://localhost:8090/api/v1/follows`, {
+        const response = await fetch(`http://localhost:8080/api/v1/follows`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -221,7 +221,7 @@ export default function CommentModal({
   ) => {
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/users/${userId}`,
+        `http://localhost:8080/api/v1/users/${userId}`,
         { credentials: "include" }
       );
 
@@ -240,7 +240,7 @@ export default function CommentModal({
   const fetchComments = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/comments/${postId}`,
+        `http://localhost:8080/api/v1/comments/${postId}`,
         {
           credentials: "include",
         }
@@ -346,7 +346,7 @@ export default function CommentModal({
         try {
           console.log(`유저 ID ${userId}의 프로필 이미지 요청 중`);
           const profileResponse = await fetch(
-            `http://localhost:8090/api/v1/users/${userId}`,
+            `http://localhost:8080/api/v1/users/${userId}`,
             {
               credentials: "include",
             }
@@ -581,7 +581,7 @@ export default function CommentModal({
 
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:8090/api/v1/comments`, {
+      const response = await fetch(`http://localhost:8080/api/v1/comments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -665,7 +665,7 @@ export default function CommentModal({
   const handleDeleteComment = async (commentId: number) => {
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/comments/${commentId}`,
+        `http://localhost:8080/api/v1/comments/${commentId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -712,7 +712,7 @@ export default function CommentModal({
 
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}`,
+        `http://localhost:8080/api/v1/posts/${postId}`,
         {
           method: "PATCH",
           headers: {

@@ -53,7 +53,7 @@ export const fetchEmojis = async (): Promise<Emoji[]> => {
 export const fetchPurchasedEmojis = async (): Promise<Emoji[]> => {
   try {
     const response = await fetch(
-      "http://localhost:8090/api/v1/pointstore/my-purchases",
+      "http://localhost:8080/api/v1/pointstore/my-purchases",
       {
         credentials: "include",
       }

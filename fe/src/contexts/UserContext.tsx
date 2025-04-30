@@ -65,7 +65,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       ); // 로그 추가
 
       console.log("[UserContext:fetchUserInfo] /api/v1/users/me 호출 시작"); // 로그 추가
-      const response = await fetch("http://localhost:8090/api/v1/users/me", {
+      const response = await fetch("http://localhost:8080/api/v1/users/me", {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -155,7 +155,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       console.log("[UserContext:logout] 시작"); // 로그 추가
       const response = await fetch(
-        "http://localhost:8090/api/v1/users/logout",
+        "http://localhost:8080/api/v1/users/logout",
         {
           method: "POST",
           credentials: "include",
@@ -231,7 +231,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             "[UserContext:useEffect:checkAuth] 로그인 상태 확인됨. /api/v1/users/me 호출 시작"
           ); // 로그 추가
           const response = await fetch(
-            "http://localhost:8090/api/v1/users/me",
+            "http://localhost:8080/api/v1/users/me",
             {
               credentials: "include",
             }
@@ -352,7 +352,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       // 1. 연속 인증일수 가져오기
       const streakResponse = await fetch(
-        `http://localhost:8090/api/v1/verifications/streak`,
+        `http://localhost:8080/api/v1/verifications/streak`,
         {
           credentials: "include",
         }
@@ -365,7 +365,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       // 2. 인증 게시글만 필터링하여 가져오기 (categoryId가 1인 게시글만)
       const verificationPostsResponse = await fetch(
-        `http://localhost:8090/api/v1/posts/user/${userId}?categoryId=1`,
+        `http://localhost:8080/api/v1/posts/user/${userId}?categoryId=1`,
         {
           credentials: "include",
         }

@@ -177,7 +177,7 @@ export default function Post({
         const fetchUserProfile = async () => {
           try {
             const response = await fetch(
-              `http://localhost:8090/api/v1/users/${userId}`,
+              `http://localhost:8080/api/v1/users/${userId}`,
               {
                 credentials: "include",
               }
@@ -274,7 +274,7 @@ export default function Post({
       );
 
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}`,
+        `http://localhost:8080/api/v1/posts/${postId}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -324,7 +324,7 @@ export default function Post({
       );
 
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}`,
+        `http://localhost:8080/api/v1/posts/${postId}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -458,7 +458,7 @@ export default function Post({
     try {
       console.log("이미지 업로드 요청 시작");
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}`,
+        `http://localhost:8080/api/v1/posts/${postId}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -595,7 +595,7 @@ export default function Post({
       );
 
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}`,
+        `http://localhost:8080/api/v1/posts/${postId}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -1175,7 +1175,7 @@ export default function Post({
 
             try {
               const response = await fetch(
-                `http://localhost:8090/api/v1/posts/${postId}`,
+                `http://localhost:8080/api/v1/posts/${postId}`,
                 {
                   method: "PATCH",
                   credentials: "include",

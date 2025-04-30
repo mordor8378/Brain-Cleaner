@@ -52,9 +52,12 @@ export default function Signup() {
     setEmailChecking(true);
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/users/check-email?email=${encodeURIComponent(
+        `http://localhost:8080/api/v1/users/check-email?email=${encodeURIComponent(
           email
-        )}`
+        )}`,
+        {
+          credentials: "include",
+        }
       );
       const data = await response.json();
 
@@ -85,9 +88,12 @@ export default function Signup() {
     setNicknameChecking(true);
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/users/check-nickname?nickname=${encodeURIComponent(
+        `http://localhost:8080/api/v1/users/check-nickname?nickname=${encodeURIComponent(
           nickname
-        )}`
+        )}`,
+        {
+          credentials: "include",
+        }
       );
       const data = await response.json();
 
@@ -241,7 +247,7 @@ export default function Signup() {
 
     try {
       const response = await fetch(
-        "http://localhost:8090/api/v1/users/signup",
+        "http://localhost:8080/api/v1/users/signup",
         {
           method: "POST",
           headers: {
