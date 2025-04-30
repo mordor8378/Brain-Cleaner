@@ -1203,7 +1203,10 @@ export default function Home() {
                       로그인이 필요한 서비스입니다
                     </p>
                     <Link href="/login">
-                      <button className="bg-pink-500 text-white py-2 px-6 rounded-full text-sm font-medium hover:bg-pink-600 transition">
+                      <button
+                        className="text-white py-2 px-6 rounded-full text-sm font-medium hover:opacity-90 transition"
+                        style={{ backgroundColor: "#F742CD" }}
+                      >
                         로그인하기
                       </button>
                     </Link>
