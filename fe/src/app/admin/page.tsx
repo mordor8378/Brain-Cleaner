@@ -3,7 +3,7 @@
 
 import React from "react";
 import Link from "next/link"; // Next.js 링크 사용
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface AdminDashboardStats {
   totalUsers: number;
@@ -11,10 +11,12 @@ interface AdminDashboardStats {
   verificationsProcessedToday: number; // '오늘 처리'에 해당
   usersJoinedToday: number; // '오늘 가입자'에 해당
   pendingReports: number;
-  reportsProcessedToday?: number;
+  reportsProcessedToday: number;
 }
 
 export default function AdminDashboardPage() {
+  const queryClient = useQueryClient();
+
   // 백엔드 대시보드 통계 API 호출 함수
   const fetchDashboardStats = async (): Promise<AdminDashboardStats> => {
     const response = await fetch(
