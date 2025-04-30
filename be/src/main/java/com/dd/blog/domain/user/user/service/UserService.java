@@ -73,8 +73,6 @@ public class UserService {
                 .refreshToken(null)
                 .build();
 
-        log.info("요청받은 role = {}", user.getRole());
-
         return userRepository.save(user);
     }
 
