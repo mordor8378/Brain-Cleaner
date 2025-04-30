@@ -41,7 +41,10 @@ public enum UserRole {
         return this.minPoints > otherRole.getMinPoints();
     }
 
-
+    @Override
+    public String toString() {
+        return name();  // ← enum 이름 그대로 리턴 (예: "ROLE_USER_SPROUT")
+    }
 
 
 }
