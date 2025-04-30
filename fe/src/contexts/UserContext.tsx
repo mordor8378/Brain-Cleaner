@@ -8,6 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 export interface User {
   id: number;
@@ -64,12 +65,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       ); // 로그 추가
 
       console.log("[UserContext:fetchUserInfo] /api/v1/users/me 호출 시작"); // 로그 추가
-      const response = await fetch("http://localhost:8090/api/v1/users/me", {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/me",
+        {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       console.log(
         "[UserContext:fetchUserInfo] /api/v1/users/me 응답 상태:",
         response.status
@@ -154,7 +158,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       console.log("[UserContext:logout] 시작"); // 로그 추가
       const response = await fetch(
-        "http://localhost:8090/api/v1/users/logout",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/logout",
         {
           method: "POST",
           credentials: "include",
@@ -204,12 +208,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         const urlParams = new URLSearchParams(window.location.search);
         const isSocialLogin = urlParams.get("social") === "true";
+        const isNewLogin = urlParams.get("login") === "true";
         const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
         console.log(
           `[UserContext:useEffect:checkAuth] 소셜로그인 감지: ${isSocialLogin}, 로컬로그인상태: ${isLoggedIn}`
         ); // 로그 추가
 
-        if (isSocialLogin) {
+        if (isSocialLogin || isNewLogin) {
           console.log(
             "[UserContext:useEffect:checkAuth] 소셜 로그인 처리 시작 (URL 파라미터 제거)"
           ); // 로그 추가
@@ -218,6 +223,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
             document.title,
             window.location.pathname
           );
+          // 새로운 로그인인 경우에만 토스트 메시지 표시
+          if (isSocialLogin || isNewLogin) {
+            toast.success("로그인에 성공했습니다.");
+          }
         }
 
         if (isSocialLogin || isLoggedIn) {
@@ -225,7 +234,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             "[UserContext:useEffect:checkAuth] 로그인 상태 확인됨. /api/v1/users/me 호출 시작"
           ); // 로그 추가
           const response = await fetch(
-            "http://localhost:8090/api/v1/users/me",
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/me",
             {
               credentials: "include",
             }
@@ -346,7 +355,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       // 1. 연속 인증일수 가져오기
       const streakResponse = await fetch(
-        `http://localhost:8090/api/v1/verifications/streak`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/verifications/streak`,
         {
           credentials: "include",
         }
@@ -359,7 +369,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       // 2. 인증 게시글만 필터링하여 가져오기 (categoryId가 1인 게시글만)
       const verificationPostsResponse = await fetch(
-        `http://localhost:8090/api/v1/posts/user/${userId}?categoryId=1`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/posts/user/${userId}?categoryId=1`,
         {
           credentials: "include",
         }

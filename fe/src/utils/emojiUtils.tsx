@@ -22,7 +22,7 @@ export const fetchEmojis = async (): Promise<Emoji[]> => {
 
     // 이모티콘 목록 조회
     const response = await fetch(
-      "http://localhost:8090/api/v1/pointstore/items",
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/pointstore/items",
       {
         credentials: "include",
       }
@@ -53,7 +53,8 @@ export const fetchEmojis = async (): Promise<Emoji[]> => {
 export const fetchPurchasedEmojis = async (): Promise<Emoji[]> => {
   try {
     const response = await fetch(
-      "http://localhost:8090/api/v1/pointstore/my-purchases",
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+        "/api/v1/pointstore/my-purchases",
       {
         credentials: "include",
       }

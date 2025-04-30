@@ -25,6 +25,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 특정 사용자의 게시물 목록 조회
     List<Post> findByUserOrderByCreatedAtDesc(User user);
 
+    Page<Post> findByCategoryIdOrderByIdAsc(Long categoryId, Pageable pageable);
+
     // 카테고리 ID로 게시글 페이지 조회
     Page<Post> findByCategoryIdOrderByCreatedAtDesc(Long categoryId, Pageable pageable);
 
@@ -38,4 +40,16 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> searchByTypeAndKeyword(@Param("type") String type, @Param("keyword") String keyword);
 
     long countByUserIdAndCategoryIdAndCreatedAtBetween(Long userId, Long categoryId, LocalDateTime start, LocalDateTime end);
+
+    // 팔로우한 유저 기준 조회
+    Page<Post> findByUserIn(List<User> users, Pageable pageable);
+
+    // 카테고리 ID 기준 조회
+    Page<Post> findByCategoryId(Long categoryId, Pageable pageable);
+
+    // 검색 결과 페이징
+    @Query("SELECT p FROM Post p " +
+            "WHERE (:type = 'title' AND p.title LIKE %:keyword%) " +
+            "   OR (:type = 'writer' AND p.user.nickname LIKE %:keyword%)")
+    Page<Post> searchByTypeAndKeywordPageable(@Param("type") String type, @Param("keyword") String keyword, Pageable pageable);
 }

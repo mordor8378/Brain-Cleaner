@@ -10,6 +10,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { useGlobalEmojis, convertEmojiCodesToImages } from "@/utils/emojiUtils";
 
 export interface Post {
   postId: number;
@@ -28,6 +29,8 @@ export interface Post {
   likedByCurrentUser: boolean;
   userProfileImage?: string | null;
   userRole: string;
+  categoryId: number;
+  status?: string;
 }
 
 interface PostsResponse {
@@ -60,6 +63,8 @@ export default function Home() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
   const [weeklyVerifications, setWeeklyVerifications] = useState<string[]>([]);
+  const { globalEmojis, isLoading: isGlobalEmojisLoading } = useGlobalEmojis();
+  const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
 
   // QueryClient 인스턴스 -> 캐시 조작용
   const queryClient = useQueryClient();
@@ -68,6 +73,12 @@ export default function Home() {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isGlobalEmojisLoading) {
+      setIsEmojiLoaded(true);
+    }
+  }, [isGlobalEmojisLoading]);
 
   const boardOptions = [
     { value: "0", label: "전체게시판" },
@@ -81,7 +92,9 @@ export default function Home() {
   const fetchPosts = async ({ pageParam = 0 }): Promise<PostsResponse> => {
     let url = "";
     const sortParam =
-      sortType === "popular" ? "&sort=likeCount,desc" : "&sort=createdAt,desc";
+      sortType === "popular"
+        ? "&sort=likeCount,desc&sort=id,asc"
+        : "&sort=createdAt,desc";
 
     // 팔로워 게시판 선택 시 다른 엔드포인트 사용
     if (selectedBoard === "following") {
@@ -94,18 +107,24 @@ export default function Home() {
           number: 0,
         };
       }
-      url = `http://localhost:8090/api/v1/posts/following/${user.id}/pageable?page=${pageParam}&size=10${sortParam}`;
+      url =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+        `/api/v1/posts/following/${user.id}/pageable?page=${pageParam}&size=10${sortParam}`;
     } else {
       const categoryParam =
         selectedBoard === "0" ? "" : `&categoryId=${selectedBoard}`;
-      url = `http://localhost:8090/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
+      url =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+        `/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
     }
 
     // 검색어가 있으면 검색 API 사용
     if (searchKeyword.trim()) {
-      url = `http://localhost:8090/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(
-        searchKeyword.trim()
-      )}&page=${pageParam}&size=10${sortParam}`;
+      url =
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+        `/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(
+          searchKeyword.trim()
+        )}&page=${pageParam}&size=10${sortParam}`;
     }
 
     console.log("요청 URL:", url);
@@ -137,7 +156,8 @@ export default function Home() {
         // 게시글별 좋아요 상태 확인을 위한 API 호출
         const likeStatusPromises = postsToProcess.map((post: Post) =>
           fetch(
-            `http://localhost:8090/api/v1/posts/${post.postId}/like/check`,
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+              `/api/v1/posts/${post.postId}/like/check`,
             {
               credentials: "include",
             }
@@ -203,6 +223,17 @@ export default function Home() {
     },
     enabled: !loading, // 유저 정보 로딩이 완료된 경우에만 쿼리 활성화
   });
+
+  const handleSortTypeChange = () => {
+    // 현재 정렬 방식의 반대로 설정
+    const newSortType = sortType === "latest" ? "popular" : "latest";
+    setSortType(newSortType);
+
+    // 캐시 무효화, 데이터 refetch
+    queryClient.invalidateQueries({
+      queryKey: ["posts"],
+    });
+  };
 
   const handleSearch = async () => {
     if (!searchKeyword.trim()) {
@@ -273,13 +304,15 @@ export default function Home() {
         try {
           const [followersRes, followingRes] = await Promise.all([
             fetch(
-              `http://localhost:8090/api/v1/follows/${user.id}/followers/number`,
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+                `/api/v1/follows/${user.id}/followers/number`,
               {
                 credentials: "include",
               }
             ),
             fetch(
-              `http://localhost:8090/api/v1/follows/${user.id}/followings/number`,
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+                `/api/v1/follows/${user.id}/followings/number`,
               {
                 credentials: "include",
               }
@@ -303,7 +336,8 @@ export default function Home() {
         try {
           // 주간 인증 현황 조회
           const weeklyResponse = await fetch(
-            "http://localhost:8090/api/v1/verifications/weekly",
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+              "/api/v1/verifications/weekly",
             {
               credentials: "include",
             }
@@ -316,7 +350,8 @@ export default function Home() {
 
           // 연속 인증 일수 조회
           const streakResponse = await fetch(
-            "http://localhost:8090/api/v1/verifications/streak",
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+              "/api/v1/verifications/streak",
             {
               credentials: "include",
             }
@@ -381,7 +416,8 @@ export default function Home() {
       try {
         // 더 많은 게시글을 가져와서 정렬하기 위해 size 증가
         const response = await fetch(
-          "http://localhost:8090/api/v1/posts/pageable?page=0&size=50&sort=likeCount,desc",
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+            "/api/v1/posts/pageable?page=0&size=50&sort=likeCount,desc",
           {
             credentials: "include",
           }
@@ -413,7 +449,8 @@ export default function Home() {
                 // 각 게시글의 좋아요 상태 가져오기
                 const likeStatusPromises = top5Posts.map((post: Post) =>
                   fetch(
-                    `http://localhost:8090/api/v1/posts/${post.postId}/like/check`,
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+                      `/api/v1/posts/${post.postId}/like/check`,
                     {
                       credentials: "include",
                     }
@@ -458,9 +495,13 @@ export default function Home() {
 
   // 게시글 세부 정보 가져오기
   const fetchPostDetail = async (postId: number) => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/posts/${postId}`,
         {
           credentials: "include",
         }
@@ -473,7 +514,8 @@ export default function Home() {
         if (user?.id) {
           try {
             const likeStatusResponse = await fetch(
-              `http://localhost:8090/api/v1/posts/${postId}/like/check`,
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+                `/api/v1/posts/${postId}/like/check`,
               {
                 credentials: "include",
               }
@@ -499,15 +541,68 @@ export default function Home() {
     }
   };
 
+  const getSafeImageUrl = (imageUrl: string | string[]): string => {
+    if (!imageUrl) return "";
+
+    try {
+      // 배열인 경우
+      if (Array.isArray(imageUrl) && imageUrl.length > 0) {
+        // 유효한 URL만 반환
+        for (let i = 0; i < imageUrl.length; i++) {
+          if (imageUrl[i] && imageUrl[i].trim() !== "") {
+            return imageUrl[i];
+          }
+        }
+        return "";
+      }
+
+      // JSON 문자열인 경우
+      if (
+        typeof imageUrl === "string" &&
+        imageUrl.startsWith("[") &&
+        imageUrl.endsWith("]")
+      ) {
+        try {
+          const parsed = JSON.parse(imageUrl);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // 유효한 URL만 반환
+            for (let i = 0; i < parsed.length; i++) {
+              if (parsed[i] && parsed[i].trim() !== "") {
+                return parsed[i];
+              }
+            }
+          }
+        } catch (e) {
+          console.error("이미지 URL JSON 파싱 오류:", e);
+        }
+        return "";
+      }
+
+      // 일반 문자열인 경우
+      if (typeof imageUrl === "string" && imageUrl.trim() !== "") {
+        return imageUrl;
+      }
+
+      return "";
+    } catch (e) {
+      console.error("이미지 URL 파싱 오류:", e);
+      return "";
+    }
+  };
+
   const handleBoardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     console.log("선택된 카테고리:", e.target.value); // 카테고리 변경 확인용 로그
     setSelectedBoard(e.target.value);
     setSearchKeyword(""); // 게시판 변경 시 검색어 초기화
   };
 
-  const openWriteModal = () => {
+  const openWriteModal = (isVerification: boolean = false) => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     setShowWriteModal(true);
-    setWriteCategory("2"); // 기본값으로 정보공유게시판 설정
+    setWriteCategory(isVerification ? "1" : "2"); // 인증게시판(1) 또는 정보공유게시판(2)
   };
 
   const closeWriteModal = () => {
@@ -520,9 +615,14 @@ export default function Home() {
   };
 
   const handleLike = async (postId: number) => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}/like`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/posts/${postId}/like`,
         {
           method: "POST",
           credentials: "include",
@@ -566,9 +666,14 @@ export default function Home() {
   };
 
   const handleUnlike = async (postId: number) => {
+    if (!user) {
+      toast.error("로그인이 필요한 기능입니다.");
+      return;
+    }
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}/like`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/posts/${postId}/like`,
         {
           method: "DELETE",
           credentials: "include",
@@ -628,7 +733,7 @@ export default function Home() {
   const handleDelete = async (postId: number) => {
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/posts/${postId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -829,8 +934,9 @@ export default function Home() {
                       renderAdminButton()
                     ) : (
                       <button
-                        onClick={openWriteModal}
-                        className="mt-3 w-full bg-pink-500 text-white py-3 px-4 rounded-full hover:bg-pink-600 transition font-medium"
+                        onClick={() => openWriteModal(true)}
+                        className="mt-3 w-full text-white py-2 px-4 rounded-full hover:opacity-90 transition text-sm font-medium"
+                        style={{ backgroundColor: "#F742CD" }}
                       >
                         오늘 인증하기
                       </button>
@@ -881,14 +987,20 @@ export default function Home() {
                     <div className="mt-4">
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-gray-600">보유 포인트</span>
-                        <span className="font-bold text-pink-500">
+                        <span
+                          className="font-bold"
+                          style={{ color: "#F742CD" }}
+                        >
                           {user.remainingPoint || 0} P
                         </span>
                       </div>
                       <div className="flex justify-between text-sm mb-4">
                         <span className="text-gray-600">연속 인증</span>
-                        <span className="font-bold text-pink-500">
-                          {streakDays}일째
+                        <span
+                          className="font-bold"
+                          style={{ color: "#F742CD" }}
+                        >
+                          {streakDays}일 째
                         </span>
                       </div>
 
@@ -901,12 +1013,13 @@ export default function Home() {
 
                       <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
                         <div
-                          className="bg-pink-500 h-2.5 rounded-full"
+                          className="h-2.5 rounded-full"
                           style={{
                             width: `${Math.min(
                               100,
                               ((user.totalPoint || 0) / maxProgressPoints) * 100
                             )}%`,
+                            backgroundColor: "#F742CD",
                           }}
                         ></div>
                       </div>
@@ -942,7 +1055,10 @@ export default function Home() {
                   </p>
 
                   <Link href="/login" className="w-full">
-                    <button className="w-full bg-pink-500 text-white py-2 px-4 rounded-full hover:bg-pink-600 transition">
+                    <button
+                      className="w-full text-white py-2 px-4 rounded-full hover:opacity-90 transition"
+                      style={{ backgroundColor: "#F742CD" }}
+                    >
                       로그인하기
                     </button>
                   </Link>
@@ -950,7 +1066,8 @@ export default function Home() {
                   <div className="mt-2 w-full text-center">
                     <Link
                       href="/signup"
-                      className="text-sm text-pink-500 hover:text-pink-700"
+                      className="text-sm hover:opacity-90 transition"
+                      style={{ color: "#F742CD" }}
                     >
                       아직 계정이 없으신가요? 회원가입
                     </Link>
@@ -995,8 +1112,9 @@ export default function Home() {
                     </div>
                   </div>
                   <button
-                    onClick={openWriteModal}
-                    className="bg-pink-500 text-white py-2 px-6 rounded-full text-sm font-medium hover:bg-pink-600 transition"
+                    onClick={() => openWriteModal(false)}
+                    className="text-white py-2 px-6 rounded-full hover:opacity-90 transition text-sm font-medium"
+                    style={{ backgroundColor: "#F742CD" }}
                   >
                     글쓰기
                   </button>
@@ -1007,11 +1125,7 @@ export default function Home() {
                   <div className="flex items-center gap-2">
                     {/* 정렬 토글 버튼 */}
                     <button
-                      onClick={() =>
-                        setSortType(
-                          sortType === "latest" ? "popular" : "latest"
-                        )
-                      }
+                      onClick={handleSortTypeChange}
                       className="px-4 py-1.5 text-sm text-gray-600 rounded-full hover:bg-gray-100/50 transition-all duration-200 whitespace-nowrap flex items-center"
                     >
                       <span className="text-base leading-none">
@@ -1105,7 +1219,10 @@ export default function Home() {
                       로그인이 필요한 서비스입니다
                     </p>
                     <Link href="/login">
-                      <button className="bg-pink-500 text-white py-2 px-6 rounded-full text-sm font-medium hover:bg-pink-600 transition">
+                      <button
+                        className="text-white py-2 px-6 rounded-full text-sm font-medium hover:opacity-90 transition"
+                        style={{ backgroundColor: "#F742CD" }}
+                      >
                         로그인하기
                       </button>
                     </Link>
@@ -1178,6 +1295,8 @@ export default function Home() {
                             onCommentUpdate={(count) =>
                               handleCommentUpdate(post.postId, count)
                             }
+                            categoryId={post.categoryId}
+                            status={post.status}
                           />
                         </div>
                       );
@@ -1299,28 +1418,40 @@ export default function Home() {
                 </div>
 
                 <div className="mb-4">
-                  <p className="text-gray-700">{selectedPost.content}</p>
+                  <p className="text-gray-700">
+                    {isEmojiLoaded ? (
+                      <>
+                        {convertEmojiCodesToImages(
+                          selectedPost.content || "",
+                          globalEmojis
+                        )}
+                      </>
+                    ) : (
+                      selectedPost.content
+                    )}
+                  </p>
                 </div>
 
-                {selectedPost.imageUrl && (
-                  <div className="mb-4">
-                    <Image
-                      src={selectedPost.imageUrl}
-                      alt="게시글 이미지"
-                      width={500}
-                      height={300}
-                      className="rounded-lg w-full h-auto"
-                      unoptimized={true}
-                      onError={(e) => {
-                        console.error(
-                          "이미지 로드 실패:",
-                          selectedPost.imageUrl
-                        );
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  </div>
-                )}
+                {selectedPost.imageUrl &&
+                  getSafeImageUrl(selectedPost.imageUrl) && (
+                    <div className="mb-4">
+                      <Image
+                        src={getSafeImageUrl(selectedPost.imageUrl)}
+                        alt="게시글 이미지"
+                        width={500}
+                        height={300}
+                        className="rounded-lg w-full h-auto"
+                        unoptimized={true}
+                        onError={(e) => {
+                          console.error(
+                            "이미지 로드 실패:",
+                            selectedPost.imageUrl
+                          );
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
 
                 <div className="flex items-center text-gray-500 text-sm">
                   <div className="flex items-center mr-4">

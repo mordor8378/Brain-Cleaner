@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { debounce } from "lodash";
+import { toast } from "react-hot-toast";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -51,9 +52,8 @@ export default function Signup() {
     setEmailChecking(true);
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/users/check-email?email=${encodeURIComponent(
-          email
-        )}`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/users/check-email?email=${encodeURIComponent(email)}`
       );
       const data = await response.json();
 
@@ -84,9 +84,10 @@ export default function Signup() {
     setNicknameChecking(true);
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/users/check-nickname?nickname=${encodeURIComponent(
-          nickname
-        )}`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/users/check-nickname?nickname=${encodeURIComponent(
+            nickname
+          )}`
       );
       const data = await response.json();
 
@@ -231,7 +232,7 @@ export default function Signup() {
     e.preventDefault();
 
     if (!isFormValid()) {
-      setGeneralError("입력 정보를 확인해주세요.");
+      toast.error("입력 정보를 확인해주세요.");
       return;
     }
 
@@ -240,12 +241,13 @@ export default function Signup() {
 
     try {
       const response = await fetch(
-        "http://localhost:8090/api/v1/users/signup",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/signup",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
             email,
             password,
@@ -255,15 +257,16 @@ export default function Signup() {
       );
 
       if (response.ok) {
+        toast.success("회원가입에 성공했습니다.");
         // 회원가입 성공 시 로그인 페이지로 이동
         router.push("/login?signup=success");
       } else {
         const errorData = await response.json().catch(() => null);
-        setGeneralError(errorData?.message || "회원가입에 실패했습니다.");
+        toast.error(errorData?.message || "회원가입에 실패했습니다.");
       }
     } catch (error) {
       console.error("회원가입 중 오류 발생:", error);
-      setGeneralError("서버 오류가 발생했습니다.");
+      toast.error("서버 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -744,7 +747,7 @@ export default function Signup() {
                 disabled={isLoading || !isFormValid()}
                 className={`group relative flex w-full justify-center rounded-md border border-transparent py-3 px-4 text-sm font-medium text-white ${
                   isFormValid()
-                    ? "bg-pink-500 hover:bg-pink-600"
+                    ? "bg-[#F742CD] hover:opacity-90"
                     : "bg-gray-400 cursor-not-allowed"
                 } focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2`}
               >

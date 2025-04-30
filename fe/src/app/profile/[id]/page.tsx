@@ -143,7 +143,7 @@ export default function OtherUserProfile() {
       try {
         setIsLoading(true);
         const response = await fetch(
-          `http://localhost:8090/api/v1/users/${userId}`,
+          `http://localhost:8080/api/v1/users/${userId}`,
           {
             credentials: "include",
             headers: {
@@ -194,13 +194,13 @@ export default function OtherUserProfile() {
     try {
       const [followersRes, followingRes] = await Promise.all([
         fetch(
-          `http://localhost:8090/api/v1/follows/${userId}/followers/number`,
+          `http://localhost:8080/api/v1/follows/${userId}/followers/number`,
           {
             credentials: "include",
           }
         ),
         fetch(
-          `http://localhost:8090/api/v1/follows/${userId}/followings/number`,
+          `http://localhost:8080/api/v1/follows/${userId}/followings/number`,
           {
             credentials: "include",
           }
@@ -220,7 +220,7 @@ export default function OtherUserProfile() {
   const fetchUserPosts = async (userId: number) => {
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/user/${userId}`,
+        `http://localhost:8080/api/v1/posts/user/${userId}`,
         {
           credentials: "include",
         }
@@ -238,7 +238,7 @@ export default function OtherUserProfile() {
   const checkFollowStatus = async (profileUserId: number) => {
     try {
       // 현재 로그인한 사용자 정보 가져오기
-      const meResponse = await fetch("http://localhost:8090/api/v1/users/me", {
+      const meResponse = await fetch("http://localhost:8080/api/v1/users/me", {
         credentials: "include",
       });
 
@@ -253,7 +253,7 @@ export default function OtherUserProfile() {
 
         // 팔로우 상태 확인 API 호출
         const followStatusResponse = await fetch(
-          `http://localhost:8090/api/v1/follows/check?followerId=${meData.id}&followingId=${profileUserId}`,
+          `http://localhost:8080/api/v1/follows/check?followerId=${meData.id}&followingId=${profileUserId}`,
           {
             credentials: "include",
           }
@@ -276,7 +276,7 @@ export default function OtherUserProfile() {
   const handleFollowToggle = async () => {
     try {
       // 현재 로그인한 사용자 정보 가져오기
-      const meResponse = await fetch("http://localhost:8090/api/v1/users/me", {
+      const meResponse = await fetch("http://localhost:8080/api/v1/users/me", {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -298,7 +298,7 @@ export default function OtherUserProfile() {
       if (isFollowing) {
         // 언팔로우 로직
         const unfollowResponse = await fetch(
-          `http://localhost:8090/api/v1/follows/${meData.id}/${userInfo.id}`,
+          `http://localhost:8080/api/v1/follows/${meData.id}/${userInfo.id}`,
           {
             method: "DELETE",
             credentials: "include",
@@ -319,7 +319,7 @@ export default function OtherUserProfile() {
       } else {
         // 팔로우 로직
         const followResponse = await fetch(
-          "http://localhost:8090/api/v1/follows",
+          "http://localhost:8080/api/v1/follows",
           {
             method: "POST",
             credentials: "include",
@@ -356,7 +356,7 @@ export default function OtherUserProfile() {
       setCommentsLoading(true);
       // 올바른 API 엔드포인트로 사용자 댓글 가져오기
       const response = await fetch(
-        `http://localhost:8090/api/v1/comments/user/${userId}`,
+        `http://localhost:8080/api/v1/comments/user/${userId}`,
         {
           credentials: "include",
         }
@@ -391,7 +391,7 @@ export default function OtherUserProfile() {
 
             try {
               const postResponse = await fetch(
-                `http://localhost:8090/api/v1/posts/${comment.postId}`,
+                `http://localhost:8080/api/v1/posts/${comment.postId}`,
                 {
                   credentials: "include",
                 }
@@ -449,7 +449,7 @@ export default function OtherUserProfile() {
     try {
       setIsLoadingFollows(true);
       const response = await fetch(
-        `http://localhost:8090/api/v1/follows/${userId}/followers`,
+        `http://localhost:8080/api/v1/follows/${userId}/followers`,
         {
           credentials: "include",
         }
@@ -471,7 +471,7 @@ export default function OtherUserProfile() {
     try {
       setIsLoadingFollows(true);
       const response = await fetch(
-        `http://localhost:8090/api/v1/follows/${userId}/followings`,
+        `http://localhost:8080/api/v1/follows/${userId}/followings`,
         {
           credentials: "include",
         }
@@ -554,7 +554,7 @@ export default function OtherUserProfile() {
     try {
       // 1. 연속 인증일수 가져오기
       const streakResponse = await fetch(
-        `http://localhost:8090/api/v1/verifications/streak`,
+        `http://localhost:8080/api/v1/verifications/streak`,
         {
           credentials: "include",
         }
@@ -567,7 +567,7 @@ export default function OtherUserProfile() {
 
       // 2. 인증 카테고리(categoryId=1)의 모든 게시물 가져오기
       const categoryPostsResponse = await fetch(
-        `http://localhost:8090/api/v1/posts/category/1`,
+        `http://localhost:8080/api/v1/posts/category/1`,
         {
           credentials: "include",
         }
@@ -792,7 +792,33 @@ export default function OtherUserProfile() {
                     onClick={() => handlePostClick(post)}
                   >
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200">
+                        {userInfo.profileImage ? (
+                          <Image
+                            src={userInfo.profileImage}
+                            alt="프로필 이미지"
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                            unoptimized={true}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
                       <div>
                         <p className="text-sm font-medium">
                           @{post.userNickname}
