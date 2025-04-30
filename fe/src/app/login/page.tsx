@@ -214,7 +214,8 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative flex w-full justify-center rounded-md border border-transparent bg-pink-500 py-3 px-4 text-sm font-medium text-white hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                className="group relative flex w-full justify-center rounded-md border border-transparent py-3 px-4 text-sm font-medium text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                style={{ backgroundColor: "#F742CD" }}
               >
                 {isLoading ? "로그인 중..." : "로그인"}
               </button>

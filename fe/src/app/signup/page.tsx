@@ -746,7 +746,7 @@ export default function Signup() {
                 disabled={isLoading || !isFormValid()}
                 className={`group relative flex w-full justify-center rounded-md border border-transparent py-3 px-4 text-sm font-medium text-white ${
                   isFormValid()
-                    ? "bg-pink-500 hover:bg-pink-600"
+                    ? "bg-[#F742CD] hover:opacity-90"
                     : "bg-gray-400 cursor-not-allowed"
                 } focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2`}
               >
