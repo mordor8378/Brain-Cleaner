@@ -150,13 +150,13 @@ export default function VerificationWritePage({
         formData.append("postImage", fileInputRef.current.files[0]);
       }
 
-      const postResponse = await fetch(`http://localhost:8090/api/v1/posts`, {
+      const res = await fetch(`http://localhost:8080/api/v1/posts`, {
         method: "POST",
         body: formData,
         credentials: "include",
       });
 
-      if (postResponse.ok) {
+      if (res.ok) {
         toast.success("인증이 완료되었습니다!");
         await mutate(); // 유저 정보 갱신
 
@@ -170,7 +170,7 @@ export default function VerificationWritePage({
         }
       } else {
         // 에러 응답 처리
-        const errorData = await postResponse.json();
+        const errorData = await res.json();
         toast.error(
           `등록 실패: ${
             errorData.message || "오늘은 더 이상 인증글을 작성할 수 없습니다."

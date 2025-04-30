@@ -232,7 +232,7 @@ export default function WritePostPage({
         console.log(`FormData에 포함된 키: ${key}`);
       }
 
-      const res = await fetch(`http://localhost:8090/api/v1/posts`, {
+      const res = await fetch(`http://localhost:8080/api/v1/posts`, {
         method: "POST",
         body: formData,
         credentials: "include",
