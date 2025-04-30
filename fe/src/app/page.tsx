@@ -107,16 +107,16 @@ export default function Home() {
           number: 0,
         };
       }
-      url = `http://localhost:8090/api/v1/posts/following/${user.id}/pageable?page=${pageParam}&size=10${sortParam}`;
+      url = `http://localhost:8080/api/v1/posts/following/${user.id}/pageable?page=${pageParam}&size=10${sortParam}`;
     } else {
       const categoryParam =
         selectedBoard === "0" ? "" : `&categoryId=${selectedBoard}`;
-      url = `http://localhost:8090/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
+      url = `http://localhost:8080/api/v1/posts/pageable?page=${pageParam}&size=10${categoryParam}${sortParam}`;
     }
 
     // 검색어가 있으면 검색 API 사용
     if (searchKeyword.trim()) {
-      url = `http://localhost:8090/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(
+      url = `http://localhost:8080/api/v1/posts/search?type=${searchType}&keyword=${encodeURIComponent(
         searchKeyword.trim()
       )}&page=${pageParam}&size=10${sortParam}`;
     }
@@ -150,7 +150,7 @@ export default function Home() {
         // 게시글별 좋아요 상태 확인을 위한 API 호출
         const likeStatusPromises = postsToProcess.map((post: Post) =>
           fetch(
-            `http://localhost:8090/api/v1/posts/${post.postId}/like/check`,
+            `http://localhost:8080/api/v1/posts/${post.postId}/like/check`,
             {
               credentials: "include",
             }
@@ -297,13 +297,13 @@ export default function Home() {
         try {
           const [followersRes, followingRes] = await Promise.all([
             fetch(
-              `http://localhost:8090/api/v1/follows/${user.id}/followers/number`,
+              `http://localhost:8080/api/v1/follows/${user.id}/followers/number`,
               {
                 credentials: "include",
               }
             ),
             fetch(
-              `http://localhost:8090/api/v1/follows/${user.id}/followings/number`,
+              `http://localhost:8080/api/v1/follows/${user.id}/followings/number`,
               {
                 credentials: "include",
               }
@@ -327,7 +327,7 @@ export default function Home() {
         try {
           // 주간 인증 현황 조회
           const weeklyResponse = await fetch(
-            "http://localhost:8090/api/v1/verifications/weekly",
+            "http://localhost:8080/api/v1/verifications/weekly",
             {
               credentials: "include",
             }
@@ -340,7 +340,7 @@ export default function Home() {
 
           // 연속 인증 일수 조회
           const streakResponse = await fetch(
-            "http://localhost:8090/api/v1/verifications/streak",
+            "http://localhost:8080/api/v1/verifications/streak",
             {
               credentials: "include",
             }
@@ -405,7 +405,7 @@ export default function Home() {
       try {
         // 더 많은 게시글을 가져와서 정렬하기 위해 size 증가
         const response = await fetch(
-          "http://localhost:8090/api/v1/posts/pageable?page=0&size=50&sort=likeCount,desc",
+          "http://localhost:8080/api/v1/posts/pageable?page=0&size=50&sort=likeCount,desc",
           {
             credentials: "include",
           }
@@ -437,7 +437,7 @@ export default function Home() {
                 // 각 게시글의 좋아요 상태 가져오기
                 const likeStatusPromises = top5Posts.map((post: Post) =>
                   fetch(
-                    `http://localhost:8090/api/v1/posts/${post.postId}/like/check`,
+                    `http://localhost:8080/api/v1/posts/${post.postId}/like/check`,
                     {
                       credentials: "include",
                     }
@@ -488,7 +488,7 @@ export default function Home() {
     }
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}`,
+        `http://localhost:8080/api/v1/posts/${postId}`,
         {
           credentials: "include",
         }
@@ -501,7 +501,7 @@ export default function Home() {
         if (user?.id) {
           try {
             const likeStatusResponse = await fetch(
-              `http://localhost:8090/api/v1/posts/${postId}/like/check`,
+              `http://localhost:8080/api/v1/posts/${postId}/like/check`,
               {
                 credentials: "include",
               }
@@ -607,7 +607,7 @@ export default function Home() {
     }
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}/like`,
+        `http://localhost:8080/api/v1/posts/${postId}/like`,
         {
           method: "POST",
           credentials: "include",
@@ -657,7 +657,7 @@ export default function Home() {
     }
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}/like`,
+        `http://localhost:8080/api/v1/posts/${postId}/like`,
         {
           method: "DELETE",
           credentials: "include",
@@ -717,7 +717,7 @@ export default function Home() {
   const handleDelete = async (postId: number) => {
     try {
       const response = await fetch(
-        `http://localhost:8090/api/v1/posts/${postId}`,
+        `http://localhost:8080/api/v1/posts/${postId}`,
         {
           method: "DELETE",
           credentials: "include",

@@ -22,7 +22,7 @@ export const fetchEmojis = async (): Promise<Emoji[]> => {
 
     // 이모티콘 목록 조회
     const response = await fetch(
-      "http://localhost:8090/api/v1/pointstore/items",
+      "http://localhost:8080/api/v1/pointstore/items",
       {
         credentials: "include",
       }
