@@ -11,7 +11,7 @@ interface AdminDashboardStats {
   verificationsProcessedToday: number; // '오늘 처리'에 해당
   usersJoinedToday: number; // '오늘 가입자'에 해당
   pendingReports: number;
-  reportsProcessedToday?: number;
+  reportsProcessedToday: number;
 }
 
 export default function AdminDashboardPage() {

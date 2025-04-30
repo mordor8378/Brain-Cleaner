@@ -60,23 +60,26 @@ const AdminReportPage: React.FC = () => {
     reportedPostContent: string; // 신고된 게시글 내용
     reportedPostAuthorId: number; // 신고된 게시글 작성자 ID
     reportedPostAuthorNickname: string; // 신고된 게시글 작성자 닉네임
+    reportedPostCategoryName: string; // 신고된 게시글 카테고리 이름
+    reportedPostImageUrl: string | null; // 신고된 게시글 이미지 URL
   }
 
   interface ReportPage {
     content: Report[]; // Report 타입의 배열
     last: boolean; // 마지막 페이지 여부
     number: number; // 현재 페이지 번호
-    totalElements?: number; // 총 신고 개수 (옵션)
+    totalElements: number; // 총 신고 개수
   }
 
   // 백엔드 API 호출 함수
-  const fetchReports = async ({ pageParam = 0 }): Promise<ReportPage> => {
-    // <--- 함수 이름, 반환 타입 변경!
-    // 관리자 신고 목록 조회 API 엔드포인트 (상대 경로 사용 - 프록시 설정 필요!)
+  const fetchReports = async (context: {
+    pageParam?: number;
+  }): Promise<ReportPage> => {
+    const pageParam = context.pageParam ?? 0;
     const apiUrl =
       `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
       `/api/admin/reports?page=${pageParam}&size=10&sort=createdAt,asc`;
-    console.log("Requesting Admin Reports API:", apiUrl); // 로그 변경
+    console.log("Requesting Admin Reports API:", apiUrl);
 
     try {
       const response = await fetch(apiUrl, {
@@ -84,7 +87,6 @@ const AdminReportPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        // API 호출 실패 시 더 자세한 에러 로깅
         const errorData = await response.text().catch(() => "No error body");
         console.error(
           `Admin Reports API 호출 실패: ${response.status}`,
@@ -94,13 +96,12 @@ const AdminReportPage: React.FC = () => {
       }
 
       const data: ReportPage = await response.json();
-      console.log("Fetched page:", pageParam, data); // 데이터 확인용 로그
-      // 백엔드 응답 구조가 ReportPage와 일치하는지 확인 필요
+      console.log("Fetched page:", pageParam, data);
       if (!data || !Array.isArray(data.content)) {
         console.error("API 응답 형식이 ReportPage와 다릅니다:", data);
         throw new Error("API 응답 형식이 올바르지 않습니다.");
       }
-      return data; // ReportPage 타입의 데이터 반환
+      return data;
     } catch (error) {
       console.error("데이터 fetching 중 에러 발생:", error);
       throw error;
@@ -109,18 +110,17 @@ const AdminReportPage: React.FC = () => {
 
   // useInfiniteQuery 훅 사용
   const {
-    data, // 실제 데이터 (pages 배열 형태)
-    fetchNextPage, // 다음 페이지 로드 함수
-    hasNextPage, // 다음 페이지 존재 여부
-    isFetchingNextPage, // 다음 페이지 로딩 중 여부
-    isFetching, // 초기 데이터 로딩 중 여부 (isFetchingNextPage 포함)
-    refetch, // 데이터 새로고침 함수
-  } = useInfiniteQuery<ReportPage, Error>({
-    queryKey: ["adminReports"], // 쿼리 키
-    queryFn: fetchReports, // API 호출 함수
-    initialPageParam: 0, // 초기 페이지 파라미터
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetching,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ["adminReports"],
+    queryFn: fetchReports,
+    initialPageParam: 0,
     getNextPageParam: (lastPage) => {
-      // 마지막 페이지면 undefined 반환, 아니면 다음 페이지 번호 반환
       return lastPage.last ? undefined : lastPage.number + 1;
     },
   });
@@ -206,7 +206,7 @@ const AdminReportPage: React.FC = () => {
 
   // 마지막 요소 관찰 콜백 (무한 스크롤 트리거)
   const lastItemRef = useCallback(
-    (node: HTMLDivElement) => {
+    (node: HTMLDivElement | null) => {
       if (isFetchingNextPage) return; // 로딩 중이면 아무것도 안 함
 
       if (observerRef.current) {
@@ -280,18 +280,11 @@ const AdminReportPage: React.FC = () => {
     postId: number | undefined | null,
     verificationId: number
   ) => {
-    // postId가 없을 수도 있으니 타입 가드 추가
-    // postId가 유효한지 먼저 확인
-    if (postId === undefined || postId === null) {
-      console.error("삭제할 게시글 ID를 찾을 수 없습니다.", verificationId);
-      alert("삭제할 게시글 정보를 찾을 수 없습니다.");
+    if (!postId) {
+      console.error("게시글 ID가 없습니다.");
       return;
     }
-
-    if (window.confirm(`정말로 게시글 ID ${postId}번을 삭제하시겠습니까?`)) {
-      // 삭제 Mutation 실행 시 postId 전달
-      deleteMutation.mutate(postId);
-    }
+    deleteMutation.mutate(postId);
   };
 
   return (

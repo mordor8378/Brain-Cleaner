@@ -51,9 +51,10 @@ const AdminVerificationPage: React.FC = () => {
 
   // 백엔드 API 응답 타입 정의 (Page<Verification> 구조에 맞춰야 함)
   interface VerificationPage {
-    content: Verification[]; // Verification 타입 배열 (아래 Verification 타입 정의 필요)
+    content: Verification[]; // Verification 타입 배열
     last: boolean;
     number: number;
+    totalElements: number; // 총 인증 요청 개수
   }
 
   interface Verification {
@@ -177,7 +178,7 @@ const AdminVerificationPage: React.FC = () => {
 
   // 마지막 요소 관찰 콜백 (무한 스크롤 트리거)
   const lastItemRef = useCallback(
-    (node: HTMLDivElement) => {
+    (node: HTMLDivElement | null) => {
       if (isFetchingNextPage) return; // 로딩 중이면 아무것도 안 함
 
       if (observerRef.current) {
@@ -250,22 +251,11 @@ const AdminVerificationPage: React.FC = () => {
     postId: number | undefined | null,
     verificationId: number
   ) => {
-    // postId가 없을 수도 있으니 타입 가드 추가
-    // postId가 유효한지 먼저 확인
-    if (postId === undefined || postId === null) {
-      console.error("삭제할 게시글 ID를 찾을 수 없습니다.", verificationId);
-      alert("삭제할 게시글 정보를 찾을 수 없습니다.");
+    if (!postId) {
+      console.error("게시글 ID가 없습니다.");
       return;
     }
-
-    if (
-      window.confirm(
-        `정말로 요청 ID ${verificationId}번 (게시글 ID ${postId}번)을 삭제하시겠습니까? 연결된 게시글이 영구 삭제됩니다.`
-      )
-    ) {
-      // 삭제 Mutation 실행 시 postId 전달
-      deleteMutation.mutate(postId);
-    }
+    deleteMutation.mutate(postId);
   };
 
   return (
