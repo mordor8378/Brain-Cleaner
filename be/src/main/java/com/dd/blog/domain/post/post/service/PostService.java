@@ -148,7 +148,7 @@ public class PostService {
                 .category(category)
                 .user(user)
                 .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
-                .verificationImageUrl(null) // 항상 null로 설정, 이미지는 imageUrl 배열에만 유지
+                .verificationImageUrl( (categoryId == 1L && !newImageUrlList.isEmpty()) ? newImageUrlList.get(0) : null ) // 항상 null로 설정, 이미지는 imageUrl 배열에만 유지
                 .viewCount(0) // 핫게시물 TOP5 위해 재추가
                 .build();
 
