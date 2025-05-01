@@ -7,6 +7,7 @@ import { UserInfo } from "@/types/user";
 import Link from "next/link";
 import { FaStore, FaCog } from "react-icons/fa";
 import CommentModal from "@/components/CommentModal";
+import { useGlobalEmojis, convertEmojiCodesToImages } from "@/utils/emojiUtils";
 
 interface Post {
   postId: number;
@@ -80,6 +81,14 @@ export default function MyProfile() {
   // 새로 추가한 상태
   const [userComments, setUserComments] = useState<any[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const { globalEmojis, isLoading: isGlobalEmojisLoading } = useGlobalEmojis();
+  const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isGlobalEmojisLoading) {
+      setIsEmojiLoaded(true);
+    }
+  }, [isGlobalEmojisLoading]);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -769,7 +778,13 @@ export default function MyProfile() {
                   )}
                   <h3 className="font-medium mb-1">{post.title}</h3>
                   <p className="text-sm text-gray-600 line-clamp-2">
-                    {post.content}
+                    {isEmojiLoaded ? (
+                      <>
+                        {convertEmojiCodesToImages(post.content, globalEmojis)}
+                      </>
+                    ) : (
+                      post.content
+                    )}
                   </p>
                   <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                     <span>조회 {post.viewCount || 0}</span>
@@ -837,7 +852,18 @@ export default function MyProfile() {
                           </span>
                         </div>
                       </div>
-                      <p className="text-gray-800 mt-1">{comment.content}</p>
+                      <p className="text-gray-800 mt-1">
+                        {isEmojiLoaded ? (
+                          <>
+                            {convertEmojiCodesToImages(
+                              comment.content,
+                              globalEmojis
+                            )}
+                          </>
+                        ) : (
+                          comment.content
+                        )}
+                      </p>
                       {comment.post && (
                         <div className="mt-2 text-xs text-gray-500">
                           <span>게시글: {comment.post.title}</span>
