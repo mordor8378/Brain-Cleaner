@@ -148,7 +148,14 @@ public class PostService {
                 .category(category)
                 .user(user)
                 .detoxTime(postRequestDto.getDetoxTime()) // Integer: 디톡스 시간 (~h)
-                .verificationImageUrl( (categoryId == 1L && !newImageUrlList.isEmpty()) ? newImageUrlList.get(0) : null ) // 항상 null로 설정, 이미지는 imageUrl 배열에만 유지
+                .verificationImageUrl(
+                 categoryId == 1L
+                 ? (!newImageUrlList.isEmpty()
+                 ? newImageUrlList.get(0)
+                 : (existingImageUrls.length > 0
+                         ? existingImageUrls[0]
+                         : null))
+                        : null)
                 .viewCount(0) // 핫게시물 TOP5 위해 재추가
                 .build();
 
@@ -373,14 +380,14 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
 
-        // 관리자 게시판인 경우 관리자 권한 확인
-        if(post.getCategory().getId() == 4L) {
+        boolean isAdmin = false;
+        try {
             checkAdminAuthority();
-        } else {
-            // 일반 게시판인 경우 게시글 작성자만 삭제 가능
-            if (!post.getUser().getId().equals(userId)) {
-                throw new ApiException(ErrorCode.FORBIDDEN);
-            }
+            isAdmin = true;
+        } catch (AccessDeniedException ignore) { }
+
+        if (!isAdmin && !post.getUser().getId().equals(userId)) {
+            throw new ApiException(ErrorCode.FORBIDDEN);  // 403
         }
 
         // 연관된 데이터 삭제
