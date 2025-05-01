@@ -31,7 +31,7 @@ export default function RootLayout({
     <html lang="ko">
       <head>
         {/* public/brain-icon.png 사용됨 */}
-        <link rel="icon" href="/brain-icon.ico" type="image/x-icon" />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
         {/* 추가 메타 정보 (안 넣어도 되지만 표준적으로 넣는 편) */}
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
