@@ -7,6 +7,7 @@ import { UserInfo } from "@/types/user";
 import Link from "next/link";
 import { FaStore, FaCog } from "react-icons/fa";
 import CommentModal from "@/components/CommentModal";
+import { useGlobalEmojis, convertEmojiCodesToImages } from "@/utils/emojiUtils";
 
 interface Post {
   postId: number;
@@ -80,19 +81,30 @@ export default function MyProfile() {
   // 새로 추가한 상태
   const [userComments, setUserComments] = useState<any[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const { globalEmojis, isLoading: isGlobalEmojisLoading } = useGlobalEmojis();
+  const [isEmojiLoaded, setIsEmojiLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isGlobalEmojisLoading) {
+      setIsEmojiLoaded(true);
+    }
+  }, [isGlobalEmojisLoading]);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/v1/users/me", {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            // 캐시 방지
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-          },
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/me",
+          {
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              // 캐시 방지
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              Pragma: "no-cache",
+            },
+          }
+        );
 
         if (response.ok) {
           const data = await response.json();
@@ -135,13 +147,15 @@ export default function MyProfile() {
     try {
       const [followersRes, followingRes] = await Promise.all([
         fetch(
-          `http://localhost:8080/api/v1/follows/${userId}/followers/number`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+            `/api/v1/follows/${userId}/followers/number`,
           {
             credentials: "include",
           }
         ),
         fetch(
-          `http://localhost:8080/api/v1/follows/${userId}/followings/number`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+            `/api/v1/follows/${userId}/followings/number`,
           {
             credentials: "include",
           }
@@ -161,7 +175,8 @@ export default function MyProfile() {
   const fetchUserPosts = async (userId: number) => {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/posts/user/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/posts/user/${userId}`,
         {
           credentials: "include",
         }
@@ -182,7 +197,8 @@ export default function MyProfile() {
 
       // 1. 연속 인증일수 가져오기
       const streakResponse = await fetch(
-        `http://localhost:8080/api/v1/verifications/streak`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/verifications/streak`,
         {
           credentials: "include",
         }
@@ -195,7 +211,7 @@ export default function MyProfile() {
 
       // 2. 인증 카테고리(categoryId=1)의 모든 게시물 가져오기
       const categoryPostsResponse = await fetch(
-        `http://localhost:8080/api/v1/posts/category/1`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` + `/api/v1/posts/category/1`,
         {
           credentials: "include",
         }
@@ -222,7 +238,7 @@ export default function MyProfile() {
 
         // 최신 userInfo 가져오기
         const latestUserInfo = await fetch(
-          "http://localhost:8080/api/v1/users/me",
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}` + "/api/v1/users/me",
           {
             credentials: "include",
             headers: {
@@ -269,7 +285,8 @@ export default function MyProfile() {
       setCommentsLoading(true);
       // 올바른 API 엔드포인트로 사용자 댓글 가져오기
       const response = await fetch(
-        `http://localhost:8080/api/v1/comments/user/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/comments/user/${userId}`,
         {
           credentials: "include",
         }
@@ -304,7 +321,8 @@ export default function MyProfile() {
 
             try {
               const postResponse = await fetch(
-                `http://localhost:8080/api/v1/posts/${comment.postId}`,
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+                  `/api/v1/posts/${comment.postId}`,
                 {
                   credentials: "include",
                 }
@@ -357,7 +375,8 @@ export default function MyProfile() {
     try {
       setIsLoadingFollows(true);
       const response = await fetch(
-        `http://localhost:8080/api/v1/follows/${userId}/followers`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/follows/${userId}/followers`,
         {
           credentials: "include",
         }
@@ -379,7 +398,8 @@ export default function MyProfile() {
     try {
       setIsLoadingFollows(true);
       const response = await fetch(
-        `http://localhost:8080/api/v1/follows/${userId}/followings`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
+          `/api/v1/follows/${userId}/followings`,
         {
           credentials: "include",
         }
@@ -758,7 +778,13 @@ export default function MyProfile() {
                   )}
                   <h3 className="font-medium mb-1">{post.title}</h3>
                   <p className="text-sm text-gray-600 line-clamp-2">
-                    {post.content}
+                    {isEmojiLoaded ? (
+                      <>
+                        {convertEmojiCodesToImages(post.content, globalEmojis)}
+                      </>
+                    ) : (
+                      post.content
+                    )}
                   </p>
                   <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                     <span>조회 {post.viewCount || 0}</span>
@@ -826,7 +852,18 @@ export default function MyProfile() {
                           </span>
                         </div>
                       </div>
-                      <p className="text-gray-800 mt-1">{comment.content}</p>
+                      <p className="text-gray-800 mt-1">
+                        {isEmojiLoaded ? (
+                          <>
+                            {convertEmojiCodesToImages(
+                              comment.content,
+                              globalEmojis
+                            )}
+                          </>
+                        ) : (
+                          comment.content
+                        )}
+                      </p>
                       {comment.post && (
                         <div className="mt-2 text-xs text-gray-500">
                           <span>게시글: {comment.post.title}</span>

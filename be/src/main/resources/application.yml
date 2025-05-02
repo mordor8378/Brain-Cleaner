@@ -9,8 +9,8 @@ spring:
     include: secret
   datasource:
     url: jdbc:mysql://localhost:3306/blog_prod
-    username: su
-    password: sususu1234
+    username: brain_cleaner_user
+    password: 3069
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     open-in-view: false
@@ -54,7 +54,7 @@ custom:
   prod:
     cookieDomain: braincleaner.site
     frontUrl: "https://www.${custom.prod.cookieDomain}"
-    backUrl: "https://api.${custom.prod.cookieDomain}"
+    backUrl: "https://api.blog.${custom.prod.cookieDomain}"
   site:
     name: "BLOG DEV"
     cookieDomain: "${custom.dev.cookieDomain}"

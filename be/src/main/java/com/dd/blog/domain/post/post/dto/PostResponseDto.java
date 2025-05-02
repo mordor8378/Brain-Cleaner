@@ -51,7 +51,7 @@ public class PostResponseDto {
         }
         
         // 인증 게시판인 경우 첫 번째 이미지를 verificationImageUrl로 설정
-        if (post.getCategory().getId() == 3L && imageUrls != null && imageUrls.length > 0) {
+        if (post.getCategory().getId() == 1L && imageUrls != null && imageUrls.length > 0) {
             verificationImageUrl = imageUrls[0];
         }
         
