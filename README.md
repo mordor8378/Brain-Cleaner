@@ -8,7 +8,7 @@
 
 ### 🎨 Frontend  
 [![Next.js](https://img.shields.io/badge/Next.js-white?style=flat&logo=next.js)](https://nextjs.org/)
-
+[![Next.js](https://img.shields.io/badge/Next.js-white?style=flat&logo=next.js)](https://nextjs.org/)
 ---
 
 ### 🧩 Backend  
